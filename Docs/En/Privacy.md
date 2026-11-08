@@ -49,7 +49,7 @@ invitation window ("Rendezvous server" in the [user guide](UserGuide.md)).
 
 ## The project page
 
-The project page `golether.github.io/Golether` counts its visits with Umami Cloud. Umami uses no cookies and, by its
+The project page `golether.github.io` counts its visits with Umami Cloud. Umami uses no cookies and, by its
 own description, keeps no IP addresses: it records the address of the page (without the part after `#` and `?`), the
 page you came from, the browser, the system, the type of device, the size of the screen, the language and the country,
 which it derives from your address. A press on a download button is counted too: which package (Windows, .deb,

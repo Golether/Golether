@@ -311,7 +311,7 @@ private als auch das öffentliche Netzwerk ankreuzen.
 
 ## Updates
 
-Beim Start fragt Golether die [Projektseite](https://golether.github.io/Golether/), ob eine neue Version erschienen ist.
+Beim Start fragt Golether die [Projektseite](https://golether.github.io/), ob eine neue Version erschienen ist.
 Wenn ja, erscheint oben die Leiste „Eine neue Version ist verfügbar“ mit der Schaltfläche **Downloadseite öffnen**: Ihr
 Browser öffnet die Seite mit den Links für Ihr System. Nichts wird von selbst heruntergeladen oder installiert: Sie
 entscheiden. Das Häkchen **Diese Version ignorieren**, vor dem Schließen der Leiste gesetzt, schaltet die Erinnerung an

@@ -130,7 +130,7 @@ $entry = [ordered]@{
         url     = ($UpdateUrlPrefix.TrimEnd('/') + '/' + (Split-Path -Leaf $setup))
         sha256  = $hash
         size    = $size
-        page    = 'https://golether.github.io/Golether/#download'
+        page    = 'https://golether.github.io/#download'
     }
 }
 $entry | ConvertTo-Json -Depth 4

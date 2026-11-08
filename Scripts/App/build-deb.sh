@@ -99,7 +99,7 @@ cat > "$root/usr/share/metainfo/io.github.depthrel.Golether.metainfo.xml" <<META
   </description>
   <launchable type="desktop-id">golether.desktop</launchable>
   <icon type="stock">golether</icon>
-  <url type="homepage">https://golether.github.io/Golether/</url>
+  <url type="homepage">https://golether.github.io/</url>
   <url type="vcs-browser">https://github.com/Golether/Golether</url>
   <categories>
     <category>AudioVideo</category>
@@ -151,7 +151,7 @@ Depends: libmpv2 | libmpv1, libicu74 | libicu76 | libicu72 | libicu70, libssl3t6
 Recommends: gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, gstreamer1.0-nice, gstreamer1.0-pulseaudio
 Section: video
 Priority: optional
-Homepage: https://golether.github.io/Golether/
+Homepage: https://golether.github.io/
 Description: Watch a video together, in sync, with webcams and voice
  Golether plays one video file for up to five people at once. The host shares the file straight from the computer,
  everyone sees and hears each other, and pause, seeking and speed stay in sync. No server of the project ever sees

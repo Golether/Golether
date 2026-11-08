@@ -243,7 +243,7 @@ O estado da sessão (`PlaybackState`): “no momento `ReferenceTime` segundo o r
   todo o resto é igual em cada convite de uma sessão, por isso um convite novo distingue-se desde os primeiros
   caracteres.
   - *Duas formas.* A **chave** (`golether://…`) é colada na aplicação, a **ligação**
-    (`https://golether.github.io/Golether/join/#…`) é clicável em qualquer serviço de mensagens; o conteúdo é o mesmo. A
+    (`https://golether.github.io/join/#…`) é clicável em qualquer serviço de mensagens; o conteúdo é o mesmo. A
     janela do convite emite-as como dois convites com tokens próprios: a ligação vive 15 minutos, a chave 15 minutos ou
     uma hora. O `InviteRegistry` não emite nada que dure mais de uma hora.
   - *Um para todo o grupo.* Todos os que o anfitrião chamou entram com um convite até ele expirar ou ter trazido 16

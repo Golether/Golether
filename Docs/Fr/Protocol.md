@@ -230,7 +230,7 @@ Un morceau reçu n'est accepté que si son SHA-256 correspond au hachage de l'h�
 donc une nouvelle invitation se distingue dès ses premiers caractères. L'ordre des champs ne signifie rien pour un
 lecteur. `endpoints` contient de 1 à 16 adresses.
 
-La même invitation sous forme de lien web : `https://golether.github.io/Golether/join/#` + le même base64url. Le
+La même invitation sous forme de lien web : `https://golether.github.io/join/#` + le même base64url. Le
 navigateur n'envoie pas au serveur la partie après `#` ; la page la transforme en `golether://join/v1/…` et la transmet
 à l'application. L'application accepte les deux formes.
 Les liens de la page à son adresse d'avant le déménagement du projet,

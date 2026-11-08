@@ -12,7 +12,7 @@ public static class ProjectSite
     /// <summary>
     /// The address of the page, ending with a slash. It doubles as the page with the downloads.
     /// </summary>
-    public const string BASE_URL = "https://golether.github.io/Golether/";
+    public const string BASE_URL = "https://golether.github.io/";
 
     /// <summary>
     /// The beginning of an invitation link. The invitation follows the <c>#</c>, so browsers never send it to the

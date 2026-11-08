@@ -50,7 +50,7 @@ ventana de invitación («Servidor de encuentro» en la [guía de uso](UserGuide
 
 ## La página del proyecto
 
-La página del proyecto `golether.github.io/Golether` cuenta sus visitas con Umami Cloud. Umami no usa cookies y, según
+La página del proyecto `golether.github.io` cuenta sus visitas con Umami Cloud. Umami no usa cookies y, según
 su propia descripción, no guarda direcciones IP: registra la dirección de la página (sin la parte tras `#` y `?`), la
 página de la que viene, el navegador, el sistema, el tipo de dispositivo, el tamaño de la pantalla, el idioma y el
 país, que deduce de su dirección. También se cuenta la pulsación de un botón de descarga: qué paquete (Windows, .deb,

@@ -50,7 +50,7 @@ eigenen Server („Vermittlungsserver“ im [Handbuch](UserGuide.md)).
 
 ## Die Projektseite
 
-Die Projektseite `golether.github.io/Golether` zählt ihre Besuche mit Umami Cloud. Umami verwendet keine Cookies und
+Die Projektseite `golether.github.io` zählt ihre Besuche mit Umami Cloud. Umami verwendet keine Cookies und
 speichert nach eigener Beschreibung keine IP-Adressen: Es erfasst die Adresse der Seite (ohne den Teil nach `#` und
 `?`), die Seite, von der Sie kamen, den Browser, das System, die Art des Geräts, die Bildschirmgröße, die Sprache und
 das Land, das es aus Ihrer Adresse ableitet. Auch ein Klick auf eine Download-Schaltfläche wird gezählt: welches Paket

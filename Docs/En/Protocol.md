@@ -227,7 +227,7 @@ within 30 seconds: a participant who sends a little at a time cannot hold the fi
 new invitation differs from its first characters. The order of the fields means nothing to a reader. `endpoints`
 holds from 1 to 16 addresses.
 
-The same invitation as a web link: `https://golether.github.io/Golether/join/#` + the same base64url. The browser
+The same invitation as a web link: `https://golether.github.io/join/#` + the same base64url. The browser
 does not send the part after `#` to the server; the page turns it into `golether://join/v1/…` and hands it to the
 application. The application accepts both spellings.
 Links of the page at its address before the move of the project,

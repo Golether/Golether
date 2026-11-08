@@ -50,7 +50,7 @@ dans la fenêtre d'invitation (« Serveur de rendez-vous » dans le [guide d'uti
 
 ## La page du projet
 
-La page du projet `golether.github.io/Golether` compte ses visites avec Umami Cloud. Umami n'utilise pas de cookies
+La page du projet `golether.github.io` compte ses visites avec Umami Cloud. Umami n'utilise pas de cookies
 et, selon sa propre description, ne garde aucune adresse IP : il enregistre l'adresse de la page (sans la partie après
 `#` et `?`), la page d'où vous venez, le navigateur, le système, le type d'appareil, la taille de l'écran, la langue
 et le pays, qu'il déduit de votre adresse. Un clic sur un bouton de téléchargement est compté aussi : quel paquet

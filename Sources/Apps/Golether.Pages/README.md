@@ -1,7 +1,8 @@
 # Golether.Pages
 
-The project page: <https://golether.github.io/Golether/>. Plain static files with no build step, published by GitHub
-Pages from this folder (`.github/workflows/pages.yml`) on every change in the `main` branch.
+The project page: <https://golether.github.io/>. Plain static files with no build step. On every change in the `main`
+branch `.github/workflows/pages.yml` copies this folder into the repository `Golether/golether.github.io`, whose GitHub
+Pages serve the root of the organization's site.
 
 | File | What for |
 |---|---|
@@ -13,10 +14,18 @@ Pages from this folder (`.github/workflows/pages.yml`) on every change in the `m
 
 ## First publication
 
-1. Open the repository on GitHub: **Settings → Pages**.
-2. Under **Build and deployment** choose **Source: GitHub Actions**.
-3. Push a commit with this folder to `main` (or run the **Pages** workflow by hand on the **Actions** tab).
-4. A couple of minutes later the page opens at <https://golether.github.io/Golether/>.
+1. Create the public repository `Golether/golether.github.io` with **Add a README file** ticked, so that it has a
+   `main` branch (the first publication replaces the README). In its **Settings → Pages** keep **Deploy from a branch**,
+   `main`, `/ (root)`.
+2. Make a key pair for it: `ssh-keygen -t ed25519 -C "golether pages" -f site-deploy-key`, and press Enter twice
+   at the passphrase prompts (the workflow cannot type one).
+3. In `Golether/golether.github.io`: **Settings → Deploy keys → Add deploy key**, the content of
+   `site-deploy-key.pub`, **Allow write access** ticked. The key writes to this one repository only.
+4. In `Golether/Golether`: **Settings → Secrets and variables → Actions → New repository secret** named
+   `SITE_DEPLOY_KEY`, the content of `site-deploy-key`. Delete both key files afterwards; a new pair replaces a lost
+   one.
+5. Run the **Pages** workflow by hand on the **Actions** tab (later every change of this folder in `main` runs it).
+6. A couple of minutes later the page opens at <https://golether.github.io/>.
 
 ## A new release
 
@@ -32,6 +41,10 @@ Pages from this folder (`.github/workflows/pages.yml`) on every change in the `m
    before the move to the organization read it there.
 
 `Scripts/App/build-installer.ps1` prints a ready entry for Windows.
+
+A pre-release (a beta) is built the same way, but on GitHub tick **Set as a pre-release** and leave `updates.json` and
+its copy at the old address alone: the update check offers it to nobody, and testers take it from the releases page.
+The version number is an ordinary one, and the final release takes the next number.
 
 ## The old address
 

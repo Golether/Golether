@@ -23,7 +23,7 @@
     <Copyright>Copyright © Golether contributors. Licensed under GPL-3.0-or-later.</Copyright>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <!-- The page of the project; the installers show it as the link of the program in the list of installed apps. -->
-    <PackageProjectUrl>https://golether.github.io/Golether</PackageProjectUrl>
+    <PackageProjectUrl>https://golether.github.io</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Golether/Golether</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <Version>0.4.1</Version>

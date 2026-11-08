@@ -239,7 +239,7 @@ die anderen nicht aufhalten.
 unterscheidet sich eine neue Einladung ab den ersten Zeichen. Die Reihenfolge der Felder bedeutet einem Leser nichts.
 `endpoints` enthält 1 bis 16 Adressen.
 
-Dieselbe Einladung als Weblink: `https://golether.github.io/Golether/join/#` + dasselbe base64url. Der Browser schickt
+Dieselbe Einladung als Weblink: `https://golether.github.io/join/#` + dasselbe base64url. Der Browser schickt
 den Teil nach `#` nicht an den Server; die Seite macht daraus `golether://join/v1/…` und übergibt es der Anwendung. Die
 Anwendung nimmt beide Schreibweisen an.
 Links der Seite unter ihrer Adresse vor dem Umzug des Projekts,

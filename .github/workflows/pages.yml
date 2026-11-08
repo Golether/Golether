@@ -1,5 +1,9 @@
-# Publishes the project page (Sources/Apps/Golether.Pages) with GitHub Pages.
-# One-time setup: repository Settings -> Pages -> Build and deployment -> Source: "GitHub Actions".
+# Publishes the project page (Sources/Apps/Golether.Pages) at https://golether.github.io/.
+#
+# The root of an organization's site is served only from its repository Golether/golether.github.io, so the page is
+# copied there as a commit, and GitHub Pages of that repository publishes it from its main branch. The commit is
+# pushed with a deploy key: it can write to that one repository and nothing else.
+# One-time setup: Sources/Apps/Golether.Pages/README.md, "First publication".
 name: Pages
 
 on:
@@ -12,9 +16,8 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
+# Two runs pushing at once would race; a newer push makes the older one pointless.
 concurrency:
   group: pages
   cancel-in-progress: true
@@ -22,14 +25,37 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
         with:
-          path: Sources/Apps/Golether.Pages
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          persist-credentials: false
+      - name: Check the deploy key
+        env:
+          SITE_DEPLOY_KEY: ${{ secrets.SITE_DEPLOY_KEY }}
+        run: |
+          if [ -z "$SITE_DEPLOY_KEY" ]; then
+            echo "::error::The secret SITE_DEPLOY_KEY is missing: see Sources/Apps/Golether.Pages/README.md, First publication."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+        with:
+          repository: Golether/golether.github.io
+          ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
+          path: site
+      # The site repository holds exactly the page: files deleted here disappear there. Without Jekyll every file is
+      # served as it is, including folders whose names begin with an underscore.
+      - name: Copy the page
+        run: |
+          rsync -a --delete --exclude .git Sources/Apps/Golether.Pages/ site/
+          touch site/.nojekyll
+      - name: Push the page
+        working-directory: site
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "The page has not changed."
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "The page of Golether/Golether@${GITHUB_SHA}"
+          git push

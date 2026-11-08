@@ -308,7 +308,7 @@ Golether et cochez à la fois le réseau privé et le réseau public.
 
 ## Mises à jour
 
-Au lancement, Golether demande à la [page du projet](https://golether.github.io/Golether/) si une nouvelle version est
+Au lancement, Golether demande à la [page du projet](https://golether.github.io/) si une nouvelle version est
 sortie. Si oui, la barre « Une nouvelle version est disponible » apparaît en haut avec le bouton **Ouvrir la page de
 téléchargement** : votre navigateur ouvre la page avec les liens pour votre système. Rien n'est téléchargé ni installé
 tout seul : c'est vous qui décidez. La case **Ignorer cette version**, cochée avant de fermer la barre, désactive le

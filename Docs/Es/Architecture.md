@@ -250,7 +250,7 @@ El estado de la sesión (`PlaybackState`): «en el momento `ReferenceTime` segú
   JSON: todo lo demás es igual en cada invitación de una sesión, así una invitación nueva se diferencia desde sus
   primeros caracteres.
   - *Dos formas.* La **clave** (`golether://…`) se pega en la aplicación, el **enlace**
-    (`https://golether.github.io/Golether/join/#…`) se puede pulsar en cualquier mensajería; el contenido es el mismo.
+    (`https://golether.github.io/join/#…`) se puede pulsar en cualquier mensajería; el contenido es el mismo.
     La ventana de invitación las emite como dos invitaciones con tokens propios: el enlace vive 15 minutos, la clave
     15 minutos o una hora. `InviteRegistry` no emite nada que dure más de una hora.
   - *Una para todo el grupo.* Todos a quienes llamó el anfitrión se unen con una invitación hasta que caduca o ha traído

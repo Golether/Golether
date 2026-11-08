@@ -12,7 +12,7 @@
 ; The page of the project (PackageProjectUrl of Directory.Build.props): the link of the program in the list of
 ; installed apps.
 #ifndef ServerUrl
-  #define ServerUrl "https://golether.github.io/Golether"
+  #define ServerUrl "https://golether.github.io"
 #endif
 #ifndef ServerSource
   #define ServerSource "..\..\artifacts\publish\win-x64\GoletherServer"

@@ -251,7 +251,7 @@ L'état de la séance (`PlaybackState`) : « à l'instant `ReferenceTime` selon 
   premier dans le JSON : tout le reste est identique dans chaque invitation d'une séance, donc une nouvelle invitation se
   distingue dès ses premiers caractères.
   - *Deux formes.* La **clé** (`golether://…`) se colle dans l'application, le **lien**
-    (`https://golether.github.io/Golether/join/#…`) est cliquable dans n'importe quelle messagerie ; le contenu est le
+    (`https://golether.github.io/join/#…`) est cliquable dans n'importe quelle messagerie ; le contenu est le
     même. La fenêtre d'invitation les émet comme deux invitations avec leurs propres jetons : le lien vit 15 minutes, la
     clé 15 minutes ou une heure. `InviteRegistry` n'émet rien qui vive plus d'une heure.
   - *Une pour toute la bande.* Tous ceux que l'hôte a appelés rejoignent avec une seule invitation jusqu'à son expiration

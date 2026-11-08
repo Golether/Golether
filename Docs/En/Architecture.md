@@ -241,7 +241,7 @@ and the rate `Rate`". Every node computes the needed position itself: `Position 
   JSON: everything else is the same in every invitation of a session, so a new invitation differs from its first
   characters.
   - *Two spellings.* The **key** (`golether://…`) is pasted into the application, the **link**
-    (`https://golether.github.io/Golether/join/#…`) is clickable in any messenger; the content is the same. The
+    (`https://golether.github.io/join/#…`) is clickable in any messenger; the content is the same. The
     invitation window issues them as two invitations with tokens of their own: the link lives 15 minutes, the key
     15 minutes or an hour. `InviteRegistry` issues nothing longer than an hour.
   - *One for the whole company.* Everybody the host called joins with one invitation until it expires or has brought

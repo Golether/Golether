@@ -233,7 +233,7 @@ pide al anfitrión. Lo mismo ocurre cuando la transferencia se detiene 5 segundo
 nueva se diferencia desde sus primeros caracteres. El orden de los campos no significa nada para un lector.
 `endpoints` contiene de 1 a 16 direcciones.
 
-La misma invitación como enlace web: `https://golether.github.io/Golether/join/#` + el mismo base64url. El navegador no
+La misma invitación como enlace web: `https://golether.github.io/join/#` + el mismo base64url. El navegador no
 envía al servidor la parte tras `#`; la página la convierte en `golether://join/v1/…` y se la entrega a la aplicación.
 La aplicación acepta ambas formas.
 Los enlaces de la página en su dirección anterior al traslado del proyecto,

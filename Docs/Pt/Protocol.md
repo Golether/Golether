@@ -230,7 +230,7 @@ pedida ao anfitrião. O mesmo acontece quando a transferência para durante 5 se
 distingue-se desde os primeiros caracteres. A ordem dos campos não significa nada para um leitor. `endpoints` contém de 1
 a 16 endereços.
 
-O mesmo convite como ligação web: `https://golether.github.io/Golether/join/#` + o mesmo base64url. O navegador não envia
+O mesmo convite como ligação web: `https://golether.github.io/join/#` + o mesmo base64url. O navegador não envia
 ao servidor a parte depois do `#`; a página transforma-a em `golether://join/v1/…` e entrega-a à aplicação. A aplicação
 aceita as duas formas.
 As ligações da página no endereço anterior à mudança do projeto,

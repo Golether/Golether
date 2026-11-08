@@ -252,7 +252,7 @@ Der Zustand der Sitzung (`PlaybackState`): „Im Moment `ReferenceTime` nach der
   zuerst: Alles andere ist in jeder Einladung einer Sitzung gleich, so unterscheidet sich eine neue Einladung ab den
   ersten Zeichen.
   - *Zwei Schreibweisen.* Der **Schlüssel** (`golether://…`) wird in die Anwendung eingefügt, der **Link**
-    (`https://golether.github.io/Golether/join/#…`) ist in jedem Messenger anklickbar; der Inhalt ist derselbe. Das
+    (`https://golether.github.io/join/#…`) ist in jedem Messenger anklickbar; der Inhalt ist derselbe. Das
     Einladungsfenster gibt sie als zwei Einladungen mit eigenen Token aus: Der Link lebt 15 Minuten, der Schlüssel
     15 Minuten oder eine Stunde. `InviteRegistry` gibt nichts aus, was länger als eine Stunde lebt.
   - *Eine für die ganze Runde.* Alle, die der Gastgeber eingeladen hat, treten mit einer Einladung bei, bis sie abläuft

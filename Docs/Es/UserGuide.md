@@ -302,7 +302,7 @@ marca tanto la red privada como la pública.
 
 ## Actualizaciones
 
-Al iniciarse, Golether pregunta a la [página del proyecto](https://golether.github.io/Golether/) si ha salido una
+Al iniciarse, Golether pregunta a la [página del proyecto](https://golether.github.io/) si ha salido una
 versión nueva. Si es así, arriba aparece la barra «Hay una versión nueva disponible» con el botón **Abrir la página de
 descarga**: tu navegador abre la página con los enlaces para tu sistema. No se descarga ni se instala nada solo: decides
 tú. La casilla **Ignorar esta versión**, marcada antes de cerrar la barra, desactiva el aviso de esa versión; Golether te
