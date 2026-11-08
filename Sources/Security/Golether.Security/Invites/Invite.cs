@@ -21,7 +21,7 @@ namespace Golether.Security.Invites;
 /// page hands the key over to the application.
 /// </para>
 /// </remarks>
-public sealed record Invite
+public sealed partial record Invite
 {
     /// <summary>
     /// The link prefix.
@@ -55,11 +55,6 @@ public sealed record Invite
     private const long MAX_EXPIRES_SECONDS = 253_402_300_799;
 
     /// <summary>
-    /// The JSON options of the link payload.
-    /// </summary>
-    private static readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
-
-    /// <summary>
     /// Gets the host identifier.
     /// </summary>
     public required PeerId HostPeerId { get; init; }
@@ -75,7 +70,8 @@ public sealed record Invite
     public required string SessionName { get; init; }
 
     /// <summary>
-    /// Gets the candidate host endpoints in order of preference.
+    /// Gets the candidate host endpoints in order of preference. Empty only when the host is reached through
+    /// <see cref="Rendezvous"/> alone (a host in a browser).
     /// </summary>
     public required IReadOnlyList<PeerEndpoint> Endpoints { get; init; }
 
@@ -84,6 +80,13 @@ public sealed record Invite
     /// Participants whose direct attempts fail meet the host through it.
     /// </summary>
     public RendezvousPoint? Rendezvous { get; init; }
+
+    /// <summary>
+    /// Gets the signalling of the rendezvous server (<c>wss://…/signal</c>) where the host keeps the same room for
+    /// WebRTC connections, or <see langword="null"/> when the host takes none: browsers reach the host only this way,
+    /// applications when their other ways failed.
+    /// </summary>
+    public Uri? Signal { get; init; }
 
     /// <summary>
     /// Gets the one-time token (base64url, <see cref="TOKEN_BYTES"/> bytes).
@@ -115,8 +118,9 @@ public sealed record Invite
             Token,
             ExpiresAt.ToUnixTimeSeconds(),
             Rendezvous?.Server.ToString(),
-            Rendezvous?.Room);
-        return LINK_PREFIX + Base64Url.EncodeToString(JsonSerializer.SerializeToUtf8Bytes(payload, _jsonOptions));
+            Rendezvous?.Room,
+            Signal?.OriginalString);
+        return LINK_PREFIX + Base64Url.EncodeToString(JsonSerializer.SerializeToUtf8Bytes(payload, InviteJsonContext.Default.InvitePayload));
     }
 
     /// <summary>
@@ -141,6 +145,8 @@ public sealed record Invite
     private static string? FindPrefix(ReadOnlySpan<char> text)
         => text.StartsWith(LINK_PREFIX, StringComparison.Ordinal) ? LINK_PREFIX
             : text.StartsWith(WEB_LINK_PREFIX, StringComparison.Ordinal) ? WEB_LINK_PREFIX
+            : text.StartsWith(ProjectSite.WATCH_URL_PREFIX, StringComparison.Ordinal) ? ProjectSite.WATCH_URL_PREFIX
+            : text.StartsWith(ProjectSite.LEGACY_JOIN_URL_PREFIX, StringComparison.Ordinal) ? ProjectSite.LEGACY_JOIN_URL_PREFIX
             : null;
 
     /// <summary>
@@ -161,7 +167,7 @@ public sealed record Invite
         try
         {
             var bytes = Base64Url.DecodeFromChars(text.AsSpan(prefix.Length));
-            payload = JsonSerializer.Deserialize<InvitePayload>(bytes, _jsonOptions);
+            payload = JsonSerializer.Deserialize(bytes, InviteJsonContext.Default.InvitePayload);
         }
         catch (Exception ex) when (ex is FormatException or JsonException)
         {
@@ -170,7 +176,7 @@ public sealed record Invite
 
         if (payload is null ||
             !PeerId.TryParse(payload.Host, out var host) ||
-            payload.Endpoints is null || payload.Endpoints.Length is 0 or > MAX_ENDPOINTS ||
+            payload.Endpoints is null || payload.Endpoints.Length > MAX_ENDPOINTS ||
             !IsValidToken(payload.Token) ||
             payload.Expires is < 0 or > MAX_EXPIRES_SECONDS)
         {
@@ -194,6 +200,15 @@ public sealed record Invite
             throw new FormatException(Texts.Get("Invite.Error.Damaged"));
         }
 
+        // A host in a browser has no address to give: it is reached only through its room. Without addresses and
+        // without a room there is no way to the host at all. The signalling keeps the same room, so it needs one.
+        Uri? signal = null;
+        if ((endpoints.Count == 0 && rendezvous is null) ||
+            (payload.Signal is not null && (rendezvous is null || !SignalAddress.TryParse(payload.Signal, out signal))))
+        {
+            throw new FormatException(Texts.Get("Invite.Error.Damaged"));
+        }
+
         return new Invite
         {
             HostPeerId = host,
@@ -203,6 +218,7 @@ public sealed record Invite
             Token = payload.Token!,
             ExpiresAt = DateTimeOffset.FromUnixTimeSeconds(payload.Expires),
             Rendezvous = rendezvous,
+            Signal = signal,
         };
     }
 
@@ -225,6 +241,13 @@ public sealed record Invite
     }
 
     /// <summary>
+    /// The JSON of the link payload made at build time, with web defaults, so a trimmed build reads links too.
+    /// </summary>
+    [JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]
+    [JsonSerializable(typeof(InvitePayload))]
+    private sealed partial class InviteJsonContext : JsonSerializerContext;
+
+    /// <summary>
     /// The JSON payload of a link with short property names.
     /// </summary>
     /// <remarks>
@@ -240,6 +263,7 @@ public sealed record Invite
     /// <param name="Expires">The expiry time in Unix seconds.</param>
     /// <param name="Meet">The rendezvous server as <c>host:port</c>; absent without one and in older links.</param>
     /// <param name="Room">The room of the host on the rendezvous server; absent without one.</param>
+    /// <param name="Signal">The signalling where the host keeps the same room; absent without one.</param>
     private sealed record InvitePayload(
         string? Host,
         string? Name,
@@ -248,5 +272,6 @@ public sealed record Invite
         [property: JsonPropertyOrder(-2)] string? Token,
         [property: JsonPropertyOrder(-1)] long Expires,
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Meet = null,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Room = null);
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Room = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Signal = null);
 }

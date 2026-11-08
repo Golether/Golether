@@ -35,7 +35,7 @@ public sealed class AboutTests
         {
             _dialogs.OpenLinkAsync(ProjectSite.BASE_URL);
             _dialogs.OpenLinkAsync(ProjectSite.SOURCE_URL);
-            _dialogs.OpenLinkAsync("https://github.com/DepthRel/Golether/blob/main/Docs/Ru/Privacy.md");
+            _dialogs.OpenLinkAsync("https://github.com/Golether/Golether/blob/main/Docs/Ru/Privacy.md");
             _dialogs.OpenLinkAsync(ProjectSite.LICENSE_URL);
             _dialogs.OpenLinkAsync(ProjectSite.NOTICES_URL);
         });
@@ -130,7 +130,7 @@ public sealed class AboutTests
     [Fact]
     public void DocumentUrl_FollowsTheLanguage()
     {
-        const string DOCS = "https://github.com/DepthRel/Golether/blob/main/Docs/";
+        const string DOCS = "https://github.com/Golether/Golether/blob/main/Docs/";
 
         Assert.Equal(DOCS + "De/Privacy.md", ProjectSite.DocumentUrl("de", "Privacy.md"));
         Assert.Equal(DOCS + "En/UserGuide.md", ProjectSite.DocumentUrl("EN", "UserGuide.md"));

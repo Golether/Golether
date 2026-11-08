@@ -1,6 +1,4 @@
 using System.Collections.Concurrent;
-using Golether.Components.Catalog;
-using Golether.Components.GStreamer;
 using Golether.Core.Data.Enums;
 using Golether.Core.Identity;
 using Golether.Core.Media;
@@ -818,7 +816,7 @@ public sealed class ConferenceTests
     /// <param name="relayOnly">Whether only relayed paths are allowed.</param>
     private static (GStreamerConferenceMedia?, GStreamerConferenceMedia?, string?) CreatePair(bool relayOnly)
     {
-        var bundle = FindBundle();
+        var bundle = TestBundle.Find();
         if (bundle is null && OperatingSystem.IsWindows())
         {
             return (null, null, "The GStreamer bundle is not prepared (run golether-components fetch).");
@@ -851,28 +849,5 @@ public sealed class ConferenceTests
         }
 
         return (a, Create(), null);
-    }
-
-    /// <summary>
-    /// Finds the bundle prepared in the repository.
-    /// </summary>
-    /// <returns>The bundle root or <see langword="null"/>.</returns>
-    private static string? FindBundle()
-    {
-        if (!OperatingSystem.IsWindows())
-        {
-            return null;
-        }
-
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
-        {
-            var candidate = Path.Combine(directory.FullName, "Native", ComponentCatalog.CurrentRuntimeIdentifier, "gstreamer");
-            if (GStreamerBundle.IsComplete(candidate))
-            {
-                return candidate;
-            }
-        }
-
-        return null;
     }
 }

@@ -1,7 +1,5 @@
 using System.Buffers.Binary;
 using Microsoft.Extensions.Logging.Abstractions;
-using Golether.Components.Catalog;
-using Golether.Components.GStreamer;
 using Golether.Media.Conference.GStreamer.Native;
 
 namespace Golether.Media.Conference.GStreamer.Tests;
@@ -36,7 +34,7 @@ public sealed class EchoCancellationTests
     [Fact]
     public async Task Echo_IsRemoved_WhenThePipelinesShareATimeline()
     {
-        var bundle = FindBundle();
+        var bundle = TestBundle.Find();
         Assert.SkipWhen(bundle is null && OperatingSystem.IsWindows(), "The GStreamer bundle is not prepared (run golether-components fetch).");
         var registry = Path.Combine(Path.GetTempPath(), "golether-tests", "gst-registry.bin");
         Assert.SkipWhen(!GstRuntime.TryInitialize(bundle, registry, out var reason), reason ?? string.Empty);
@@ -129,28 +127,5 @@ public sealed class EchoCancellationTests
 
             await Task.Delay(5, CancellationToken.None).ConfigureAwait(false);
         }
-    }
-
-    /// <summary>
-    /// Finds the bundle prepared in the repository.
-    /// </summary>
-    /// <returns>The bundle root or <see langword="null"/>.</returns>
-    private static string? FindBundle()
-    {
-        if (!OperatingSystem.IsWindows())
-        {
-            return null;
-        }
-
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
-        {
-            var candidate = Path.Combine(directory.FullName, "Native", ComponentCatalog.CurrentRuntimeIdentifier, "gstreamer");
-            if (GStreamerBundle.IsComplete(candidate))
-            {
-                return candidate;
-            }
-        }
-
-        return null;
     }
 }

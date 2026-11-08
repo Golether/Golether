@@ -15,6 +15,7 @@ using Golether.Media.Streaming.Gallery;
 using Golether.Security.Admission;
 using Golether.Security.Identity;
 using Golether.Transports.PortMapping;
+using Golether.Transports.WebRtc;
 
 namespace Golether.Mobile.Services;
 
@@ -62,6 +63,12 @@ public sealed class MobileServices : IMobileServices
     /// The cameras and voices, once the first session needed them.
     /// </summary>
     private IConferenceMedia? _conference;
+
+    /// <summary>
+    /// Gets what makes the WebRTC connections of sessions with browsers once GStreamer works, or
+    /// <see langword="null"/>.
+    /// </summary>
+    public IDataLinkFactory? DataLinks { get; private set; }
 
     /// <summary>
     /// The client of the web, once the first hosted session needed it.
@@ -227,6 +234,8 @@ public sealed class MobileServices : IMobileServices
             };
             var logger = LoggerFactory.CreateLogger<GStreamerConferenceMedia>();
             _conference = await Task.Run(() => new GStreamerConferenceMedia(options, logger));
+            var links = new GStreamerDataLinkFactory(options, LoggerFactory);
+            DataLinks = links.IsAvailable ? links : null;
         }
         catch (Exception ex) when (ex is not (OutOfMemoryException or StackOverflowException))
         {

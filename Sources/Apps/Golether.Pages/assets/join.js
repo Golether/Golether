@@ -16,6 +16,7 @@
       'invited.host': 'Gastgeber',
       'invited.open': 'In Golether öffnen',
       'invited.download': 'Ich habe Golether noch nicht',
+      'invited.watch': 'Im Browser ansehen',
       'invited.fallback': 'Nichts passiert? Kopieren Sie den Schlüssel und fügen Sie ihn in das Feld „Einladung“ von Golether ein.',
       'invited.copy': 'Schlüssel kopieren',
       'invited.copied': 'Der Schlüssel wurde kopiert',
@@ -37,6 +38,7 @@
       'invited.host': 'Anfitrión',
       'invited.open': 'Abrir en Golether',
       'invited.download': 'Todavía no tengo Golether',
+      'invited.watch': 'Ver en el navegador',
       'invited.fallback': '¿No ha pasado nada? Copia la clave y pégala en el campo «Invitación» de Golether.',
       'invited.copy': 'Copiar la clave',
       'invited.copied': 'Se copió la clave',
@@ -58,6 +60,7 @@
       'invited.host': 'Hôte',
       'invited.open': 'Ouvrir dans Golether',
       'invited.download': 'Je n’ai pas encore Golether',
+      'invited.watch': 'Regarder dans le navigateur',
       'invited.fallback': 'Rien ne s’est passé ? Copiez la clé et collez-la dans le champ « Invitation » de Golether.',
       'invited.copy': 'Copier la clé',
       'invited.copied': 'La clé a été copiée',
@@ -79,6 +82,7 @@
       'invited.host': 'Anfitrião',
       'invited.open': 'Abrir no Golether',
       'invited.download': 'Ainda não tenho o Golether',
+      'invited.watch': 'Ver no navegador',
       'invited.fallback': 'Não aconteceu nada? Copie a chave e cole-a no campo “Convite” do Golether.',
       'invited.copy': 'Copiar a chave',
       'invited.copied': 'A chave foi copiada',
@@ -100,6 +104,7 @@
       'invited.host': 'Ведущий',
       'invited.open': 'Открыть в Golether',
       'invited.download': 'У меня ещё нет Golether',
+      'invited.watch': 'Смотреть в браузере',
       'invited.fallback': 'Ничего не произошло? Скопируйте ключ и вставьте его в поле «Приглашение» в Golether.',
       'invited.copy': 'Скопировать ключ',
       'invited.copied': 'Ключ скопирован',
@@ -195,6 +200,13 @@
   document.getElementById('session').textContent = name(invite.session);
   document.getElementById('host').textContent = name(invite.name);
   document.getElementById('open').setAttribute('href', key);
+
+  // A host that keeps a room in the signalling can be joined from the browser version as well.
+  if (typeof invite.signal === 'string' && invite.signal) {
+    var watch = document.getElementById('watch');
+    watch.setAttribute('href', '../watch/#' + payload);
+    watch.hidden = false;
+  }
   document.getElementById('copy').addEventListener('click', function () {
     var button = this;
     var done = function () { copied = true; button.textContent = text('invited.copied'); };

@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Tests of the cameras, voice and data channel of a browser, with the browser replaced by a stub. -->
+  <ItemGroup>
+    <ProjectReference Include="../../Sources/Media/Golether.Media.Conference.Browser/Golether.Media.Conference.Browser.csproj" />
+  </ItemGroup>
+
+</Project>

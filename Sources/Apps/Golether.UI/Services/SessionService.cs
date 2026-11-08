@@ -19,6 +19,7 @@ using Golether.Sync.Protocol;
 using Golether.Transports.PortMapping;
 using Golether.Transports.Rendezvous;
 using Golether.Transports.Tls;
+using Golether.Transports.WebRtc;
 
 namespace Golether.UI.Services;
 
@@ -71,6 +72,16 @@ public sealed class SessionService : ISessionService, IReconnectionClient, IAsyn
     /// Finds the rendezvous server of the project, or <see langword="null"/> when it is never looked up.
     /// </summary>
     private readonly IRendezvousDirectory? _rendezvousDirectory;
+
+    /// <summary>
+    /// Gives what makes the WebRTC connections of sessions, or <see langword="null"/> while there is nothing.
+    /// </summary>
+    private readonly Func<IDataLinkFactory?>? _dataLinks;
+
+    /// <summary>
+    /// The way of a guest through the signalling, kept while a joined session lasts.
+    /// </summary>
+    private WebRtcSessionConnector? _signalConnector;
 
     /// <summary>
     /// The session options.
@@ -140,6 +151,8 @@ public sealed class SessionService : ISessionService, IReconnectionClient, IAsyn
     /// <see langword="null"/>.</param>
     /// <param name="galleryDirectory">The folder where a shown folder keeps the JPEG files the host makes, or
     /// <see langword="null"/>.</param>
+    /// <param name="dataLinks">Gives what makes the WebRTC connections of sessions with browsers, or
+    /// <see langword="null"/>.</param>
     public SessionService(
         DeviceIdentity identity,
         PlayerHost player,
@@ -151,8 +164,10 @@ public sealed class SessionService : ISessionService, IReconnectionClient, IAsyn
         PortMapper? portMapper = null,
         IRendezvousDirectory? rendezvousDirectory = null,
         IFrameExtractor? frames = null,
-        string? galleryDirectory = null)
+        string? galleryDirectory = null,
+        Func<IDataLinkFactory?>? dataLinks = null)
     {
+        _dataLinks = dataLinks;
         _frames = frames;
         _galleryDirectory = galleryDirectory;
         _portMapper = portMapper;
@@ -224,6 +239,11 @@ public sealed class SessionService : ISessionService, IReconnectionClient, IAsyn
         // A fresh room for every session: an old invitation does not lead to a new session.
         var rendezvous = server is { } found ? new RendezvousPoint(found, RendezvousPoint.CreateRoom()) : null;
 
+        // Browsers join only through the server of the project: its page names the signalling.
+        var signal = rendezvous is not null && mode == RendezvousMode.Automatic && _rendezvousDirectory is { } pages
+            ? await pages.FindSignalAsync(cancellationToken).ConfigureAwait(false)
+            : null;
+
         var hosting = SessionHosting.Create(new HostingSetup
         {
             Identity = _identity,
@@ -242,6 +262,8 @@ public sealed class SessionService : ISessionService, IReconnectionClient, IAsyn
             GalleryDirectory = _galleryDirectory,
             Rendezvous = rendezvous,
             PortMapper = OpenRouterPort ? _portMapper : null,
+            Signal = signal,
+            DataLinks = _dataLinks?.Invoke(),
         });
         Attach(hosting.Session);
         hosting.EventRaised += (_, e) => EventRaised?.Invoke(this, e);
@@ -308,6 +330,7 @@ public sealed class SessionService : ISessionService, IReconnectionClient, IAsyn
             _participant = null;
             _reconnectInvite = null;
             await participant.DisposeAsync().ConfigureAwait(false);
+            await ReleaseSignalConnectorAsync().ConfigureAwait(false);
             Changed?.Invoke(this, EventArgs.Empty);
             throw;
         }
@@ -440,6 +463,7 @@ public sealed class SessionService : ISessionService, IReconnectionClient, IAsyn
         // its port, a mapping that stays on the router).
         await ReleaseAsync(hosting).ConfigureAwait(false);
         await ReleaseAsync(participant).ConfigureAwait(false);
+        await ReleaseSignalConnectorAsync().ConfigureAwait(false);
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -624,8 +648,13 @@ public sealed class SessionService : ISessionService, IReconnectionClient, IAsyn
     private ParticipantSession CreateParticipant(string displayName)
     {
         var connector = new TlsPeerConnector(_identity, new TlsTransportOptions());
+        if (_signalConnector is null && _dataLinks?.Invoke() is { } links)
+        {
+            _signalConnector = new WebRtcSessionConnector(DeviceSigners.From(_identity), links, logger: _loggerFactory.CreateLogger<WebRtcSessionConnector>());
+        }
+
         var participant = new ParticipantSession(
-            _identity,
+            _identity.PeerId,
             connector,
             _player,
             new MpvMediaUriRegistry(),
@@ -635,7 +664,8 @@ public sealed class SessionService : ISessionService, IReconnectionClient, IAsyn
             _options,
             _loggerFactory,
             _conference,
-            new RendezvousPeerConnector(connector, new RendezvousDialer(logger: _loggerFactory.CreateLogger<RendezvousDialer>())));
+            new RendezvousPeerConnector(connector, new RendezvousDialer(logger: _loggerFactory.CreateLogger<RendezvousDialer>())),
+            _signalConnector);
         Attach(participant);
         return participant;
     }
@@ -655,6 +685,19 @@ public sealed class SessionService : ISessionService, IReconnectionClient, IAsyn
         {
             _reconnectInvite = null;
             await ended.DisposeAsync().ConfigureAwait(false);
+            await ReleaseSignalConnectorAsync().ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Closes the WebRTC connections of a joined session that is over.
+    /// </summary>
+    /// <returns>A task that completes when they are closed.</returns>
+    private async Task ReleaseSignalConnectorAsync()
+    {
+        if (Interlocked.Exchange(ref _signalConnector, null) is { } connector)
+        {
+            await connector.DisposeAsync().ConfigureAwait(false);
         }
     }
 

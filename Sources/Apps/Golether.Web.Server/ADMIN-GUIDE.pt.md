@@ -190,6 +190,31 @@ esses mesmos valores predefinidos. Uma chave que falte no ficheiro também fica 
 | `Logging:LogLevel:Default` | `Information` | o nível de pormenor do registo; `Debug` regista cada ligação |
 | `Logging:Console:FormatterOptions:TimestampFormat` | `yyyy-MM-dd HH:mm:ss.fff zzz ` | a marca no início de cada linha do registo na consola e no ficheiro: a data, a hora do servidor e a diferença em relação ao UTC (`2026-10-11 16:14:12.250 +07:00`). No systemd e no Visualizador de Eventos do Windows, a hora de uma entrada é definida pelo próprio sistema |
 
+### Navegadores (protótipo)
+
+A versão para navegador do Golether chega ao servidor por um WebSocket. Por omissão está desligada:
+
+Também as aplicações a usam: uma sessão da aplicação só aceita convidados de um navegador através dela. Para esses encontros mistos ligue-a, dê ao servidor um domínio com um certificado TLS (`wss://`) e publique o endereço como `signal` no `config.json` da página do projeto.
+
+```json
+"Signal": {
+  "Enabled": true,
+  "Url": "https://0.0.0.0:47943",
+  "AllowedOrigins": [ "https://golether.github.io" ]
+},
+"Kestrel": { "Certificates": { "Default": { "Path": "config/signal.pfx", "Password": "…" } } }
+```
+
+| Parâmetro `Signal:…` | Por omissão | O que define |
+|---|---|---|
+| `Enabled` | `false` | se os navegadores são aceites |
+| `Url` | `http://0.0.0.0:47943` | o endereço do WebSocket; uma página servida por HTTPS só abre `wss://`, por isso na internet é `https://` com o certificado de `Kestrel:Certificates:Default` (um nome de domínio e, por exemplo, Let's Encrypt) |
+| `AllowedOrigins` | `http://localhost:47950`, `http://127.0.0.1:47950` | as páginas que podem usar o servidor |
+| `MaxConnections`, `MaxRooms`, `MaxMeetingsPerRoom`, `MaxConnectionsPerMinute` | `1024`, `1024`, `16`, `120` | os mesmos limites que para as aplicações |
+| `FirstMessageTimeout`, `MeetingTimeout` | `00:00:10`, `00:01:00` | quanto esperar pela primeira mensagem e quanto dura um encontro |
+
+Abra também no router a porta TCP de `Url`.
+
 Qualquer parâmetro também pode ser definido sem editar o ficheiro, com uma variável de ambiente (um duplo sublinhado em
 vez dos dois pontos) ou um argumento da linha de comandos; estes têm prioridade sobre o ficheiro:
 

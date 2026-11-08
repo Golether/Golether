@@ -13,4 +13,12 @@ public interface IRendezvousDirectory
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The address, or <see langword="null"/> when none is known.</returns>
     Task<PeerEndpoint?> FindAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gives the signalling of the project (<c>wss://…/signal</c>) the page named the last time
+    /// <see cref="FindAsync"/> read it, so browsers can join the sessions of this device.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The address, or <see langword="null"/> when the page names none.</returns>
+    Task<Uri?> FindSignalAsync(CancellationToken cancellationToken);
 }

@@ -93,7 +93,8 @@ public sealed class AppServices : IAsyncDisposable
             PortMapper.CreateDefault(Http, LoggerFactory),
             new RendezvousDirectory(Http, provider.GetRequiredService<ISettingsStore>(), logger: LoggerFactory.CreateLogger<RendezvousDirectory>()),
             new MpvFrameExtractor(TimeProvider.System, LoggerFactory.CreateLogger<MpvFrameExtractor>()),
-            paths.GalleryDirectory);
+            paths.GalleryDirectory,
+            () => Conference.DataLinks);
         Sounds = new SystemSoundPlayer(paths.SoundsDirectory, LoggerFactory.CreateLogger<SystemSoundPlayer>());
         ChatSound = new ChatSoundNotifier(Sessions, provider.GetRequiredService<ISettingsStore>(), Sounds, TimeProvider.System);
     }

@@ -607,7 +607,7 @@ public sealed class GStreamerConferenceMedia : IConferenceMedia, IPeerHost
     {
         ArgumentNullException.ThrowIfNull(signal);
         EnsureAvailable();
-        WebRtcPeer.ValidateSignal(signal.Kind, signal.Payload);
+        SignalRules.Validate(signal.Kind, signal.Payload);
 
         // The side that receives an offer first answers it.
         var peer = _peers.TryGetValue(signal.PeerId, out var existing)
@@ -764,7 +764,7 @@ public sealed class GStreamerConferenceMedia : IConferenceMedia, IPeerHost
             return;
         }
 
-        var delay = RestartDelay(peer.Attempt);
+        var delay = ConnectionRules.RestartDelay(peer.Attempt);
         _logger.LogWarning("The media connection of {Peer} failed ({Reason}); connecting again in {Delay:0} s", peer.Peer.ToShortString(), reason, delay.TotalSeconds);
         _ = Task.Run(async () =>
         {
@@ -780,14 +780,6 @@ public sealed class GStreamerConferenceMedia : IConferenceMedia, IPeerHost
             ReplacePeer(peer, isOfferer: true, attempt: peer.IsVerified ? 0 : peer.Attempt + 1);
         });
     }
-
-    /// <summary>
-    /// Returns the pause before a failed connection is made again.
-    /// </summary>
-    /// <param name="attempt">How many connections in a row failed before the one that failed now.</param>
-    /// <returns>3 s, doubled with every failure in a row, at most 30 s.</returns>
-    internal static TimeSpan RestartDelay(int attempt)
-        => TimeSpan.FromSeconds(Math.Min(30, 3 << Math.Clamp(attempt, 0, 4)));
 
     /// <inheritdoc />
     void IPeerHost.RejectPeer(WebRtcPeer peer, string reason)

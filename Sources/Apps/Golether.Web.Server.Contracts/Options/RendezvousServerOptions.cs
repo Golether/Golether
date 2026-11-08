@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Net;
 using Golether.Localization;
 using Golether.Transports.Rendezvous.Protocol;
@@ -94,15 +93,15 @@ public sealed record RendezvousServerOptions
             problems.Add(Texts.Format("Server.Error.BadAddress", Key(nameof(ListenAddress)), ListenAddress));
         }
 
-        CheckRange(problems, nameof(Port), Port, 0, 65535);
-        CheckRange(problems, nameof(MaxConnections), MaxConnections, 1, 1_000_000);
-        CheckRange(problems, nameof(MaxRooms), MaxRooms, 1, 1_000_000);
-        CheckRange(problems, nameof(MaxPendingPerRoom), MaxPendingPerRoom, 1, 1000);
-        CheckRange(problems, nameof(MaxConnectionsPerMinute), MaxConnectionsPerMinute, 1, 1_000_000);
-        CheckRange(problems, nameof(MaxStunPerMinute), MaxStunPerMinute, 1, 1_000_000);
-        CheckTime(problems, nameof(FirstMessageTimeout), FirstMessageTimeout);
-        CheckTime(problems, nameof(AnswerTimeout), AnswerTimeout);
-        CheckTime(problems, nameof(IdleTimeout), IdleTimeout);
+        OptionChecks.Range(problems, Key(nameof(Port)), Port, 0, 65535);
+        OptionChecks.Range(problems, Key(nameof(MaxConnections)), MaxConnections, 1, 1_000_000);
+        OptionChecks.Range(problems, Key(nameof(MaxRooms)), MaxRooms, 1, 1_000_000);
+        OptionChecks.Range(problems, Key(nameof(MaxPendingPerRoom)), MaxPendingPerRoom, 1, 1000);
+        OptionChecks.Range(problems, Key(nameof(MaxConnectionsPerMinute)), MaxConnectionsPerMinute, 1, 1_000_000);
+        OptionChecks.Range(problems, Key(nameof(MaxStunPerMinute)), MaxStunPerMinute, 1, 1_000_000);
+        OptionChecks.Time(problems, Key(nameof(FirstMessageTimeout)), FirstMessageTimeout);
+        OptionChecks.Time(problems, Key(nameof(AnswerTimeout)), AnswerTimeout);
+        OptionChecks.Time(problems, Key(nameof(IdleTimeout)), IdleTimeout);
         return problems;
     }
 
@@ -112,34 +111,4 @@ public sealed record RendezvousServerOptions
     /// <param name="name">The property name.</param>
     /// <returns>The key, for example <c>Rendezvous:Port</c>.</returns>
     private static string Key(string name) => SECTION + ":" + name;
-
-    /// <summary>
-    /// Adds a problem when a number is out of range.
-    /// </summary>
-    /// <param name="problems">The problems.</param>
-    /// <param name="name">The property name.</param>
-    /// <param name="value">The value.</param>
-    /// <param name="min">The smallest allowed value.</param>
-    /// <param name="max">The largest allowed value.</param>
-    private static void CheckRange(List<string> problems, string name, int value, int min, int max)
-    {
-        if (value < min || value > max)
-        {
-            problems.Add(Texts.Format("Server.Error.BadValue", Key(name), value, min, max));
-        }
-    }
-
-    /// <summary>
-    /// Adds a problem when a time is not between one second and one hour.
-    /// </summary>
-    /// <param name="problems">The problems.</param>
-    /// <param name="name">The property name.</param>
-    /// <param name="value">The value.</param>
-    private static void CheckTime(List<string> problems, string name, TimeSpan value)
-    {
-        if (value < TimeSpan.FromSeconds(1) || value > TimeSpan.FromHours(1))
-        {
-            problems.Add(Texts.Format("Server.Error.BadValue", Key(name), value.ToString("c", CultureInfo.InvariantCulture), "00:00:01", "01:00:00"));
-        }
-    }
 }

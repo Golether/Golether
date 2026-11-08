@@ -10,6 +10,7 @@ using Golether.Media.Player.Mpv;
 using Golether.Mobile.Services;
 using Golether.Security.Admission;
 using Golether.Security.Identity;
+using Golether.Transports.WebRtc;
 
 namespace Golether.Mobile.Tests;
 
@@ -117,6 +118,9 @@ internal sealed class StubServices : IMobileServices, IDisposable
 
     /// <inheritdoc />
     public Task<IConferenceMedia> GetConferenceAsync() => Task.FromResult(Conference);
+
+    /// <inheritdoc />
+    public IDataLinkFactory? DataLinks => null;
 
     /// <inheritdoc />
     public IParticipantConnection CreateConnection(IConferenceMedia conference, CurrentSession current, string displayName) => Connection;

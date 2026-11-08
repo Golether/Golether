@@ -6,6 +6,7 @@ using Golether.Media.Conference;
 using Golether.Media.Player.Mpv;
 using Golether.Security.Admission;
 using Golether.Security.Identity;
+using Golether.Transports.WebRtc;
 
 namespace Golether.Mobile.Services;
 
@@ -70,6 +71,11 @@ public interface IMobileServices
     /// </summary>
     /// <returns>The conference, unavailable when it could not start.</returns>
     Task<IConferenceMedia> GetConferenceAsync();
+
+    /// <summary>
+    /// Gets what makes the WebRTC connections of sessions with browsers once GStreamer works, or <see langword="null"/>.
+    /// </summary>
+    IDataLinkFactory? DataLinks { get; }
 
     /// <summary>
     /// Prepares the place of this device in a new session.

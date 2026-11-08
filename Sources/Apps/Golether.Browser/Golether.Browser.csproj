@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+
+  <!--
+    Golether in a browser (a prototype): the sessions of the desktop application compiled to WebAssembly, on top of
+    WebRTC data channels instead of TCP, the <video> element instead of libmpv and a page instead of windows. The
+    published wwwroot is a static site; the signalling goes through the rendezvous server (Signal section).
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Golether.Browser</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- main.js imports _framework/dotnet.js by its plain name. -->
+    <WasmFingerprintAssets>false</WasmFingerprintAssets>
+    <!--
+      Trimmed: the JSON of the sessions, the invitations and the language packs is generated at build time, so the
+      reflection of System.Text.Json is off and whatever the page never reaches (the database, XML, …) is left out.
+      After switching trimming on or off delete obj: stale webcil files of the other kind survive there.
+    -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+  </PropertyGroup>
+
+  <!-- The interop with the page exists only in a browser. -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.Versioning.SupportedOSPlatformAttribute">
+      <_Parameter1>browser</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../Media/Golether.Media.Conference.Browser/Golether.Media.Conference.Browser.csproj" />
+    <ProjectReference Include="../../Session/Golether.Session/Golether.Session.csproj" />
+    <ProjectReference Include="../../Transports/Golether.Transports.WebRtc/Golether.Transports.WebRtc.csproj" />
+  </ItemGroup>
+
+  <!--
+    The sessions reference the data layer, which brings the native SQLite for WebAssembly. A browser keeps no
+    database, and linking a native library would need the wasm-tools workload, so the library is left out.
+  -->
+  <Target Name="GoletherDropNativeSqlite" BeforeTargets="_CheckBrowserWorkloadNeededButNotAvailable">
+    <ItemGroup>
+      <NativeFileReference Remove="@(NativeFileReference)" Condition="'%(Filename)' == 'e_sqlite3'" />
+    </ItemGroup>
+  </Target>
+
+</Project>

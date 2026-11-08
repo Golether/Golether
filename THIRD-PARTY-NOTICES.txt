@@ -1,7 +1,7 @@
 Golether: third-party notices
 
 Golether is free software under the GNU General Public License, version 3 or (at your option) any later version; the
-full text is in LICENSE.txt next to this file. Its source code: https://github.com/DepthRel/Golether
+full text is in LICENSE.txt next to this file. Its source code: https://github.com/Golether/Golether
 
 Golether contains or uses the components below. Each is the work of its own authors and keeps its own license; their
 license texts follow at the end of this file. The desktop application, the rendezvous server and its monitor are

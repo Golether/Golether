@@ -193,6 +193,31 @@ quand même avec ces mêmes valeurs par défaut. Une clé absente du fichier pre
 | `Logging:LogLevel:Default` | `Information` | le niveau de détail du journal ; `Debug` consigne chaque connexion |
 | `Logging:Console:FormatterOptions:TimestampFormat` | `yyyy-MM-dd HH:mm:ss.fff zzz ` | l'horodatage au début de chaque ligne du journal dans la console et dans le fichier : la date, l'heure du serveur et le décalage par rapport à UTC (`2026-10-11 16:14:12.250 +07:00`). Sous systemd et dans l'Observateur d'événements Windows, l'heure d'une entrée est fixée par le système lui-même |
 
+### Navigateurs (prototype)
+
+La version pour navigateur de Golether joint le serveur par un WebSocket. Par défaut c'est désactivé :
+
+Les applications l'utilisent aussi : une séance de l'application n'accepte des invités d'un navigateur que par elle. Pour ces rencontres mixtes, activez-la, donnez au serveur un domaine avec un certificat TLS (`wss://`) et publiez l'adresse comme `signal` dans `config.json` de la page du projet.
+
+```json
+"Signal": {
+  "Enabled": true,
+  "Url": "https://0.0.0.0:47943",
+  "AllowedOrigins": [ "https://golether.github.io" ]
+},
+"Kestrel": { "Certificates": { "Default": { "Path": "config/signal.pfx", "Password": "…" } } }
+```
+
+| Paramètre `Signal:…` | Par défaut | Ce qu'il règle |
+|---|---|---|
+| `Enabled` | `false` | si les navigateurs sont acceptés |
+| `Url` | `http://0.0.0.0:47943` | l'adresse du WebSocket ; une page servie en HTTPS n'ouvre que `wss://`, donc sur Internet c'est `https://` avec le certificat de `Kestrel:Certificates:Default` (un nom de domaine et, par exemple, Let's Encrypt) |
+| `AllowedOrigins` | `http://localhost:47950`, `http://127.0.0.1:47950` | les pages autorisées à utiliser le serveur |
+| `MaxConnections`, `MaxRooms`, `MaxMeetingsPerRoom`, `MaxConnectionsPerMinute` | `1024`, `1024`, `16`, `120` | les mêmes limites que pour les applications |
+| `FirstMessageTimeout`, `MeetingTimeout` | `00:00:10`, `00:01:00` | combien de temps attendre le premier message et combien dure une rencontre |
+
+Ouvrez aussi sur le routeur le port TCP de `Url`.
+
 Tout paramètre peut aussi être défini sans modifier le fichier, par une variable d'environnement (un double soulignement
 à la place des deux-points) ou un argument de ligne de commande ; ils l'emportent sur le fichier :
 

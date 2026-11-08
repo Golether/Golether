@@ -10,4 +10,4 @@ Todos los datos (claves, base de datos, túneles, componentes) se guardan en la 
 [linux] Vídeo: instala el paquete libmpv de tu distribución (libmpv2 / mpv-libs). Cámaras y voz: gstreamer1.0-plugins-base, -good, -bad y gstreamer1.0-nice. Túneles: amneziawg-tools y el módulo amneziawg (o amneziawg-go).
 [macos] La compilación no está firmada por Apple: en el primer inicio abre «Ajustes del Sistema → Privacidad y seguridad → Abrir igualmente» o ejecuta: xattr -dr com.apple.quarantine Golether.app
 [macos] Vídeo: brew install mpv. Cámaras y voz: brew install gstreamer.
-Guía de uso: https://github.com/DepthRel/Golether/blob/main/Docs/Es/UserGuide.md
+Guía de uso: https://github.com/Golether/Golether/blob/main/Docs/Es/UserGuide.md

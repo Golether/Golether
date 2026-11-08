@@ -6,7 +6,7 @@ Golether se ofrece SIN NINGUNA GARANTÍA, en la medida en que lo permita la ley:
 licencia.
 
 Golether contiene componentes de otros autores bajo sus propias licencias; se enumeran en THIRD-PARTY-NOTICES.txt en la
-carpeta de instalación. El código fuente de Golether: https://github.com/DepthRel/Golether
+carpeta de instalación. El código fuente de Golether: https://github.com/Golether/Golether
 
 A continuación está el texto original en inglés de la licencia: solo él tiene validez legal. Traducciones no
 oficiales: https://www.gnu.org/licenses/translations.html

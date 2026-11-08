@@ -40,7 +40,7 @@ cambian. Los vídeos de la carpeta se sirven como una película.
 | A dónde | Cuándo | Qué sabe la otra parte |
 |---|---|---|
 | El servidor de encuentro del proyecto (su dirección viene de `config.json` de la página del proyecto) | cuando un anfitrión abre una sesión a través del servidor y cuando un participante se une a esa sesión | las direcciones de red del anfitrión y del participante, la huella de la clave del anfitrión, la etiqueta aleatoria de la sala; nunca el contenido de la sesión |
-| La página del proyecto `depthrel.github.io` (GitHub Pages) | `updates.json` al iniciar (la versión más reciente; la comprobación se puede desactivar en los ajustes); `config.json` cuando un anfitrión abre una sesión con el servidor de encuentro elegido automáticamente | su dirección IP, como en cualquier página web; se aplica la declaración de privacidad de GitHub |
+| La página del proyecto `golether.github.io` (GitHub Pages) | `updates.json` al iniciar (la versión más reciente; la comprobación se puede desactivar en los ajustes); `config.json` cuando un anfitrión abre una sesión con el servidor de encuentro elegido automáticamente | su dirección IP, como en cualquier página web; se aplica la declaración de privacidad de GitHub |
 | GitHub y `gstreamer.freedesktop.org` | en Windows, solo cuando instala un componente que falta con el botón **Instalar** | su dirección IP |
 | Los servidores STUN públicos de Google (`stun.l.google.com`) y Cloudflare (`stun.cloudflare.com`) | solo al configurar un túnel AmneziaWG: le dicen al ordenador su dirección exterior | su dirección IP y su puerto; se aplican sus propias políticas de privacidad |
 | Su router (UPnP, NAT-PMP) | cuando el anfitrión pide al router que abra un puerto | nada fuera de su red local |
@@ -50,7 +50,7 @@ ventana de invitación («Servidor de encuentro» en la [guía de uso](UserGuide
 
 ## La página del proyecto
 
-La página del proyecto `depthrel.github.io/Golether` cuenta sus visitas con Umami Cloud. Umami no usa cookies y, según
+La página del proyecto `golether.github.io/Golether` cuenta sus visitas con Umami Cloud. Umami no usa cookies y, según
 su propia descripción, no guarda direcciones IP: registra la dirección de la página (sin la parte tras `#` y `?`), la
 página de la que viene, el navegador, el sistema, el tipo de dispositivo, el tamaño de la pantalla, el idioma y el
 país, que deduce de su dirección. También se cuenta la pulsación de un botón de descarga: qué paquete (Windows, .deb,

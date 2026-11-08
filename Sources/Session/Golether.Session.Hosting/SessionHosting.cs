@@ -6,10 +6,12 @@ using Golether.Core.Time;
 using Golether.Localization;
 using Golether.Security.Admission;
 using Golether.Security.Invites;
+using Golether.Transports;
 using Golether.Transports.PortMapping;
 using Golether.Transports.Relay;
 using Golether.Transports.Rendezvous;
 using Golether.Transports.Tls;
+using Golether.Transports.WebRtc;
 
 namespace Golether.Session.Hosting;
 
@@ -30,6 +32,11 @@ public sealed class SessionHosting : IAsyncDisposable
     /// The listener of the session.
     /// </summary>
     private readonly TlsPeerListener _listener;
+
+    /// <summary>
+    /// The way in of the session: the TLS listener and the streams of the WebRTC connections.
+    /// </summary>
+    private readonly CompositePeerListener _ways;
 
     /// <summary>
     /// The logger.
@@ -57,6 +64,11 @@ public sealed class SessionHosting : IAsyncDisposable
     private RendezvousHost? _rendezvousHost;
 
     /// <summary>
+    /// The room in the signalling, or <see langword="null"/>.
+    /// </summary>
+    private WebRtcSessionHost? _webRtcHost;
+
+    /// <summary>
     /// Whether the session was ended (1) or not (0).
     /// </summary>
     private int _disposed;
@@ -66,12 +78,14 @@ public sealed class SessionHosting : IAsyncDisposable
     /// </summary>
     /// <param name="setup">What the session is made of.</param>
     /// <param name="listener">The listening listener.</param>
+    /// <param name="ways">The way in of the session: the listener and the WebRTC connections.</param>
     /// <param name="session">The session, not started yet.</param>
     /// <param name="relay">The relay, or <see langword="null"/>.</param>
-    private SessionHosting(HostingSetup setup, TlsPeerListener listener, HostSession session, TurnServer? relay)
+    private SessionHosting(HostingSetup setup, TlsPeerListener listener, CompositePeerListener ways, HostSession session, TurnServer? relay)
     {
         _setup = setup;
         _listener = listener;
+        _ways = ways;
         _relay = relay;
         _logger = setup.LoggerFactory.CreateLogger<SessionHosting>();
         Session = session;
@@ -108,9 +122,10 @@ public sealed class SessionHosting : IAsyncDisposable
             throw new InvalidOperationException(Texts.Format("Session.Error.PortBusy", setup.Port, ex.Message), ex);
         }
 
+        var ways = new CompositePeerListener(listener);
         var session = new HostSession(
-            setup.Identity,
-            listener,
+            setup.Identity.PeerId,
+            ways,
             new InviteRegistry(setup.TimeProvider),
             new AdmissionService(setup.Prompt, new AdmissionOptions(), setup.TimeProvider),
             setup.Contacts,
@@ -129,8 +144,9 @@ public sealed class SessionHosting : IAsyncDisposable
         session.Relay = relay?.Credentials;
         session.RelayServer = relay;
         session.Rendezvous = setup.Rendezvous;
+        session.Signal = OpensWebRtc(setup) ? setup.Signal : null;
 
-        return new SessionHosting(setup, listener, session, relay);
+        return new SessionHosting(setup, listener, ways, session, relay);
     }
 
     /// <summary>
@@ -143,6 +159,10 @@ public sealed class SessionHosting : IAsyncDisposable
         if (_setup.Rendezvous is { } rendezvous)
         {
             _rendezvousHost = StartRendezvous(rendezvous);
+            if (OpensWebRtc(_setup))
+            {
+                _webRtcHost = StartWebRtc(rendezvous);
+            }
         }
 
         if (_setup.PortMapper is { } mapper)
@@ -193,6 +213,7 @@ public sealed class SessionHosting : IAsyncDisposable
         await ReleaseAsync(Interlocked.Exchange(ref _relayLease, null)).ConfigureAwait(false);
         await ReleaseAsync(Interlocked.Exchange(ref _relay, null)).ConfigureAwait(false);
         await ReleaseAsync(Interlocked.Exchange(ref _rendezvousHost, null)).ConfigureAwait(false);
+        await ReleaseAsync(Interlocked.Exchange(ref _webRtcHost, null)).ConfigureAwait(false);
         await ReleaseAsync(Session).ConfigureAwait(false);
     }
 
@@ -249,6 +270,36 @@ public sealed class SessionHosting : IAsyncDisposable
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// Tells whether a session opens the WebRTC way in: it needs a room, a signalling and something to make the
+    /// connections with.
+    /// </summary>
+    /// <param name="setup">The settings of the session.</param>
+    /// <returns><see langword="true"/> when browsers can join.</returns>
+    private static bool OpensWebRtc(HostingSetup setup) => setup is { Rendezvous: not null, Signal: not null, DataLinks: not null };
+
+    /// <summary>
+    /// Keeps the room of the session in the signalling as well: the WebRTC connections of guests go to the listener of
+    /// the session like the TLS ones, authenticated and admitted in the same way.
+    /// </summary>
+    /// <param name="point">The room.</param>
+    /// <returns>The running host of the room.</returns>
+    private WebRtcSessionHost StartWebRtc(RendezvousPoint point)
+    {
+        var host = new WebRtcSessionHost(
+            _setup.Signal!,
+            point.Room,
+            DeviceSigners.From(_setup.Identity),
+            _setup.DataLinks!,
+            _ways.Offer,
+            point.StunUri,
+            timeProvider: _setup.TimeProvider,
+            logger: _setup.LoggerFactory.CreateLogger<WebRtcSessionHost>());
+        host.StateChanged += (_, _) => Raise(Texts.Get(host.IsRegistered ? "Session.Signal.Registered" : "Session.Signal.Lost"));
+        host.Start();
+        return host;
     }
 
     /// <summary>

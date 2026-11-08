@@ -229,6 +229,34 @@ podrían elegir distintas. Por eso solo elige el participante: la primera que se
 primero en hablar (TLS ClientHello). El anfitrión mantiene todas las que se abrieron y toma aquella en la que habló el
 participante; las demás se cierran.
 
+## Señalización de navegadores (prototipo)
+
+Un navegador no abre una conexión TCP propia, así que con `Signal:Enabled` el servidor acepta además un WebSocket en
+la dirección `Signal:Url`, ruta `/signal` (`wss://` con certificado para páginas servidas por HTTPS). Las páginas que
+pueden usarlo se enumeran en `Signal:AllowedOrigins`. El servidor pasa las descripciones de una conexión WebRTC entre el
+anfitrión y un invitado y no lee ninguna; en segundos los navegadores hablan directamente y el WebSocket del invitado se
+cierra. Un mensaje es JSON UTF-8 en un mensaje de texto de como mucho 16 KiB:
+
+| `$t` | Dirección | Campos | Significado |
+|---|---|---|---|
+| `server-hello` | S → D | `version`, `nonce` | primer mensaje del servidor |
+| `register` | H → S | `room`, `key` (SPKI, base64), `signature` | el anfitrión toma una sala; la firma (P-256, SHA-256, r‖s) cubre `golether-signal-v1\n<nonce>\n<room>` |
+| `registered` | S → H | — | la sala está tomada; el WebSocket sigue abierto |
+| `connect` | P → S | `room` | un invitado pide un encuentro |
+| `meeting` | S → P | `meeting` | el número del encuentro |
+| `incoming` | S → H | `meeting` | un invitado espera |
+| `signal` | H ↔ S ↔ P | `meeting` (H), `data` | una descripción o un candidato, pasados tal cual (como mucho 12 KiB; como mucho 100 de un invitado) |
+| `closed` | S → H | `meeting` | el WebSocket del invitado se cerró |
+| `error` | S → D | `error` | un rechazo, un nombre de la tabla de arriba |
+
+Valen los límites de la parte TCP: se cuentan las salas y las conexiones, se limita el ritmo de WebSockets nuevos de
+una IP, un encuentro dura como mucho `Signal:MeetingTimeout`. Una sala pertenece a la clave que la tomó, como arriba.
+El servidor ve lo que ya veía (direcciones, salas, claves públicas) y las huellas DTLS, que también son públicas.
+
+Las aplicaciones usan la misma señalización: un anfitrión de aplicación mantiene aquí su sala junto a la sala del
+protocolo de encuentro, y una aplicación se reúne aquí con un anfitrión de navegador. Es la única parte del servidor que
+necesita un encuentro mixto, así que para él el servidor necesita un dominio con un certificado TLS (`wss://`).
+
 ## Limitaciones
 
 - **Un NAT simétrico** (el router da un puerto externo nuevo a cada destino) en cualquiera de los lados hace imposible la

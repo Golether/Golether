@@ -119,7 +119,7 @@ Write-Host "SHA-256: $hash"
 Write-Host ''
 if (-not $UpdateUrlPrefix) {
     # Without another address the installer is expected among the assets of the GitHub release of this version.
-    $UpdateUrlPrefix = "https://github.com/DepthRel/Golether/releases/download/$version/"
+    $UpdateUrlPrefix = "https://github.com/Golether/Golether/releases/download/$version/"
 }
 
 Write-Host 'The entry for Sources/Apps/Golether.Pages/updates.json (the project page and the update check read this file):'
@@ -130,7 +130,7 @@ $entry = [ordered]@{
         url     = ($UpdateUrlPrefix.TrimEnd('/') + '/' + (Split-Path -Leaf $setup))
         sha256  = $hash
         size    = $size
-        page    = 'https://depthrel.github.io/Golether/#download'
+        page    = 'https://golether.github.io/Golether/#download'
     }
 }
 $entry | ConvertTo-Json -Depth 4

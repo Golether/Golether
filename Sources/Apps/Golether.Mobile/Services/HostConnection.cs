@@ -148,7 +148,10 @@ public sealed class HostConnection : IHostConnection
         // A fresh room for every session: an old invitation does not lead to a new session.
         var rendezvous = server is { } found ? new RendezvousPoint(found, RendezvousPoint.CreateRoom()) : null;
 
-        var hosting = Create(sessionName, displayName, rendezvous);
+        // Browsers join only through the server of the project: its page names the signalling.
+        var signal = rendezvous is not null && _rendezvous is { } pages ? await pages.FindSignalAsync(cancellationToken) : null;
+
+        var hosting = Create(sessionName, displayName, rendezvous, signal);
         hosting.Session.Changed += (_, _) => Changed?.Invoke(this, EventArgs.Empty);
         hosting.Session.AvatarReceived += (_, update) => AvatarReceived?.Invoke(this, update);
         hosting.EventRaised += (_, e) => _logger.LogInformation("{Event}", e.Text);
@@ -247,18 +250,19 @@ public sealed class HostConnection : IHostConnection
     /// <param name="sessionName">The name of the session.</param>
     /// <param name="displayName">The name of the host.</param>
     /// <param name="rendezvous">The rendezvous server and the room, or <see langword="null"/>.</param>
+    /// <param name="signal">The signalling that lets browsers join, or <see langword="null"/>.</param>
     /// <returns>The session, not started yet.</returns>
-    private SessionHosting Create(string sessionName, string displayName, RendezvousPoint? rendezvous)
+    private SessionHosting Create(string sessionName, string displayName, RendezvousPoint? rendezvous, Uri? signal)
     {
         try
         {
-            return SessionHosting.Create(Setup(sessionName, displayName, rendezvous, TlsTransportOptions.DEFAULT_PORT));
+            return SessionHosting.Create(Setup(sessionName, displayName, rendezvous, signal, TlsTransportOptions.DEFAULT_PORT));
         }
         catch (InvalidOperationException ex)
         {
             // The port of the invitation is read from the session, so any port does.
             _logger.LogInformation(ex, "The usual port is busy");
-            return SessionHosting.Create(Setup(sessionName, displayName, rendezvous, 0));
+            return SessionHosting.Create(Setup(sessionName, displayName, rendezvous, signal, 0));
         }
     }
 
@@ -268,9 +272,10 @@ public sealed class HostConnection : IHostConnection
     /// <param name="sessionName">The name of the session.</param>
     /// <param name="displayName">The name of the host.</param>
     /// <param name="rendezvous">The rendezvous server and the room, or <see langword="null"/>.</param>
+    /// <param name="signal">The signalling that lets browsers join, or <see langword="null"/>.</param>
     /// <param name="port">The port.</param>
     /// <returns>The setup.</returns>
-    private HostingSetup Setup(string sessionName, string displayName, RendezvousPoint? rendezvous, int port) => new()
+    private HostingSetup Setup(string sessionName, string displayName, RendezvousPoint? rendezvous, Uri? signal, int port) => new()
     {
         Identity = _services.Identity,
         Prompt = _prompt,
@@ -287,5 +292,7 @@ public sealed class HostConnection : IHostConnection
         GalleryDirectory = _galleryDirectory,
         Rendezvous = rendezvous,
         PortMapper = _portMapper,
+        Signal = signal,
+        DataLinks = _services.DataLinks,
     };
 }

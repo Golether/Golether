@@ -40,7 +40,7 @@ l'hôte ne sont jamais modifiés. Les vidéos du dossier sont servies comme un f
 | Où | Quand | Ce que l'autre côté apprend |
 |---|---|---|
 | Le serveur de rendez-vous du projet (son adresse vient de `config.json` de la page du projet) | quand un hôte ouvre une séance par le serveur et quand un participant rejoint une telle séance | les adresses réseau de l'hôte et du participant, l'empreinte de la clé de l'hôte, l'étiquette aléatoire de la salle ; jamais le contenu de la séance |
-| La page du projet `depthrel.github.io` (GitHub Pages) | `updates.json` au démarrage (la version la plus récente ; la vérification peut être désactivée dans les réglages) ; `config.json` quand un hôte ouvre une séance avec le serveur de rendez-vous choisi automatiquement | votre adresse IP, comme pour toute page web ; la déclaration de confidentialité de GitHub s'applique |
+| La page du projet `golether.github.io` (GitHub Pages) | `updates.json` au démarrage (la version la plus récente ; la vérification peut être désactivée dans les réglages) ; `config.json` quand un hôte ouvre une séance avec le serveur de rendez-vous choisi automatiquement | votre adresse IP, comme pour toute page web ; la déclaration de confidentialité de GitHub s'applique |
 | GitHub et `gstreamer.freedesktop.org` | sous Windows, seulement quand vous installez un composant manquant avec le bouton **Installer** | votre adresse IP |
 | Les serveurs STUN publics de Google (`stun.l.google.com`) et de Cloudflare (`stun.cloudflare.com`) | seulement lors de la mise en place d'un tunnel AmneziaWG : ils indiquent à l'ordinateur son adresse vue de l'extérieur | votre adresse IP et votre port ; leurs propres politiques de confidentialité s'appliquent |
 | Votre routeur (UPnP, NAT-PMP) | quand l'hôte demande au routeur d'ouvrir un port | rien au-delà de votre réseau local |
@@ -50,7 +50,7 @@ dans la fenêtre d'invitation (« Serveur de rendez-vous » dans le [guide d'uti
 
 ## La page du projet
 
-La page du projet `depthrel.github.io/Golether` compte ses visites avec Umami Cloud. Umami n'utilise pas de cookies
+La page du projet `golether.github.io/Golether` compte ses visites avec Umami Cloud. Umami n'utilise pas de cookies
 et, selon sa propre description, ne garde aucune adresse IP : il enregistre l'adresse de la page (sans la partie après
 `#` et `?`), la page d'où vous venez, le navigateur, le système, le type d'appareil, la taille de l'écran, la langue
 et le pays, qu'il déduit de votre adresse. Un clic sur un bouton de téléchargement est compté aussi : quel paquet

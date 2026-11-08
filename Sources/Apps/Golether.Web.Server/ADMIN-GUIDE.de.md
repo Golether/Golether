@@ -193,6 +193,31 @@ Standardwert.
 | `Logging:LogLevel:Default` | `Information` | wie ausführlich das Protokoll ist; `Debug` protokolliert jede Verbindung |
 | `Logging:Console:FormatterOptions:TimestampFormat` | `yyyy-MM-dd HH:mm:ss.fff zzz ` | der Stempel am Anfang jeder Protokollzeile in der Konsole und in der Datei: das Datum, die Serverzeit und der Versatz zu UTC (`2026-10-11 16:14:12.250 +07:00`). Unter systemd und in der Windows-Ereignisanzeige setzt das System die Zeit eines Eintrags selbst |
 
+### Browser (Prototyp)
+
+Die Browserversion von Golether erreicht den Server über einen WebSocket. Standardmäßig ist das aus:
+
+Auch die Anwendungen nutzen sie: Eine Sitzung der Anwendung nimmt Gäste aus dem Browser nur darüber an. Für solche gemischten Treffen schalten Sie sie ein, geben dem Server eine Domain mit TLS-Zertifikat (`wss://`) und veröffentlichen die Adresse als `signal` in `config.json` der Projektseite.
+
+```json
+"Signal": {
+  "Enabled": true,
+  "Url": "https://0.0.0.0:47943",
+  "AllowedOrigins": [ "https://golether.github.io" ]
+},
+"Kestrel": { "Certificates": { "Default": { "Path": "config/signal.pfx", "Password": "…" } } }
+```
+
+| Parameter `Signal:…` | Standard | Was er festlegt |
+|---|---|---|
+| `Enabled` | `false` | ob Browser angenommen werden |
+| `Url` | `http://0.0.0.0:47943` | die Adresse des WebSockets; eine Seite über HTTPS öffnet nur `wss://`, im Internet ist das also `https://` mit dem Zertifikat aus `Kestrel:Certificates:Default` (ein Domainname und zum Beispiel Let's Encrypt) |
+| `AllowedOrigins` | `http://localhost:47950`, `http://127.0.0.1:47950` | die Seiten, die den Server nutzen dürfen |
+| `MaxConnections`, `MaxRooms`, `MaxMeetingsPerRoom`, `MaxConnectionsPerMinute` | `1024`, `1024`, `16`, `120` | dieselben Grenzen wie für die Anwendungen |
+| `FirstMessageTimeout`, `MeetingTimeout` | `00:00:10`, `00:01:00` | wie lange auf die erste Nachricht gewartet wird und wie lange ein Treffen dauert |
+
+Öffnen Sie auch den TCP-Port von `Url` am Router.
+
 Jeder Parameter lässt sich auch ohne Bearbeiten der Datei setzen, mit einer Umgebungsvariablen (doppelter Unterstrich
 statt des Doppelpunkts) oder einem Kommandozeilenargument; sie überschreiben die Datei:
 

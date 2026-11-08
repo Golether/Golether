@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Time.Testing;
+using Golether.Core.Configuration;
 using Golether.Core.Data.Enums;
 using Golether.Core.Identity;
 using Golether.Core.Networking;
@@ -55,6 +56,95 @@ public sealed class InviteTests
         Assert.Equal(point, Invite.ParseLink(invite.ToLink()).Rendezvous);
         Assert.Null(Invite.ParseLink(Sample().ToLink()).Rendezvous);
         Assert.DoesNotContain("meet", DecodePayload(Sample().ToLink()), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A host in a browser has no address: its invitation carries only the room, and that is enough. An invitation
+    /// with neither addresses nor a room leads nowhere and is damaged.
+    /// </summary>
+    [Fact]
+    public void Link_WithoutAddresses_NeedsARoom()
+    {
+        var point = new RendezvousPoint(PeerEndpoint.Parse("meet.example.org:47900"), RendezvousPoint.CreateRoom());
+        var roomOnly = Sample() with { Endpoints = [], Rendezvous = point };
+        var nowhere = Sample() with { Endpoints = [] };
+
+        var parsed = Invite.ParseLink(roomOnly.ToLink());
+
+        Assert.Empty(parsed.Endpoints);
+        Assert.Equal(point, parsed.Rendezvous);
+        Assert.Throws<FormatException>(() => Invite.ParseLink(nowhere.ToLink()));
+    }
+
+    /// <summary>
+    /// The signalling travels with the room; an invitation without one has none, and older readers skip the field.
+    /// </summary>
+    [Fact]
+    public void Link_CarriesTheSignalling()
+    {
+        var point = new RendezvousPoint(PeerEndpoint.Parse("meet.example.org:47900"), RendezvousPoint.CreateRoom());
+        var invite = Sample() with { Rendezvous = point, Signal = new Uri("wss://meet.example.org/signal") };
+
+        var parsed = Invite.ParseLink(invite.ToLink());
+
+        Assert.Equal(new Uri("wss://meet.example.org/signal"), parsed.Signal);
+        Assert.Equal(point, parsed.Rendezvous);
+        Assert.Null(Invite.ParseLink(Sample().ToLink()).Signal);
+        Assert.DoesNotContain("signal", DecodePayload(Sample().ToLink()), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A signalling address that is not secure (except on this computer), carries more than an address, or comes
+    /// without a room makes the link damaged.
+    /// </summary>
+    /// <param name="signal">The signal field.</param>
+    /// <param name="withRoom">Whether the link has a room.</param>
+    [Theory]
+    [InlineData("ws://meet.example.org/signal", true)]
+    [InlineData("https://meet.example.org/signal", true)]
+    [InlineData("wss://user:secret@meet.example.org/signal", true)]
+    [InlineData("wss://meet.example.org/signal?x=1", true)]
+    [InlineData("not an address", true)]
+    [InlineData("wss://meet.example.org/signal", false)]
+    public void Link_RejectsBrokenSignalling(string signal, bool withRoom)
+    {
+        var payload = System.Text.Json.Nodes.JsonNode.Parse(DecodePayload(Sample().ToLink()))!.AsObject();
+        if (withRoom)
+        {
+            payload["meet"] = "meet.example.org:47900";
+            payload["room"] = RendezvousPoint.CreateRoom();
+        }
+
+        payload["signal"] = signal;
+        var link = Invite.LINK_PREFIX + System.Buffers.Text.Base64Url.EncodeToString(System.Text.Encoding.UTF8.GetBytes(payload.ToJsonString()));
+
+        Assert.Throws<FormatException>(() => Invite.ParseLink(link));
+    }
+
+    /// <summary>
+    /// A signalling on this computer is accepted without TLS, for tests.
+    /// </summary>
+    [Fact]
+    public void Link_AcceptsLocalSignalling()
+    {
+        var point = new RendezvousPoint(PeerEndpoint.Parse("127.0.0.1:47900"), RendezvousPoint.CreateRoom());
+        var invite = Sample() with { Rendezvous = point, Signal = new Uri("ws://localhost:47943/signal") };
+
+        Assert.Equal(new Uri("ws://localhost:47943/signal"), Invite.ParseLink(invite.ToLink()).Signal);
+    }
+
+    /// <summary>
+    /// A link of the browser version of the project is read as well; the same invitation on another site is not.
+    /// </summary>
+    [Fact]
+    public void BrowserLink_IsRead()
+    {
+        var invite = Sample();
+        var payload = invite.ToLink()[Invite.LINK_PREFIX.Length..];
+
+        Assert.True(Invite.LooksLikeLink(ProjectSite.WATCH_URL_PREFIX + payload));
+        Assert.Equal(invite.Token, Invite.ParseLink(ProjectSite.WATCH_URL_PREFIX + payload).Token);
+        Assert.False(Invite.LooksLikeLink("https://watch.example.org/#" + payload));
     }
 
     /// <summary>

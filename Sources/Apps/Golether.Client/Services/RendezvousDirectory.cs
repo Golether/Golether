@@ -25,6 +25,11 @@ public sealed class RendezvousDirectory : IRendezvousDirectory
     public const string CACHE_SETTING = "network.rendezvousDirectory";
 
     /// <summary>
+    /// The setting that remembers the signalling the page named last; empty when the page named none.
+    /// </summary>
+    public const string SIGNAL_CACHE_SETTING = "network.signalDirectory";
+
+    /// <summary>
     /// The largest file accepted, in bytes.
     /// </summary>
     public const int MAX_FILE_BYTES = 4096;
@@ -72,10 +77,11 @@ public sealed class RendezvousDirectory : IRendezvousDirectory
     /// <inheritdoc />
     public async Task<PeerEndpoint?> FindAsync(CancellationToken cancellationToken)
     {
-        var fresh = await DownloadAsync(cancellationToken).ConfigureAwait(false);
+        var (fresh, signal) = await DownloadAsync(cancellationToken).ConfigureAwait(false);
         if (EndpointSeal.TryOpen(fresh, out var endpoint))
         {
             await _settings.SetAsync(CACHE_SETTING, fresh, cancellationToken).ConfigureAwait(false);
+            await _settings.SetAsync(SIGNAL_CACHE_SETTING, signal ?? string.Empty, cancellationToken).ConfigureAwait(false);
             return endpoint;
         }
 
@@ -89,19 +95,42 @@ public sealed class RendezvousDirectory : IRendezvousDirectory
         return null;
     }
 
+    /// <inheritdoc />
+    public async Task<Uri?> FindSignalAsync(CancellationToken cancellationToken)
+    {
+        var stored = await _settings.GetAsync(SIGNAL_CACHE_SETTING, cancellationToken).ConfigureAwait(false);
+        return SignalAddress.TryParse(stored, out var signal) ? signal : null;
+    }
+
     /// <summary>
-    /// Reads the sealed address out of a file.
+    /// Reads the signalling from the file of the page; an address that is not acceptable counts as none.
     /// </summary>
     /// <param name="json">The content of the file.</param>
-    /// <returns>The sealed address, or <see langword="null"/> when the file is not what is expected.</returns>
-    public static string? ReadSealed(ReadOnlySpan<byte> json)
+    /// <returns>The address as written, or <see langword="null"/>.</returns>
+    public static string? ReadSignal(ReadOnlySpan<byte> json)
+        => ReadString(json, "signal") is { } text && SignalAddress.TryParse(text, out _) ? text : null;
+
+    /// <summary>
+    /// Reads the sealed address of the rendezvous server from the file of the page.
+    /// </summary>
+    /// <param name="json">The content of the file.</param>
+    /// <returns>The sealed text, or <see langword="null"/>.</returns>
+    public static string? ReadSealed(ReadOnlySpan<byte> json) => ReadString(json, "rendezvous");
+
+    /// <summary>
+    /// Reads a text field of the top object of the file of the page.
+    /// </summary>
+    /// <param name="json">The content of the file.</param>
+    /// <param name="name">The field.</param>
+    /// <returns>The text, or <see langword="null"/> when the file is not such an object or has no such text.</returns>
+    private static string? ReadString(ReadOnlySpan<byte> json, string name)
     {
         try
         {
             var reader = new Utf8JsonReader(json, new JsonReaderOptions { MaxDepth = 4 });
             using var document = JsonDocument.ParseValue(ref reader);
             return document.RootElement.ValueKind == JsonValueKind.Object &&
-                document.RootElement.TryGetProperty("rendezvous", out var value) &&
+                document.RootElement.TryGetProperty(name, out var value) &&
                 value.ValueKind == JsonValueKind.String
                     ? value.GetString()
                     : null;
@@ -117,7 +146,7 @@ public sealed class RendezvousDirectory : IRendezvousDirectory
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The sealed address, or <see langword="null"/> when the page did not answer with one.</returns>
-    private async Task<string?> DownloadAsync(CancellationToken cancellationToken)
+    private async Task<(string? Sealed, string? Signal)> DownloadAsync(CancellationToken cancellationToken)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(Timeout);
@@ -127,13 +156,13 @@ public sealed class RendezvousDirectory : IRendezvousDirectory
             if (!response.IsSuccessStatusCode || response.Content.Headers.ContentLength > MAX_FILE_BYTES)
             {
                 _logger.LogInformation("The project page answered {Status} to the request for the rendezvous server", (int)response.StatusCode);
-                return null;
+                return (null, null);
             }
 
             await using var stream = await response.Content.ReadAsStreamAsync(timeout.Token).ConfigureAwait(false);
             var buffer = new byte[MAX_FILE_BYTES + 1];
             var read = await stream.ReadAtLeastAsync(buffer, buffer.Length, throwOnEndOfStream: false, timeout.Token).ConfigureAwait(false);
-            return read > MAX_FILE_BYTES ? null : ReadSealed(buffer.AsSpan(0, read));
+            return read > MAX_FILE_BYTES ? (null, null) : (ReadSealed(buffer.AsSpan(0, read)), ReadSignal(buffer.AsSpan(0, read)));
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException ||
             (ex is OperationCanceledException && !cancellationToken.IsCancellationRequested))
@@ -141,7 +170,7 @@ public sealed class RendezvousDirectory : IRendezvousDirectory
             // The page is a convenience: without it the session still starts, with the stored address or without a
             // rendezvous server at all.
             _logger.LogInformation("The project page did not name a rendezvous server: {Error}", ex.Message);
-            return null;
+            return (null, null);
         }
     }
 }

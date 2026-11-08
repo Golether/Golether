@@ -234,6 +234,35 @@ locales), et les côtés pourraient en choisir des différentes. C'est donc le p
 qui s'est ouverte, et le participant est aussi le premier à parler (TLS ClientHello). L'hôte garde toutes celles qui se
 sont ouvertes et prend celle dans laquelle le participant a parlé ; les autres sont fermées.
 
+## Signalisation des navigateurs (prototype)
+
+Un navigateur n'ouvre pas de connexion TCP à lui, donc avec `Signal:Enabled` le serveur accepte aussi un WebSocket à
+l'adresse `Signal:Url`, chemin `/signal` (`wss://` avec un certificat pour les pages servies en HTTPS). Les pages
+autorisées sont listées dans `Signal:AllowedOrigins`. Le serveur transmet les descriptions d'une connexion WebRTC entre
+l'hôte et un invité sans en lire aucune ; en quelques secondes les navigateurs se parlent directement et le WebSocket de
+l'invité se ferme. Un message est du JSON UTF-8 dans un message texte de 16 Kio au plus :
+
+| `$t` | Sens | Champs | Signification |
+|---|---|---|---|
+| `server-hello` | S → D | `version`, `nonce` | premier message du serveur |
+| `register` | H → S | `room`, `key` (SPKI, base64), `signature` | l'hôte prend une salle ; la signature (P-256, SHA-256, r‖s) couvre `golether-signal-v1\n<nonce>\n<room>` |
+| `registered` | S → H | — | la salle est prise ; le WebSocket reste ouvert |
+| `connect` | P → S | `room` | un invité demande une rencontre |
+| `meeting` | S → P | `meeting` | le numéro de la rencontre |
+| `incoming` | S → H | `meeting` | un invité attend |
+| `signal` | H ↔ S ↔ P | `meeting` (H), `data` | une description ou un candidat, transmis tels quels (12 Kio au plus ; 100 au plus venant d'un invité) |
+| `closed` | S → H | `meeting` | le WebSocket de l'invité s'est fermé |
+| `error` | S → D | `error` | un refus, un nom du tableau ci-dessus |
+
+Les limites sont celles de la partie TCP : salles et connexions sont comptées, le rythme des nouveaux WebSockets
+d'une IP est borné, une rencontre dure au plus `Signal:MeetingTimeout`. Une salle appartient à la clé qui l'a prise,
+comme plus haut. Le serveur voit ce qu'il voyait déjà (adresses, salles, clés publiques) et les empreintes DTLS, publiques
+elles aussi.
+
+Les applications utilisent la même signalisation : un hôte applicatif y garde sa salle à côté de la salle du
+protocole de rencontre, et une application y rejoint un hôte dans un navigateur. C'est la seule partie du serveur dont
+une rencontre mixte a besoin, donc pour elle le serveur doit avoir un domaine avec un certificat TLS (`wss://`).
+
 ## Limitations
 
 - **Un NAT symétrique** (le routeur donne un nouveau port externe à chaque destination) d'un côté ou de l'autre rend le

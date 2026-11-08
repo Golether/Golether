@@ -22,7 +22,7 @@
 
   // The folder of the documentation in each language (Docs/<folder> in the repository).
   var docs = { en: 'En', de: 'De', es: 'Es', fr: 'Fr', pt: 'Pt', ru: 'Ru' };
-  var docsRoot = 'https://github.com/DepthRel/Golether/blob/main/Docs/';
+  var docsRoot = 'https://github.com/Golether/Golether/blob/main/Docs/';
 
   function find(code) {
     for (var i = 0; i < list.length; i++) {

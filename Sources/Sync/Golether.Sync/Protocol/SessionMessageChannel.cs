@@ -21,12 +21,10 @@ public sealed class SessionMessageChannel : IAsyncDisposable
     public const int SLOWEST_LINK_BYTES_PER_SECOND = 4 * 1024;
 
     /// <summary>
-    /// The JSON options of the protocol.
+    /// The JSON options of the protocol: web defaults, at most 16 levels deep, the metadata made at build time
+    /// (<see cref="SessionJsonContext"/>).
     /// </summary>
-    public static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
-    {
-        MaxDepth = 16,
-    };
+    public static readonly JsonSerializerOptions JsonOptions = SessionJsonContext.Default.Options;
 
     /// <summary>
     /// The frame channel.
@@ -47,7 +45,7 @@ public sealed class SessionMessageChannel : IAsyncDisposable
     /// </summary>
     /// <param name="message">The message.</param>
     /// <returns>The UTF-8 JSON.</returns>
-    public static byte[] Serialize(SessionMessage message) => JsonSerializer.SerializeToUtf8Bytes(message, JsonOptions);
+    public static byte[] Serialize(SessionMessage message) => JsonSerializer.SerializeToUtf8Bytes(message, SessionJsonContext.Default.SessionMessage);
 
     /// <summary>
     /// Deserializes a message.
@@ -59,7 +57,7 @@ public sealed class SessionMessageChannel : IAsyncDisposable
     {
         try
         {
-            return JsonSerializer.Deserialize<SessionMessage>(payload, JsonOptions)
+            return JsonSerializer.Deserialize(payload, SessionJsonContext.Default.SessionMessage)
                 ?? throw new InvalidDataException("The message is empty.");
         }
         catch (JsonException ex)

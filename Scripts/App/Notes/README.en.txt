@@ -10,4 +10,4 @@ All data (keys, database, tunnels, components) is kept in the data folder next t
 [linux] Video: install the libmpv package of your distribution (libmpv2 / mpv-libs). Cameras and voice: gstreamer1.0-plugins-base, -good, -bad and gstreamer1.0-nice. Tunnels: amneziawg-tools and the amneziawg module (or amneziawg-go).
 [macos] The build is not signed by Apple: on the first start open "System Settings → Privacy & Security → Open Anyway", or run: xattr -dr com.apple.quarantine Golether.app
 [macos] Video: brew install mpv. Cameras and voice: brew install gstreamer.
-User guide: https://github.com/DepthRel/Golether/blob/main/Docs/En/UserGuide.md
+User guide: https://github.com/Golether/Golether/blob/main/Docs/En/UserGuide.md

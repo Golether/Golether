@@ -4,7 +4,7 @@ termos da Licença Pública Geral GNU, versão 3 ou (à sua escolha) qualquer ve
 O Golether é fornecido SEM QUALQUER GARANTIA, na medida permitida por lei: veja as secções 15 e 16 da licença.
 
 O Golether contém componentes de outros autores sob as suas próprias licenças; estão enumerados em
-THIRD-PARTY-NOTICES.txt na pasta de instalação. O código-fonte do Golether: https://github.com/DepthRel/Golether
+THIRD-PARTY-NOTICES.txt na pasta de instalação. O código-fonte do Golether: https://github.com/Golether/Golether
 
 Abaixo está o texto original em inglês da licença: só ele tem valor legal. Traduções não oficiais:
 https://www.gnu.org/licenses/translations.html

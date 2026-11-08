@@ -19,15 +19,16 @@ Full design: `Docs/En/Architecture.md`, wire formats: `Docs/En/Protocol.md`.
 | `Core/Golether.Localization` | language packs (`Languages/<code>.json`), `Localizer`, `Texts` |
 | `Core/Golether.Core.Data*` | EF Core stores + FluentMigrator SQL migrations (SQLite) |
 | `Security` | device key (ECDSA P-256), invitations + `InviteRegistry`, `VerificationCode`, admission, `EndpointSeal` |
-| `Transports.*` | mTLS with pinned keys (`Tls`), UPnP/NAT-PMP (`PortMapping`), host TURN relay (`Relay`), hole punching (`Rendezvous`) |
+| `Transports.*` | mTLS with pinned keys (`Tls`), UPnP/NAT-PMP (`PortMapping`), host TURN relay (`Relay`), hole punching (`Rendezvous`), sessions over WebRTC data channels (`WebRtc`: `SignalClient`, `PeerProof`, `WebRtcSessionHost`/`WebRtcSessionConnector` behind `IDataLink`; `GStreamerDataLink` checks the DTLS certificate itself, webrtcbin does not) |
 | `Sync/Golether.Sync` | session messages, clock estimation, `PlaybackAuthority` (host) / `PlaybackFollower` |
-| `Media.Streaming` / `Media.Player` / `Media.Conference*` | 256 KiB chunk serving + peer sharing / libmpv / GStreamer `webrtcbin` |
+| `Media.Streaming` / `Media.Player` / `Media.Conference*` | 256 KiB chunk serving + peer sharing / libmpv / GStreamer `webrtcbin`; the rules both conference backends share (`SignalKinds`, `SignalRules`, `ConnectionRules`) live in `Media.Conference`; `Media.Conference.Browser` is the browser backend (decisions in .NET behind `IBrowserRtc`, tested without a browser) |
 | `Tunnels.AmneziaWG` | AWG keys, signed offer/answer packages, CLI control |
 | `Session` | `HostSession`, `ParticipantSession`; `Session.Hosting`: `SessionHosting`, a hosted session with its listener, TURN relay, rendezvous room, router ports and invitations, shared by the desktop and the phone |
 | `Apps/Golether.Client` | client layer shared with the mobile client: services and view models without windows, the colours of the theme (`Styles/Palette.axaml`), `IFeatureAccess` (paid features) |
 | `Apps/Golether.UI` | Avalonia MVVM app, composition root `AppServices` |
 | `Apps/Golether.Mobile(.Android)` | Android client: a participant of any session, or the host of a session of up to 3 (`HostConnection`, files chosen in the system pickers are read through `OpenedFiles`): one Avalonia view, its own theme and icons; the package with the activity and the foreground service. `Golether.Mobile` and its tests are plain `net10.0` and build and run in CI; the projects that need the Android workload (`*.Android`) have `Build="false"` in `Golether.slnx`; `*.Android` projects next to their abstraction (`Media.Player.Android`, `Media.Conference.GStreamer.Android`, `Security.Android`) |
-| `Apps/Golether.Web.Server(.UI/.Contracts)` | rendezvous + STUN server, its monitor window, shared contracts |
+| `Apps/Golether.Browser` | browser prototype: `HostSession`/`ParticipantSession` in .NET WebAssembly over WebRTC data channels (`Transport/`), `<video>` + service worker instead of libmpv (`Media/`), cameras through `JsBrowserRtc` + `conference.js`/`tiles.js`, HTML page in `wwwroot` (keys in WebCrypto, `rtc.js`); trimmed with reflection JSON off: JSON the page reaches must come from a source-generated context (`SessionJsonContext`, `InviteJsonContext`, `LanguageJsonContext`) or a `Utf8JsonWriter`, and a call with options instead of a `JsonTypeInfo` shows up as IL2026 in the publish; after toggling trimming delete its `obj`, stale webcil files survive; `dotnet publish` into an existing folder skips files newer than the source, so clean the output first |
+| `Apps/Golether.Web.Server(.UI/.Contracts)` | rendezvous + STUN server, its monitor window, shared contracts; `Signal` section: WebSocket signalling for browsers (`Signal/`) |
 | `Apps/Golether.Pages` | static GitHub Pages site: landing, `join/` link page, `updates.json`, `config.json` |
 
 Dependencies point inwards; Core depends on nothing app-level.
@@ -40,7 +41,7 @@ Dependencies point inwards; Core depends on nothing app-level.
   authenticated `PeerId`; only codes/reasons travel, never user-facing text (a `bye` reason is ignored).
 - **Security:** participant pins the host key from the invitation; host admits everyone after a spoken 3-word +
   number code (word numbers are language-neutral, words are localized). Invitations ≤ 1 h, ≤ 16 uses.
-- **Servers never see sessions:** rendezvous only introduces sides; cameras use DTLS-SRTP; the host relay rides
+- **Servers never see sessions:** rendezvous and its `/signal` only introduce sides (mixed meetings with browsers use `/signal`, Automatic mode only); cameras use DTLS-SRTP; the host relay rides
   session streams.
 - **Portable data:** everything in `data/` next to the program (`golether.install` marker), `GOLETHER_DATA_DIR` for dev.
 

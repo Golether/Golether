@@ -295,7 +295,7 @@ private and the public network.
 
 ## Updates
 
-On start Golether asks the [project page](https://depthrel.github.io/Golether/) whether a new version is out. If it
+On start Golether asks the [project page](https://golether.github.io/Golether/) whether a new version is out. If it
 is, a bar "A new version is available" appears at the top with the **Open the download page** button: your browser
 opens the page with the links for your system. Nothing is downloaded or installed by itself: you decide. The **Ignore
 this version** tick, set before closing the bar, switches off the reminder about that version; Golether will tell you

@@ -227,14 +227,48 @@ within 30 seconds: a participant who sends a little at a time cannot hold the fi
 new invitation differs from its first characters. The order of the fields means nothing to a reader. `endpoints`
 holds from 1 to 16 addresses.
 
-The same invitation as a web link: `https://depthrel.github.io/Golether/join/#` + the same base64url. The browser
+The same invitation as a web link: `https://golether.github.io/Golether/join/#` + the same base64url. The browser
 does not send the part after `#` to the server; the page turns it into `golether://join/v1/…` and hands it to the
 application. The application accepts both spellings.
+Links of the page at its address before the move of the project,
+`https://depthrel.github.io/Golether/join/#`, are still read: hosts of older versions hand them out, and the old
+address passes them on to the new page.
 
 The `meet` and `room` fields are optional and come only together: the host's rendezvous server and its room there
 (a new one for every session). With only one of them, or with a malformed one, the invitation counts as damaged.
 Old versions do not read these fields. The protocol of the server itself is described in
 [RendezvousServer.md](RendezvousServer.md#protocol-version-1).
+
+In a browser the host has no address: its invitation has an empty `endpoints` and is reached only through `meet` and
+`room`. An invitation with neither addresses nor a room is damaged; versions before the browser one refuse an
+invitation without addresses.
+
+The `signal` field (optional, with `meet` and `room` only) names the signalling where the host keeps the same room
+for WebRTC connections: `wss://…/signal`, or `ws://` to this computer for tests. A browser joins only invitations that
+have it; an application tries it after the addresses and the rendezvous server. Readers before it skip the field.
+
+## Transport of a browser (prototype)
+
+In a browser every stream is a data channel of one WebRTC connection instead of a TLS connection. The label of the
+channel is the purpose (`1` Control, `2` MediaData); the stream is cut into messages of at most 16 KiB. The connection
+is made through the signalling of the rendezvous server ([RendezvousServer.md](RendezvousServer.md)).
+
+Before any stream, both sides prove their keys in the channel `golether-auth`: the guest sends
+`{ "key": <SubjectPublicKeyInfo, base64>, "signature": <base64> }`, the host checks it and answers in kind. The
+signature (ECDSA P-256, SHA-256, r‖s) covers `golether-webrtc-v1\n<fingerprints of the host>\n<fingerprints of the
+guest>\n<room>`, where the fingerprints are the `a=fingerprint:` lines of the descriptions, in upper case, sorted and
+joined with commas. The guest requires the `PeerId` of the invitation; the host closes the channels of a connection
+that has not proven a key. After that the messages are those of the sections above.
+
+The cameras, the voices and the sharing of pieces of a browser go in connections of their own between every two
+participants, made with the same `rtc` signals and the same `golether` channel as in the applications (see
+"Exchanging pieces between participants").
+
+Applications use the same transport, made by `webrtcbin` (`GStreamerDataLink`): an application host takes browser
+guests this way, an application reaches a browser host, and two applications try it after every other way. Because
+`webrtcbin` does not compare the DTLS certificate with the fingerprint of the description, the application does it
+itself before opening any channel. Between applications the relay streams of the cameras (`Relay`, `RelayShared`)
+travel this way too; a browser reaches the relay of an application host directly, over TCP, at its public address.
 
 ## Verification code
 

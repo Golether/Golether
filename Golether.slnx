@@ -73,6 +73,7 @@
   </Folder>
   <Folder Name="/Sources/" />
   <Folder Name="/Sources/Apps/">
+    <Project Path="Sources/Apps/Golether.Browser/Golether.Browser.csproj" />
     <Project Path="Sources/Apps/Golether.Client/Golether.Client.csproj" />
     <Project Path="Sources/Apps/Golether.Mobile/Golether.Mobile.csproj" />
     <Project Path="Sources/Apps/Golether.Mobile.Android/Golether.Mobile.Android.csproj">
@@ -98,6 +99,7 @@
   </Folder>
   <Folder Name="/Sources/Media/">
     <Project Path="Sources/Media/Golether.Media.Conference/Golether.Media.Conference.csproj" />
+    <Project Path="Sources/Media/Golether.Media.Conference.Browser/Golether.Media.Conference.Browser.csproj" />
     <Project Path="Sources/Media/Golether.Media.Conference.GStreamer/Golether.Media.Conference.GStreamer.csproj" />
     <Project Path="Sources/Media/Golether.Media.Conference.GStreamer.Android/Golether.Media.Conference.GStreamer.Android.csproj">
       <Build Project="false" />
@@ -130,6 +132,7 @@
     <Project Path="Sources/Transports/Golether.Transports.Relay/Golether.Transports.Relay.csproj" />
     <Project Path="Sources/Transports/Golether.Transports.Rendezvous/Golether.Transports.Rendezvous.csproj" />
     <Project Path="Sources/Transports/Golether.Transports.Tls/Golether.Transports.Tls.csproj" />
+    <Project Path="Sources/Transports/Golether.Transports.WebRtc/Golether.Transports.WebRtc.csproj" />
   </Folder>
   <Folder Name="/Sources/Tunnels/">
     <Project Path="Sources/Tunnels/Golether.Tunnels.AmneziaWG/Golether.Tunnels.AmneziaWG.csproj" />
@@ -144,6 +147,7 @@
     <Project Path="Tests/Golether.Core.Data.Tests/Golether.Core.Data.Tests.csproj" />
     <Project Path="Tests/Golether.Core.Tests/Golether.Core.Tests.csproj" />
     <Project Path="Tests/Golether.Localization.Tests/Golether.Localization.Tests.csproj" />
+    <Project Path="Tests/Golether.Media.Conference.Browser.Tests/Golether.Media.Conference.Browser.Tests.csproj" />
     <Project Path="Tests/Golether.Media.Conference.GStreamer.Tests/Golether.Media.Conference.GStreamer.Tests.csproj" />
     <Project Path="Tests/Golether.Media.Player.Tests/Golether.Media.Player.Tests.csproj" />
     <Project Path="Tests/Golether.Media.Streaming.Tests/Golether.Media.Streaming.Tests.csproj" />
@@ -153,6 +157,7 @@
     <Project Path="Tests/Golether.Session.Tests/Golether.Session.Tests.csproj" />
     <Project Path="Tests/Golether.Sync.Tests/Golether.Sync.Tests.csproj" />
     <Project Path="Tests/Golether.Transports.Tests/Golether.Transports.Tests.csproj" />
+    <Project Path="Tests/Golether.Transports.WebRtc.Tests/Golether.Transports.WebRtc.Tests.csproj" />
     <Project Path="Tests/Golether.Tunnels.AmneziaWG.Tests/Golether.Tunnels.AmneziaWG.Tests.csproj" />
     <Project Path="Tests/Golether.UI.Headless.Tests/Golether.UI.Headless.Tests.csproj" />
     <Project Path="Tests/Golether.UI.Tests/Golether.UI.Tests.csproj" />

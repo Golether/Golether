@@ -190,6 +190,31 @@ con esos mismos valores por defecto. Una clave que falte en el archivo también 
 | `Logging:LogLevel:Default` | `Information` | el nivel de detalle del registro; `Debug` registra cada conexión |
 | `Logging:Console:FormatterOptions:TimestampFormat` | `yyyy-MM-dd HH:mm:ss.fff zzz ` | la marca al comienzo de cada línea del registro en la consola y en el archivo: la fecha, la hora del servidor y la diferencia con UTC (`2026-10-11 16:14:12.250 +07:00`). Con systemd y en el Visor de eventos de Windows la hora de una entrada la pone el propio sistema |
 
+### Navegadores (prototipo)
+
+La versión para navegador de Golether llega al servidor por un WebSocket. Por defecto está desactivada:
+
+También la usan las aplicaciones: una sesión de la aplicación acepta invitados desde un navegador solo a través de ella. Para esos encuentros mixtos actívala, da al servidor un dominio con un certificado TLS (`wss://`) y publica la dirección como `signal` en `config.json` de la página del proyecto.
+
+```json
+"Signal": {
+  "Enabled": true,
+  "Url": "https://0.0.0.0:47943",
+  "AllowedOrigins": [ "https://golether.github.io" ]
+},
+"Kestrel": { "Certificates": { "Default": { "Path": "config/signal.pfx", "Password": "…" } } }
+```
+
+| Parámetro `Signal:…` | Por defecto | Qué ajusta |
+|---|---|---|
+| `Enabled` | `false` | si se aceptan navegadores |
+| `Url` | `http://0.0.0.0:47943` | la dirección del WebSocket; una página servida por HTTPS solo abre `wss://`, así que en internet es `https://` con el certificado de `Kestrel:Certificates:Default` (un nombre de dominio y, por ejemplo, Let's Encrypt) |
+| `AllowedOrigins` | `http://localhost:47950`, `http://127.0.0.1:47950` | las páginas que pueden usar el servidor |
+| `MaxConnections`, `MaxRooms`, `MaxMeetingsPerRoom`, `MaxConnectionsPerMinute` | `1024`, `1024`, `16`, `120` | los mismos límites que para las aplicaciones |
+| `FirstMessageTimeout`, `MeetingTimeout` | `00:00:10`, `00:01:00` | cuánto esperar el primer mensaje y cuánto dura un encuentro |
+
+Abre también en el router el puerto TCP de `Url`.
+
 Cualquier parámetro también se puede definir sin editar el archivo, con una variable de entorno (un doble guion bajo en
 lugar de los dos puntos) o un argumento de línea de comandos; tienen prioridad sobre el archivo:
 

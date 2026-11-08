@@ -85,7 +85,7 @@ public sealed class GalleryIntegrationTests : IAsyncLifetime
         var listener = new TlsPeerListener(_hostIdentity, _transport);
         listener.Start();
         _host = new HostSession(
-            _hostIdentity,
+            _hostIdentity.PeerId,
             listener,
             new InviteRegistry(TimeProvider.System),
             new AdmissionService(prompt, new AdmissionOptions(), TimeProvider.System),
@@ -207,7 +207,7 @@ public sealed class GalleryIntegrationTests : IAsyncLifetime
         var uris = Substitute.For<IMediaUriRegistry>();
         uris.Register(Arg.Any<Func<Stream>>()).Returns(_ => new Uri("golether://media/" + Guid.NewGuid().ToString("N")));
         var guest = new ParticipantSession(
-            _guestIdentity,
+            _guestIdentity.PeerId,
             new TlsPeerConnector(_guestIdentity, _transport),
             _guestPlayer,
             uris,

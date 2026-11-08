@@ -229,6 +229,34 @@ could choose different ones. So only the participant chooses: the first connecti
 is also the first to speak (TLS ClientHello). The host keeps all that opened and takes the one in which the
 participant spoke; the rest are closed.
 
+## Signalling of browsers (prototype)
+
+A browser opens no TCP connection of its own, so with `Signal:Enabled` the server also takes a WebSocket at the
+address `Signal:Url`, path `/signal` (`wss://` with a certificate for pages served over HTTPS). The pages allowed to
+use it are listed in `Signal:AllowedOrigins`. The server passes the descriptions of a WebRTC connection between the host
+and a guest and reads none of them; within seconds the browsers talk directly, and the WebSocket of the guest closes.
+A message is UTF-8 JSON in a text message of at most 16 KiB:
+
+| `$t` | Direction | Fields | Meaning |
+|---|---|---|---|
+| `server-hello` | S → D | `version`, `nonce` | first message of the server |
+| `register` | H → S | `room`, `key` (SPKI, base64), `signature` | the host takes a room; the signature (P-256, SHA-256, r‖s) covers `golether-signal-v1\n<nonce>\n<room>` |
+| `registered` | S → H | — | the room is taken; the WebSocket stays open |
+| `connect` | P → S | `room` | a guest asks for a meeting |
+| `meeting` | S → P | `meeting` | the number of the meeting |
+| `incoming` | S → H | `meeting` | a guest is waiting |
+| `signal` | H ↔ S ↔ P | `meeting` (H), `data` | a description or a candidate, passed as it is (at most 12 KiB; at most 100 from a guest) |
+| `closed` | S → H | `meeting` | the WebSocket of the guest closed |
+| `error` | S → D | `error` | a refusal, a name from the table above |
+
+The limits are those of the TCP part: rooms and connections are counted, the rate of new WebSockets from one IP is
+bounded, a meeting lasts at most `Signal:MeetingTimeout`. A room belongs to the key that took it, as above. The server
+sees what it saw before (addresses, rooms, public keys) and the DTLS fingerprints, which are public as well.
+
+Applications use the same signalling: an application host keeps its room here next to the room of the rendezvous
+protocol, and an application meets a browser host here. It is the only part of the server a mixed meeting needs, so for
+one the server needs a domain with a TLS certificate (`wss://`).
+
 ## Limitations
 
 - **A symmetric NAT** (the router gives a new external port to every destination) on either side makes punching

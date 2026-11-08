@@ -107,7 +107,7 @@ public sealed class SessionIntegrationTests : IAsyncLifetime
         var listener = new TlsPeerListener(_hostIdentity, _transport);
         listener.Start();
         _host = new HostSession(
-            _hostIdentity,
+            _hostIdentity.PeerId,
             listener,
             new InviteRegistry(TimeProvider.System),
             new AdmissionService(_prompt, new AdmissionOptions(), TimeProvider.System),
@@ -511,7 +511,7 @@ public sealed class SessionIntegrationTests : IAsyncLifetime
         using var secondIdentity = DeviceIdentity.CreateNew(TimeProvider.System);
         await using var secondPlayer = new SimulatedPlayer(SystemMonotonicClock.Instance, TimeSpan.FromHours(2));
         await using var second = new ParticipantSession(
-            secondIdentity,
+            secondIdentity.PeerId,
             new TlsPeerConnector(secondIdentity, _transport),
             secondPlayer,
             new CapturingRegistry(),
@@ -599,7 +599,7 @@ public sealed class SessionIntegrationTests : IAsyncLifetime
         Assert.Equal(chunks, _host.ChunksServed);
 
         await using var second = new ParticipantSession(
-            secondIdentity,
+            secondIdentity.PeerId,
             new TlsPeerConnector(secondIdentity, _transport),
             secondPlayer,
             secondRegistry,
@@ -716,7 +716,7 @@ public sealed class SessionIntegrationTests : IAsyncLifetime
         var listener = new TlsPeerListener(_hostIdentity, _transport);
         listener.Start();
         await using var host = new HostSession(
-            _hostIdentity,
+            _hostIdentity.PeerId,
             listener,
             new InviteRegistry(TimeProvider.System),
             new AdmissionService(prompt, new AdmissionOptions(), TimeProvider.System),
@@ -885,7 +885,7 @@ public sealed class SessionIntegrationTests : IAsyncLifetime
         // The expired invitation itself lets nobody in any more.
         using var lateIdentity = DeviceIdentity.CreateNew(TimeProvider.System);
         await using var late = new ParticipantSession(
-            lateIdentity,
+            lateIdentity.PeerId,
             new TlsPeerConnector(lateIdentity, _transport),
             new SimulatedPlayer(SystemMonotonicClock.Instance, TimeSpan.FromHours(2)),
             new CapturingRegistry(),
@@ -1213,7 +1213,7 @@ public sealed class SessionIntegrationTests : IAsyncLifetime
     /// <returns>The session.</returns>
     private static ParticipantSession CreateGuest(DeviceIdentity identity, string name)
         => new(
-            identity,
+            identity.PeerId,
             new TlsPeerConnector(identity, _transport),
             new SimulatedPlayer(SystemMonotonicClock.Instance, TimeSpan.FromHours(2)),
             new CapturingRegistry(),
@@ -1259,7 +1259,7 @@ public sealed class SessionIntegrationTests : IAsyncLifetime
             .Returns(Task.FromException<PeerStream>(new IOException("The host is unreachable.")));
 
         return new ParticipantSession(
-            _guestIdentity,
+            _guestIdentity.PeerId,
             connector,
             _guestPlayer,
             _registry,
@@ -1276,7 +1276,7 @@ public sealed class SessionIntegrationTests : IAsyncLifetime
     /// <returns>The session.</returns>
     private ParticipantSession CreateGuest()
         => new(
-            _guestIdentity,
+            _guestIdentity.PeerId,
             new TlsPeerConnector(_guestIdentity, _transport),
             _guestPlayer,
             _registry,
@@ -1575,7 +1575,7 @@ public sealed class SessionIntegrationTests : IAsyncLifetime
     /// <returns>The session.</returns>
     private ParticipantSession CreateGuest(IRendezvousConnector rendezvous)
         => new(
-            _guestIdentity,
+            _guestIdentity.PeerId,
             new TlsPeerConnector(_guestIdentity, _transport),
             _guestPlayer,
             _registry,
@@ -1747,7 +1747,7 @@ public sealed class SessionIntegrationTests : IAsyncLifetime
     {
         var invite = _host.CreateInvite([new PeerEndpoint("127.0.0.1", _host.Port)]);
         await using var self = new ParticipantSession(
-            _hostIdentity,
+            _hostIdentity.PeerId,
             new TlsPeerConnector(_hostIdentity, _transport),
             _guestPlayer,
             _registry,

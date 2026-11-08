@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -21,11 +20,6 @@ namespace Golether.Media.Conference.GStreamer;
 internal sealed partial class WebRtcPeer : IDisposable
 {
     /// <summary>
-    /// The label of the data channel for chunk sharing.
-    /// </summary>
-    private const string DATA_CHANNEL_LABEL = "golether";
-
-    /// <summary>
     /// <c>GST_WEBRTC_DATA_CHANNEL_STATE_OPEN</c>.
     /// </summary>
     private const int DATA_CHANNEL_OPEN = 2;
@@ -46,22 +40,9 @@ internal sealed partial class WebRtcPeer : IDisposable
     private const int ICE_FAILED = 4;
 
     /// <summary>
-    /// How long a connection may take to be made and verified before it counts as failed. The path through the relay
-    /// of the host may come up only after the first connection gave up looking for it (a meeting through the
-    /// rendezvous server takes seconds); a connection made again then finds it.
-    /// </summary>
-    private static readonly TimeSpan _connectTimeout = TimeSpan.FromSeconds(20);
-
-    /// <summary>
     /// The result of a promise that webrtcbin answered.
     /// </summary>
     private const int PROMISE_REPLIED = 2;
-
-    /// <summary>
-    /// How long webrtcbin may take to answer a step of the negotiation: it answers in milliseconds, and one that does
-    /// not answer at all must not keep the signaling of the peer waiting forever.
-    /// </summary>
-    private static readonly TimeSpan _negotiationTimeout = TimeSpan.FromSeconds(10);
 
     /// <summary>
     /// The last <c>GstWebRTCICEConnectionState</c> reported by webrtcbin.
@@ -127,11 +108,6 @@ internal sealed partial class WebRtcPeer : IDisposable
     /// Whether the data channel is open.
     /// </summary>
     private volatile bool _channelOpen;
-
-    /// <summary>
-    /// The maximum size of a signaling payload.
-    /// </summary>
-    public const int MAX_SIGNAL_LENGTH = 64 * 1024;
 
     /// <summary>
     /// The pipeline of the peer.
@@ -364,59 +340,12 @@ internal sealed partial class WebRtcPeer : IDisposable
     /// <param name="offer">The SDP of the offer.</param>
     /// <returns><see langword="true"/> when the offer belongs to another connection.</returns>
     public bool IsOtherConnection(string offer)
-        => _remoteSession is { } known && ParseSession(offer) is { } session && session != known;
-
-    /// <summary>
-    /// Extracts the session identifier from the <c>o=</c> line of an SDP.
-    /// </summary>
-    /// <param name="sdp">The SDP.</param>
-    /// <returns>The identifier, or <see langword="null"/> when the SDP has no origin line.</returns>
-    public static string? ParseSession(string sdp)
-    {
-        ArgumentNullException.ThrowIfNull(sdp);
-        var match = OriginPattern().Match(sdp);
-        return match.Success ? match.Groups[1].Value : null;
-    }
+        => _remoteSession is { } known && SignalRules.ParseSession(offer) is { } session && session != known;
 
     /// <summary>
     /// Lets a later failure of this connection be reported again, after a failure that cleared by itself.
     /// </summary>
     public void Recovered() => Volatile.Write(ref _failing, 0);
-
-    /// <summary>
-    /// Checks the shape of signaling data before any native object is created for it.
-    /// </summary>
-    /// <param name="kind">The kind.</param>
-    /// <param name="payload">The payload.</param>
-    /// <exception cref="FormatException">The data is invalid.</exception>
-    public static void ValidateSignal(string kind, string payload)
-    {
-        ArgumentNullException.ThrowIfNull(kind);
-        ArgumentNullException.ThrowIfNull(payload);
-        if (payload.Length > MAX_SIGNAL_LENGTH)
-        {
-            throw new FormatException("The signaling payload is too large.");
-        }
-
-        switch (kind)
-        {
-            case SignalKinds.OFFER or SignalKinds.ANSWER when payload.StartsWith("v=0", StringComparison.Ordinal) && payload.Contains("\nm=", StringComparison.Ordinal):
-                return;
-            case SignalKinds.OFFER or SignalKinds.ANSWER:
-                throw new FormatException("The session description is not valid SDP.");
-            case SignalKinds.CANDIDATE:
-                var separator = payload.IndexOf('\n');
-                if (separator <= 0 || separator > 5 || !payload.AsSpan(0, separator).ToString().All(char.IsAsciiDigit) ||
-                    !payload.AsSpan(separator + 1).StartsWith("candidate:", StringComparison.Ordinal) || payload.Contains('\r'))
-                {
-                    throw new FormatException("The ICE candidate is malformed.");
-                }
-
-                return;
-            default:
-                throw new FormatException($"Unknown signaling kind '{kind}'.");
-        }
-    }
 
     /// <summary>
     /// Starts the pipeline; the offerer then negotiates automatically.
@@ -433,7 +362,7 @@ internal sealed partial class WebRtcPeer : IDisposable
                 lock (_nativeGate)
                 {
                     var channel = Signals.EmitForObject(_pipeline.Element("webrtc"), "create-data-channel",
-                        SignalArg.String(DATA_CHANNEL_LABEL), SignalArg.Boxed(Gst.StructureGetType(), 0));
+                        SignalArg.String(ConnectionRules.DATA_CHANNEL_LABEL), SignalArg.Boxed(Gst.StructureGetType(), 0));
                     if (channel != 0)
                     {
                         AttachChannel(channel);
@@ -508,7 +437,7 @@ internal sealed partial class WebRtcPeer : IDisposable
     /// <exception cref="FormatException">The payload is invalid.</exception>
     public async Task HandleSignalAsync(string kind, string payload)
     {
-        ValidateSignal(kind, payload);
+        SignalRules.Validate(kind, payload);
         await _signaling.WaitAsync().ConfigureAwait(false);
         try
         {
@@ -529,13 +458,12 @@ internal sealed partial class WebRtcPeer : IDisposable
                         SetRemoteDescription(3, payload);
                         break;
                     case SignalKinds.CANDIDATE:
-                        var separator = payload.IndexOf('\n');
-                        if (separator <= 0 || !uint.TryParse(payload.AsSpan(0, separator), NumberStyles.None, CultureInfo.InvariantCulture, out var line))
+                        if (!SignalRules.TryParseCandidate(payload, out var line, out var candidate))
                         {
                             throw new FormatException("The ICE candidate is malformed.");
                         }
 
-                        Signals.Emit(_pipeline.Element("webrtc"), "add-ice-candidate", SignalArg.UInt(line), SignalArg.String(payload[(separator + 1)..]));
+                        Signals.Emit(_pipeline.Element("webrtc"), "add-ice-candidate", SignalArg.UInt(line), SignalArg.String(candidate));
                         break;
                     default:
                         throw new FormatException($"Unknown signaling kind '{kind}'.");
@@ -633,7 +561,7 @@ internal sealed partial class WebRtcPeer : IDisposable
 
             try
             {
-                peer._host.SendSignal(peer.Peer, SignalKinds.CANDIDATE, line.ToString(CultureInfo.InvariantCulture) + "\n" + text);
+                peer._host.SendSignal(peer.Peer, SignalKinds.CANDIDATE, SignalRules.FormatCandidate(line, text));
             }
             catch (Exception ex) when (ex is not OutOfMemoryException)
             {
@@ -765,13 +693,6 @@ internal sealed partial class WebRtcPeer : IDisposable
     private static partial Regex FingerprintPattern();
 
     /// <summary>
-    /// Matches the origin line of an SDP and captures its session identifier.
-    /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex(@"^o=\S+ ([0-9]{1,20}) [0-9]{1,20} ", RegexOptions.Multiline | RegexOptions.CultureInvariant)]
-    private static partial Regex OriginPattern();
-
-    /// <summary>
     /// Waits for the DTLS connection and compares the remote certificate with the signaled fingerprint.
     /// </summary>
     /// <remarks>
@@ -794,7 +715,7 @@ internal sealed partial class WebRtcPeer : IDisposable
 
             if (state != DTLS_CONNECTED || _expectedFingerprint is not { } expected)
             {
-                if (TimeProvider.System.GetElapsedTime(started) >= _connectTimeout)
+                if (TimeProvider.System.GetElapsedTime(started) >= ConnectionRules.ConnectTimeout)
                 {
                     Fail("not connected in time");
                 }
@@ -926,7 +847,7 @@ internal sealed partial class WebRtcPeer : IDisposable
 
         try
         {
-            if (Signals.GetString(channel, "label") != DATA_CHANNEL_LABEL)
+            if (Signals.GetString(channel, "label") != ConnectionRules.DATA_CHANNEL_LABEL)
             {
                 return;
             }
@@ -1082,7 +1003,7 @@ internal sealed partial class WebRtcPeer : IDisposable
         try
         {
             Signals.Emit(webrtc, action, SignalArg.Boxed(Gst.StructureGetType(), 0), SignalArg.Boxed(Gst.PromiseGetType(), promise));
-            if (WaitForPromise(promise, _negotiationTimeout) != PROMISE_REPLIED)
+            if (WaitForPromise(promise, ConnectionRules.NegotiationTimeout) != PROMISE_REPLIED)
             {
                 throw new GstException($"{action} was not answered.");
             }
@@ -1147,14 +1068,14 @@ internal sealed partial class WebRtcPeer : IDisposable
         }
 
         _expectedFingerprint = fingerprint;
-        _remoteSession ??= ParseSession(text);
+        _remoteSession ??= SignalRules.ParseSession(text);
         var description = Gst.SessionDescriptionNew(type, message);
         var promise = Gst.PromiseNew();
         try
         {
             Signals.Emit(_pipeline.Element("webrtc"), "set-remote-description",
                 SignalArg.Boxed(Gst.SessionDescriptionGetType(), description), SignalArg.Boxed(Gst.PromiseGetType(), promise));
-            if (WaitForPromise(promise, _negotiationTimeout) != PROMISE_REPLIED)
+            if (WaitForPromise(promise, ConnectionRules.NegotiationTimeout) != PROMISE_REPLIED)
             {
                 throw new GstException("set-remote-description was not answered.");
             }

@@ -1,0 +1,5 @@
+{
+  "signal": "ws://localhost:47943/signal",
+  "stun": "stun:127.0.0.1:47900",
+  "meet": "127.0.0.1:47900"
+}

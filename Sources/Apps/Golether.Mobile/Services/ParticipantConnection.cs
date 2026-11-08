@@ -6,9 +6,11 @@ using Golether.Media.Conference;
 using Golether.Media.Player.Mpv;
 using Golether.Security.Invites;
 using Golether.Session;
+using Golether.Session.Hosting;
 using Golether.Sync.Protocol;
 using Golether.Transports.Rendezvous;
 using Golether.Transports.Tls;
+using Golether.Transports.WebRtc;
 
 namespace Golether.Mobile.Services;
 
@@ -33,6 +35,11 @@ public sealed class ParticipantConnection : IParticipantConnection, IReconnectio
     /// The cameras and voices.
     /// </summary>
     private readonly IConferenceMedia _conference;
+
+    /// <summary>
+    /// The way through the signalling, made with the first session that needs it.
+    /// </summary>
+    private WebRtcSessionConnector? _signalConnector;
 
     /// <summary>
     /// What follows the session of the moment: the chat, the pen and the shown pictures.
@@ -154,6 +161,11 @@ public sealed class ParticipantConnection : IParticipantConnection, IReconnectio
         {
             await session.DisposeAsync();
         }
+
+        if (Interlocked.Exchange(ref _signalConnector, null) is { } connector)
+        {
+            await connector.DisposeAsync();
+        }
     }
 
     /// <inheritdoc />
@@ -185,8 +197,13 @@ public sealed class ParticipantConnection : IParticipantConnection, IReconnectio
     public ParticipantSession CreateSession()
     {
         var connector = new TlsPeerConnector(_services.Identity, new TlsTransportOptions());
+        if (_signalConnector is null && _services.DataLinks is { } links)
+        {
+            _signalConnector = new WebRtcSessionConnector(DeviceSigners.From(_services.Identity), links, logger: _services.LoggerFactory.CreateLogger<WebRtcSessionConnector>());
+        }
+
         var session = new ParticipantSession(
-            _services.Identity,
+            _services.Identity.PeerId,
             connector,
             _services.Playback,
             new MpvMediaUriRegistry(),
@@ -196,7 +213,8 @@ public sealed class ParticipantConnection : IParticipantConnection, IReconnectio
             new SessionOptions { MediaCacheCapacity = MEDIA_CACHE_CAPACITY },
             _services.LoggerFactory,
             _conference,
-            new RendezvousPeerConnector(connector, new RendezvousDialer()));
+            new RendezvousPeerConnector(connector, new RendezvousDialer()),
+            _signalConnector);
 
         session.Changed += (_, _) => OnSessionChanged(session);
         session.AvatarReceived += (_, update) => AvatarReceived?.Invoke(this, update);

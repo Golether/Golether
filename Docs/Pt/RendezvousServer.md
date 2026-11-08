@@ -227,6 +227,34 @@ escolher ligações diferentes. Por isso só o participante escolhe: a primeira 
 primeiro a falar (TLS ClientHello). O anfitrião mantém todas as que se abriram e fica com aquela em que o participante
 falou; as restantes são fechadas.
 
+## Sinalização de navegadores (protótipo)
+
+Um navegador não abre uma ligação TCP própria, por isso com `Signal:Enabled` o servidor aceita também um WebSocket no
+endereço `Signal:Url`, caminho `/signal` (`wss://` com certificado para páginas servidas por HTTPS). As páginas que o
+podem usar estão em `Signal:AllowedOrigins`. O servidor passa as descrições de uma ligação WebRTC entre o anfitrião e
+um convidado e não lê nenhuma; em segundos os navegadores falam diretamente e o WebSocket do convidado fecha-se. Uma
+mensagem é JSON UTF-8 numa mensagem de texto de no máximo 16 KiB:
+
+| `$t` | Direção | Campos | Significado |
+|---|---|---|---|
+| `server-hello` | S → D | `version`, `nonce` | primeira mensagem do servidor |
+| `register` | H → S | `room`, `key` (SPKI, base64), `signature` | o anfitrião toma uma sala; a assinatura (P-256, SHA-256, r‖s) cobre `golether-signal-v1\n<nonce>\n<room>` |
+| `registered` | S → H | — | a sala está tomada; o WebSocket fica aberto |
+| `connect` | P → S | `room` | um convidado pede um encontro |
+| `meeting` | S → P | `meeting` | o número do encontro |
+| `incoming` | S → H | `meeting` | um convidado está à espera |
+| `signal` | H ↔ S ↔ P | `meeting` (H), `data` | uma descrição ou um candidato, passados tal como estão (no máximo 12 KiB; no máximo 100 de um convidado) |
+| `closed` | S → H | `meeting` | o WebSocket do convidado fechou-se |
+| `error` | S → D | `error` | uma recusa, um nome da tabela acima |
+
+Valem os limites da parte TCP: salas e ligações são contadas, o ritmo de WebSockets novos de um IP é limitado, um
+encontro dura no máximo `Signal:MeetingTimeout`. Uma sala pertence à chave que a tomou, como acima. O servidor vê o
+que já via (endereços, salas, chaves públicas) e as impressões DTLS, que também são públicas.
+
+As aplicações usam a mesma sinalização: um anfitrião de aplicação mantém aqui a sua sala ao lado da sala do protocolo
+de encontro, e uma aplicação encontra aqui um anfitrião de navegador. É a única parte do servidor de que um encontro
+misto precisa, por isso para ele o servidor precisa de um domínio com um certificado TLS (`wss://`).
+
 ## Limitações
 
 - **Um NAT simétrico** (o router dá uma nova porta externa a cada destino) em qualquer um dos lados torna a perfuração

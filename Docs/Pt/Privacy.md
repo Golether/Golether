@@ -40,7 +40,7 @@ da pasta são servidos como um filme.
 | A quê | Quando | O que o outro lado fica a saber |
 |---|---|---|
 | O servidor de encontro do projeto (o seu endereço vem do `config.json` da página do projeto) | quando um anfitrião abre uma sessão através do servidor e quando um participante entra nessa sessão | os endereços de rede do anfitrião e do participante, a impressão digital da chave do anfitrião, a etiqueta aleatória da sala; nunca o conteúdo da sessão |
-| A página do projeto `depthrel.github.io` (GitHub Pages) | `updates.json` ao iniciar (a versão mais recente; a verificação pode ser desligada nas definições); `config.json` quando um anfitrião abre uma sessão com o servidor de encontro escolhido automaticamente | o seu endereço IP, como em qualquer página web; aplica-se a declaração de privacidade do GitHub |
+| A página do projeto `golether.github.io` (GitHub Pages) | `updates.json` ao iniciar (a versão mais recente; a verificação pode ser desligada nas definições); `config.json` quando um anfitrião abre uma sessão com o servidor de encontro escolhido automaticamente | o seu endereço IP, como em qualquer página web; aplica-se a declaração de privacidade do GitHub |
 | GitHub e `gstreamer.freedesktop.org` | no Windows, só quando instala um componente em falta com o botão **Instalar** | o seu endereço IP |
 | Os servidores STUN públicos da Google (`stun.l.google.com`) e da Cloudflare (`stun.cloudflare.com`) | só ao configurar um túnel AmneziaWG: dizem ao computador o seu endereço exterior | o seu endereço IP e a sua porta; aplicam-se as suas próprias políticas de privacidade |
 | O seu router (UPnP, NAT-PMP) | quando o anfitrião pede ao router que abra uma porta | nada para além da sua rede local |
@@ -50,7 +50,7 @@ do convite («Servidor de encontro» no [guia do utilizador](UserGuide.md)).
 
 ## A página do projeto
 
-A página do projeto `depthrel.github.io/Golether` conta as suas visitas com o Umami Cloud. O Umami não usa cookies e,
+A página do projeto `golether.github.io/Golether` conta as suas visitas com o Umami Cloud. O Umami não usa cookies e,
 segundo a sua própria descrição, não guarda endereços IP: regista o endereço da página (sem a parte depois de `#` e
 `?`), a página de onde veio, o navegador, o sistema, o tipo de dispositivo, o tamanho do ecrã, o idioma e o país, que
 deduz do seu endereço. Também se conta o clique num botão de transferência: que pacote (Windows, .deb, arquivo, macOS)

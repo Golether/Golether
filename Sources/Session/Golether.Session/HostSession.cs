@@ -17,7 +17,6 @@ using Golether.Media.Streaming.Files;
 using Golether.Media.Streaming.Gallery;
 using Golether.Media.Streaming.Protocol;
 using Golether.Security.Admission;
-using Golether.Security.Identity;
 using Golether.Security.Invites;
 using Golether.Security.Verification;
 using Golether.Sync.Engine;
@@ -50,9 +49,9 @@ public sealed class HostSession : IAsyncDisposable
     private const int MAX_RELAY_CLIENTS = 16;
 
     /// <summary>
-    /// The local device.
+    /// The identifier of this device: the transport proved the key behind it to the peers.
     /// </summary>
-    private readonly DeviceIdentity _identity;
+    private readonly PeerId _localPeer;
 
     /// <summary>
     /// The listener; started by the caller.
@@ -255,7 +254,7 @@ public sealed class HostSession : IAsyncDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="HostSession"/> class.
     /// </summary>
-    /// <param name="identity">The local device.</param>
+    /// <param name="localPeer">The identifier of this device.</param>
     /// <param name="listener">The started listener; the session owns it.</param>
     /// <param name="invites">The invitation tokens.</param>
     /// <param name="admission">The admission policy.</param>
@@ -274,7 +273,7 @@ public sealed class HostSession : IAsyncDisposable
     /// <param name="galleryDirectory">The folder where showings keep the JPEG files they make; a folder of the
     /// system's temporary files when <see langword="null"/>.</param>
     public HostSession(
-        DeviceIdentity identity,
+        PeerId localPeer,
         IPeerListener listener,
         InviteRegistry invites,
         AdmissionService admission,
@@ -294,7 +293,7 @@ public sealed class HostSession : IAsyncDisposable
         _thumbnails = thumbnails;
         _frames = frames;
         _galleryDirectory = galleryDirectory ?? Path.Combine(Path.GetTempPath(), "golether-gallery");
-        _identity = identity ?? throw new ArgumentNullException(nameof(identity));
+        _localPeer = localPeer.IsEmpty ? throw new ArgumentException("The local peer must be known.", nameof(localPeer)) : localPeer;
         _listener = listener ?? throw new ArgumentNullException(nameof(listener));
         _invites = invites ?? throw new ArgumentNullException(nameof(invites));
         _admission = admission ?? throw new ArgumentNullException(nameof(admission));
@@ -309,12 +308,12 @@ public sealed class HostSession : IAsyncDisposable
         SessionName = ParticipantInfo.NormalizeDisplayName(sessionName);
         DisplayName = ParticipantInfo.NormalizeDisplayName(displayName);
         _clock = new HostSessionClock(clock ?? throw new ArgumentNullException(nameof(clock)));
-        _authority = new PlaybackAuthority(identity.PeerId, _clock, options.Authority);
+        _authority = new PlaybackAuthority(_localPeer, _clock, options.Authority);
         _follower = new PlaybackFollower(player, _clock, new DriftCorrector(options.DriftCorrection), loggerFactory.CreateLogger<PlaybackFollower>());
         _chunkServer = new ChunkServer(_media, loggerFactory.CreateLogger<ChunkServer>(), _gallery);
         _conference = conference is null
             ? null
-            : new ConferenceLink(conference, identity.PeerId, SendConferenceSignalAsync, loggerFactory.CreateLogger<ConferenceLink>());
+            : new ConferenceLink(conference, _localPeer, SendConferenceSignalAsync, loggerFactory.CreateLogger<ConferenceLink>());
     }
 
     /// <summary>
@@ -378,6 +377,12 @@ public sealed class HostSession : IAsyncDisposable
     public RendezvousPoint? Rendezvous { get; set; }
 
     /// <summary>
+    /// Gets or sets the signalling where this host keeps the room of <see cref="Rendezvous"/> for WebRTC
+    /// connections, or <see langword="null"/>: invitations then carry it, and browsers can join.
+    /// </summary>
+    public Uri? Signal { get; set; }
+
+    /// <summary>
     /// Gets the number of file chunks the host uploaded.
     /// </summary>
     public long ChunksServed => _chunkServer.ChunksServed;
@@ -415,33 +420,36 @@ public sealed class HostSession : IAsyncDisposable
         _loops.Add(Task.Run(() => TickLoopAsync(_stopping.Token)));
         _conference?.SetStunServer(Rendezvous?.StunUri);
         _conference?.Start();
-        Raise(null, Texts.Format("Session.Event.Created", SessionName, Port));
+        // A host in a browser listens on no port: guests reach it only through its room.
+        Raise(null, Port > 0 ? Texts.Format("Session.Event.Created", SessionName, Port) : Texts.Format("Session.Event.CreatedWithoutPort", SessionName));
     }
 
     /// <summary>
     /// Creates an invitation.
     /// </summary>
-    /// <param name="endpoints">The addresses to put into the invitation.</param>
+    /// <param name="endpoints">The addresses to put into the invitation; empty when the host is reached only through
+    /// its rendezvous room (a host in a browser).</param>
     /// <param name="lifetime">The lifetime; the default when <see langword="null"/>.</param>
     /// <returns>The invitation.</returns>
     public Invite CreateInvite(IReadOnlyList<PeerEndpoint> endpoints, TimeSpan? lifetime = null)
     {
         ArgumentNullException.ThrowIfNull(endpoints);
-        if (endpoints.Count == 0)
+        if (endpoints.Count == 0 && Rendezvous is null)
         {
-            throw new ArgumentException("An invitation needs at least one address.", nameof(endpoints));
+            throw new ArgumentException("An invitation needs at least one address or a rendezvous room.", nameof(endpoints));
         }
 
         var (token, expires) = _invites.Issue(lifetime);
         return new Invite
         {
-            HostPeerId = _identity.PeerId,
+            HostPeerId = _localPeer,
             HostName = DisplayName,
             SessionName = SessionName,
             Endpoints = endpoints.Take(Invite.MAX_ENDPOINTS).ToArray(),
             Token = token,
             ExpiresAt = expires,
             Rendezvous = Rendezvous,
+            Signal = Rendezvous is null ? null : Signal,
         };
     }
 
@@ -457,7 +465,7 @@ public sealed class HostSession : IAsyncDisposable
 
         await CloseGalleryAsync().ConfigureAwait(false);
         await AnnounceFilmAsync(descriptor, state).ConfigureAwait(false);
-        Raise(_identity.PeerId, Texts.Format("Session.Event.MediaShown", DisplayName, descriptor.FileName));
+        Raise(_localPeer, Texts.Format("Session.Event.MediaShown", DisplayName, descriptor.FileName));
         return descriptor;
     }
 
@@ -521,7 +529,7 @@ public sealed class HostSession : IAsyncDisposable
         }
 
         await Task.WhenAll(_participants.Values.Where(c => c.SupportsGallery).Select(SendGalleryAsync)).ConfigureAwait(false);
-        Raise(_identity.PeerId, Texts.Format("Session.Event.GalleryShown", DisplayName, catalog.Title, catalog.Items.Count));
+        Raise(_localPeer, Texts.Format("Session.Event.GalleryShown", DisplayName, catalog.Title, catalog.Items.Count));
     }
 
     /// <summary>
@@ -556,7 +564,7 @@ public sealed class HostSession : IAsyncDisposable
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task that completes when everybody was told.</returns>
     public Task ShowItemAsync(string catalogId, int index, CancellationToken cancellationToken)
-        => ApplyShowAsync(catalogId, index, _identity.PeerId, cancellationToken);
+        => ApplyShowAsync(catalogId, index, _localPeer, cancellationToken);
 
     /// <summary>
     /// Notes which picture the host looks at alone, for the marks the others see.
@@ -634,7 +642,7 @@ public sealed class HostSession : IAsyncDisposable
             _playerGate.Release();
         }
 
-        var state = _authority.Apply(_identity.PeerId, request, MaxRoundTrip());
+        var state = _authority.Apply(_localPeer, request, MaxRoundTrip());
         if (state is not null)
         {
             await PublishAsync(state, cancellationToken).ConfigureAwait(false);
@@ -654,7 +662,7 @@ public sealed class HostSession : IAsyncDisposable
             return;
         }
 
-        var signed = message with { Sender = _identity.PeerId };
+        var signed = message with { Sender = _localPeer };
         RaiseChat(signed);
         await BroadcastAsync(signed).ConfigureAwait(false);
     }
@@ -666,14 +674,14 @@ public sealed class HostSession : IAsyncDisposable
     /// <returns>A task that completes when the avatar was sent.</returns>
     public async Task SetAvatarAsync(byte[]? image)
     {
-        var clean = new AvatarMessage(image, _identity.PeerId).Sanitize();
+        var clean = new AvatarMessage(image, _localPeer).Sanitize();
         if (clean is null)
         {
             return;
         }
 
-        RememberAvatar(_identity.PeerId, clean.Image);
-        AvatarReceived?.Invoke(this, new AvatarUpdate(_identity.PeerId, clean.Image, true));
+        RememberAvatar(_localPeer, clean.Image);
+        AvatarReceived?.Invoke(this, new AvatarUpdate(_localPeer, clean.Image, true));
         await BroadcastAsync(clean).ConfigureAwait(false);
     }
 
@@ -691,7 +699,7 @@ public sealed class HostSession : IAsyncDisposable
             return;
         }
 
-        var signed = message with { Sender = _identity.PeerId };
+        var signed = message with { Sender = _localPeer };
         RaiseDraw(signed);
         await BroadcastAsync(signed).ConfigureAwait(false);
     }
@@ -705,7 +713,7 @@ public sealed class HostSession : IAsyncDisposable
     /// <returns>A task that completes when the request was sent.</returns>
     public async Task SwitchOffParticipantDevicesAsync(PeerId peerId, bool microphone, bool camera)
     {
-        if (!(microphone || camera) || peerId == _identity.PeerId || !_participants.TryGetValue(peerId, out var connection))
+        if (!(microphone || camera) || peerId == _localPeer || !_participants.TryGetValue(peerId, out var connection))
         {
             return;
         }
@@ -722,7 +730,7 @@ public sealed class HostSession : IAsyncDisposable
             (true, false) => "Session.Event.HostSwitchesOffMicrophone",
             _ => "Session.Event.HostSwitchesOffCamera",
         };
-        Raise(_identity.PeerId, Texts.Format(key, connection.Info.DisplayName));
+        Raise(_localPeer, Texts.Format(key, connection.Info.DisplayName));
     }
 
     /// <summary>
@@ -757,14 +765,14 @@ public sealed class HostSession : IAsyncDisposable
     /// <returns>The snapshot.</returns>
     public SessionSnapshot GetSnapshot()
     {
-        var local = new ParticipantView(new ParticipantInfo(_identity.PeerId, DisplayName, true), BuildLocalStatus(), true);
+        var local = new ParticipantView(new ParticipantInfo(_localPeer, DisplayName, true), BuildLocalStatus(), true);
         var others = _participants.Values.OrderBy(c => c.JoinedAt).Select(c => new ParticipantView(c.Info, c.Status, false));
         return new SessionSnapshot
         {
             IsHost = true,
             State = _ended != 0 ? SessionState.Ended : SessionState.Active,
             SessionName = SessionName,
-            HostPeerId = _identity.PeerId,
+            HostPeerId = _localPeer,
             Participants = [local, .. others],
             Playback = _authority.Current,
             Media = _media.Descriptor,
@@ -1226,7 +1234,7 @@ public sealed class HostSession : IAsyncDisposable
             return null;
         }
 
-        return VerificationCode.ComputeForSession(_identity.PeerId, peer, hello.InviteToken ?? string.Empty, participantNonce, hostNonce);
+        return VerificationCode.ComputeForSession(_localPeer, peer, hello.InviteToken ?? string.Empty, participantNonce, hostNonce);
     }
 
     /// <summary>
@@ -1387,7 +1395,7 @@ public sealed class HostSession : IAsyncDisposable
             // The host passes signals between participants: a flood from one is dropped instead of being passed on.
             case ConferenceSignalMessage { Kind.Length: <= 16, Payload.Length: <= 64 * 1024 } signal
                 when connection.SignalLimiter.TryAcquire(_timeProvider.GetTimestamp(), _timeProvider):
-                if (signal.Peer == _identity.PeerId)
+                if (signal.Peer == _localPeer)
                 {
                     _conference?.Receive(connection.Info.PeerId, signal.Kind, signal.Payload);
                 }
@@ -1502,7 +1510,7 @@ public sealed class HostSession : IAsyncDisposable
     /// <returns>A task that completes when the signal was sent.</returns>
     private Task SendConferenceSignalAsync(ConferenceSignal signal)
         => _participants.TryGetValue(signal.PeerId, out var target)
-            ? TrySendAsync(target, new ConferenceSignalMessage(_identity.PeerId, signal.Kind, signal.Payload))
+            ? TrySendAsync(target, new ConferenceSignalMessage(_localPeer, signal.Kind, signal.Payload))
             : Task.CompletedTask;
 
     /// <summary>
@@ -1618,7 +1626,7 @@ public sealed class HostSession : IAsyncDisposable
 
         return new ParticipantStatus
         {
-            PeerId = _identity.PeerId,
+            PeerId = _localPeer,
             Position = local?.Snapshot.Position,
             Drift = local?.Drift ?? TimeSpan.Zero,
             CacheAhead = local?.Snapshot.CacheAhead ?? TimeSpan.Zero,
@@ -1643,7 +1651,7 @@ public sealed class HostSession : IAsyncDisposable
     /// <param name="peer">The participant.</param>
     /// <returns>The name.</returns>
     private string NameOf(PeerId peer)
-        => peer == _identity.PeerId ? DisplayName
+        => peer == _localPeer ? DisplayName
             : _participants.TryGetValue(peer, out var connection) ? connection.Info.DisplayName
             : Texts.Get("Session.DefaultParticipantName");
 
@@ -1876,7 +1884,7 @@ public sealed class HostSession : IAsyncDisposable
         lock (_stageGate)
         {
             catalog = _gallery.Current;
-            show = new GalleryShowMessage(catalog?.Id ?? string.Empty, _stage, _stageVersion, _stageOrigin ?? _identity.PeerId);
+            show = new GalleryShowMessage(catalog?.Id ?? string.Empty, _stage, _stageVersion, _stageOrigin ?? _localPeer);
         }
 
         if (catalog is null)
@@ -2031,7 +2039,7 @@ public sealed class HostSession : IAsyncDisposable
         var sender = message.Sender!.Value;
         ChatReceived?.Invoke(
             this,
-            new ChatEntry(message.Id, sender, NameOf(sender), message.Kind, message.Text, _timeProvider.GetLocalNow(), sender == _identity.PeerId));
+            new ChatEntry(message.Id, sender, NameOf(sender), message.Kind, message.Text, _timeProvider.GetLocalNow(), sender == _localPeer));
     }
 
     /// <summary>
@@ -2041,7 +2049,7 @@ public sealed class HostSession : IAsyncDisposable
     private void RaiseDraw(DrawMessage message)
     {
         var sender = message.Sender!.Value;
-        DrawReceived?.Invoke(this, new StrokeUpdate(sender, message.StrokeId, message.Phase, message.Points, sender == _identity.PeerId));
+        DrawReceived?.Invoke(this, new StrokeUpdate(sender, message.StrokeId, message.Phase, message.Points, sender == _localPeer));
     }
 
     /// <summary>

@@ -166,7 +166,7 @@ public sealed class SessionHostingTests : IAsyncDisposable
         _guestIdentities.Add(identity);
 
         return Open(new ParticipantSession(
-            identity,
+            identity.PeerId,
             new TlsPeerConnector(identity, new TlsTransportOptions { Port = 0, HandshakeTimeout = TimeSpan.FromSeconds(10) }),
             Substitute.For<IPlaybackController>(),
             Substitute.For<IMediaUriRegistry>(),

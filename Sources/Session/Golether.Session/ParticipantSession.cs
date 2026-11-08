@@ -14,7 +14,6 @@ using Golether.Media.Streaming.Caching;
 using Golether.Media.Streaming.Files;
 using Golether.Media.Streaming.Protocol;
 using Golether.Media.Streaming.Sharing;
-using Golether.Security.Identity;
 using Golether.Security.Invites;
 using Golether.Security.Verification;
 using Golether.Sync.Clock;
@@ -36,9 +35,9 @@ public sealed class ParticipantSession : IAsyncDisposable
     private const int INITIAL_PROBES = 6;
 
     /// <summary>
-    /// The local device.
+    /// The identifier of this device: the transport proved the key behind it to the peers.
     /// </summary>
-    private readonly DeviceIdentity _identity;
+    private readonly PeerId _localPeer;
 
     /// <summary>
     /// Opens streams to the host.
@@ -126,6 +125,17 @@ public sealed class ParticipantSession : IAsyncDisposable
     /// Meets the host through its rendezvous server when no address answers directly, or <see langword="null"/>.
     /// </summary>
     private readonly IRendezvousConnector? _rendezvous;
+
+    /// <summary>
+    /// Meets the host through the signalling when no other way answers, or <see langword="null"/>.
+    /// </summary>
+    private readonly ISignalConnector? _signal;
+
+    /// <summary>
+    /// The way through the signalling when it is the one that reached the host, or <see langword="null"/> (every
+    /// further stream is opened the same way).
+    /// </summary>
+    private SignalRoute? _signalRoute;
 
     /// <summary>
     /// The head start of the direct addresses before a meeting through the rendezvous server begins: in one network
@@ -311,7 +321,7 @@ public sealed class ParticipantSession : IAsyncDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="ParticipantSession"/> class.
     /// </summary>
-    /// <param name="identity">The local device.</param>
+    /// <param name="localPeer">The identifier of this device.</param>
     /// <param name="connector">Opens streams to the host.</param>
     /// <param name="player">The local player.</param>
     /// <param name="uriRegistry">Publishes media streams to the player.</param>
@@ -325,8 +335,12 @@ public sealed class ParticipantSession : IAsyncDisposable
     /// Meets the host through the rendezvous server of the invitation when no address answers directly, or
     /// <see langword="null"/> for direct connections only.
     /// </param>
+    /// <param name="signal">
+    /// Meets the host through the signalling of the invitation (a WebRTC connection) when no other way answers, or
+    /// <see langword="null"/>.
+    /// </param>
     public ParticipantSession(
-        DeviceIdentity identity,
+        PeerId localPeer,
         IPeerConnector connector,
         IPlaybackController player,
         IMediaUriRegistry uriRegistry,
@@ -336,10 +350,12 @@ public sealed class ParticipantSession : IAsyncDisposable
         SessionOptions options,
         ILoggerFactory? loggerFactory = null,
         IConferenceMedia? conference = null,
-        IRendezvousConnector? rendezvous = null)
+        IRendezvousConnector? rendezvous = null,
+        ISignalConnector? signal = null)
     {
         _rendezvous = rendezvous;
-        _identity = identity ?? throw new ArgumentNullException(nameof(identity));
+        _signal = signal;
+        _localPeer = localPeer.IsEmpty ? throw new ArgumentException("The local peer must be known.", nameof(localPeer)) : localPeer;
         _connector = connector ?? throw new ArgumentNullException(nameof(connector));
         _player = player ?? throw new ArgumentNullException(nameof(player));
         _uriRegistry = uriRegistry ?? throw new ArgumentNullException(nameof(uriRegistry));
@@ -355,7 +371,7 @@ public sealed class ParticipantSession : IAsyncDisposable
         _conferenceMedia = conference;
         _conference = conference is null
             ? null
-            : new ConferenceLink(conference, identity.PeerId, SendConferenceSignalAsync, _loggerFactory.CreateLogger<ConferenceLink>());
+            : new ConferenceLink(conference, _localPeer, SendConferenceSignalAsync, _loggerFactory.CreateLogger<ConferenceLink>());
     }
 
     /// <summary>
@@ -440,7 +456,7 @@ public sealed class ParticipantSession : IAsyncDisposable
             throw new InvalidOperationException("The session was already joined.");
         }
 
-        if (invite.HostPeerId == _identity.PeerId)
+        if (invite.HostPeerId == _localPeer)
         {
             // An invitation pasted on the device that made it: there is nobody to connect to.
             throw new SessionJoinException(Texts.Get("Session.Error.OwnInvite"));
@@ -487,7 +503,7 @@ public sealed class ParticipantSession : IAsyncDisposable
                     }
 
                     await _channel.SendAsync(new SasRevealMessage(nonce), cancellationToken).ConfigureAwait(false);
-                    _code = VerificationCode.ComputeForSession(invite.HostPeerId, _identity.PeerId, invite.Token, nonce, pending.SasNonce!);
+                    _code = VerificationCode.ComputeForSession(invite.HostPeerId, _localPeer, invite.Token, nonce, pending.SasNonce!);
                     SetState(SessionState.AwaitingApproval);
                     continue;
                 case WelcomeMessage when _code is null:
@@ -547,7 +563,7 @@ public sealed class ParticipantSession : IAsyncDisposable
         _loops.Add(Task.Run(() => TickLoopAsync(token)));
         if (_conference is not null && welcome.GetValidRelay() is { } relay)
         {
-            if (welcome.RelayOverSession && StartRelayTunnel(welcome.RelayShared) is { } tunnel)
+            if (welcome.RelayOverSession && _options.OpensRelayTunnel && StartRelayTunnel(welcome.RelayShared) is { } tunnel)
             {
                 // The relay is reached by the route of the session, whichever it was: the cameras and voices are
                 // pointed at the local end of the tunnel.
@@ -557,6 +573,12 @@ public sealed class ParticipantSession : IAsyncDisposable
             {
                 // A host of an earlier version: its relay is reached at the address that answered.
                 _conference.SetRelay(relay.ToTurnUri(hostEndpoint.Host));
+            }
+            else if (invite.Endpoints.FirstOrDefault(e => AddressScope.IsPublicHost(e.Host)) is { } reachable)
+            {
+                // A guest that came through the signalling and cannot open a local entrance (a browser) reaches the
+                // relay directly, at the public address of the host; without one the pairs without a path stay dark.
+                _conference.SetRelay(relay.ToTurnUri(reachable.Host));
             }
         }
 
@@ -609,7 +631,7 @@ public sealed class ParticipantSession : IAsyncDisposable
             _mediaGate.Release();
         }
 
-        Raise(_identity.PeerId, Texts.Get("Session.Event.LocalCopyPlaying"));
+        Raise(_localPeer, Texts.Get("Session.Event.LocalCopyPlaying"));
         return true;
     }
 
@@ -954,7 +976,31 @@ public sealed class ParticipantSession : IAsyncDisposable
         {
             // A route that verified the pinned key wins even if another address presented a foreign one.
             _hostEndpoint = won.Endpoint;
+            _signalRoute = null;
             return won.Stream;
+        }
+
+        if (SignalRouteOf(invite) is { } signalRoute)
+        {
+            // The last way: a WebRTC connection through the signalling. It is the only way to a host in a browser, and
+            // it may cross routers the others could not.
+            try
+            {
+                var stream = await _signal!.ConnectAsync(signalRoute, invite.HostPeerId, StreamPurpose.Control, cancellationToken).ConfigureAwait(false);
+                _logger.LogInformation("Connected to the host through the signalling");
+                _hostEndpoint = null;
+                _signalRoute = signalRoute;
+                return stream;
+            }
+            catch (PeerAuthenticationException ex)
+            {
+                _logger.LogWarning("The signalling led to a foreign key");
+                spoofing ??= new SessionJoinException(Texts.Format("Session.Error.PossibleSpoofing", ex.Message), ex);
+            }
+            catch (IOException ex)
+            {
+                errors.Enqueue(ex.Message);
+            }
         }
 
         // The addresses tried and why each failed go to the log, not to the screen: an address is nobody else's
@@ -962,6 +1008,16 @@ public sealed class ParticipantSession : IAsyncDisposable
         _logger.LogWarning("The host was not reached: {Errors}", string.Join("; ", errors));
         throw spoofing ?? new SessionJoinException(Texts.Get("Session.Error.HostUnreachable"));
     }
+
+    /// <summary>
+    /// Gives the way through the signalling an invitation offers, when this side can take it.
+    /// </summary>
+    /// <param name="invite">The invitation.</param>
+    /// <returns>The way, or <see langword="null"/>.</returns>
+    private SignalRoute? SignalRouteOf(Invite invite)
+        => _signal is not null && invite.Signal is { } signal && invite.Rendezvous is { } point
+            ? new SignalRoute(signal, point.Room, point.StunUri)
+            : null;
 
     /// <summary>
     /// Tries the addresses of an invitation one by one.
@@ -1109,6 +1165,8 @@ public sealed class ParticipantSession : IAsyncDisposable
 
         return _hostEndpoint is { } endpoint
             ? _connector.ConnectAsync(endpoint, invite.HostPeerId, purpose, cancellationToken)
+            : _signalRoute is { } route
+                ? _signal!.ConnectAsync(route, invite.HostPeerId, purpose, cancellationToken)
             : _rendezvous is { } rendezvous && invite.Rendezvous is { } point
                 ? rendezvous.ConnectAsync(point, invite.HostPeerId, purpose, cancellationToken)
                 : throw new InvalidOperationException("The session has no route to the host.");
@@ -1164,10 +1222,10 @@ public sealed class ParticipantSession : IAsyncDisposable
                         OnChat(clean, sender);
                         break;
                     case DrawMessage stroke when stroke.Sender is { } author && stroke.Sanitize() is { } cleanStroke:
-                        DrawReceived?.Invoke(this, new StrokeUpdate(author, cleanStroke.StrokeId, cleanStroke.Phase, cleanStroke.Points, author == _identity.PeerId));
+                        DrawReceived?.Invoke(this, new StrokeUpdate(author, cleanStroke.StrokeId, cleanStroke.Phase, cleanStroke.Points, author == _localPeer));
                         break;
                     case AvatarMessage avatar when avatar.Sender is { } owner && avatar.Sanitize() is { } cleanAvatar:
-                        AvatarReceived?.Invoke(this, new AvatarUpdate(owner, cleanAvatar.Image, owner == _identity.PeerId));
+                        AvatarReceived?.Invoke(this, new AvatarUpdate(owner, cleanAvatar.Image, owner == _localPeer));
                         break;
                     case GalleryMessage gallery when gallery.Sanitize() is { } page:
                         OnGallery(page);
@@ -1283,7 +1341,7 @@ public sealed class ParticipantSession : IAsyncDisposable
 
         ChatReceived?.Invoke(
             this,
-            new ChatEntry(message.Id, sender, name, message.Kind, message.Text, _timeProvider.GetLocalNow(), sender == _identity.PeerId));
+            new ChatEntry(message.Id, sender, name, message.Kind, message.Text, _timeProvider.GetLocalNow(), sender == _localPeer));
     }
 
     /// <summary>
@@ -1453,7 +1511,7 @@ public sealed class ParticipantSession : IAsyncDisposable
             .Select(p => new ParticipantView(
                 p with { DisplayName = ParticipantInfo.NormalizeDisplayName(p.DisplayName) },
                 known.GetValueOrDefault(p.PeerId),
-                p.PeerId == _identity.PeerId))
+                p.PeerId == _localPeer))
             .ToArray();
     }
 
@@ -1622,7 +1680,7 @@ public sealed class ParticipantSession : IAsyncDisposable
 
         return new ParticipantStatus
         {
-            PeerId = _identity.PeerId,
+            PeerId = _localPeer,
             Position = local?.Snapshot.Position,
             Drift = local?.Drift ?? TimeSpan.Zero,
             CacheAhead = local?.Snapshot.CacheAhead ?? TimeSpan.Zero,

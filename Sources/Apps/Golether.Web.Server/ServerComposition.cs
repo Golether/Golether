@@ -1,6 +1,7 @@
 using Golether.Web.Server.Infrastructure;
 using Golether.Web.Server.Options;
 using Golether.Web.Server.Rendezvous;
+using Golether.Web.Server.Signal;
 using Golether.Web.Server.Stun;
 
 namespace Golether.Web.Server;
@@ -40,6 +41,22 @@ internal static class ServerComposition
             services.AddHostedService(provider => provider.GetRequiredService<StunResponder>());
         }
 
+        return services;
+    }
+
+    /// <summary>
+    /// Adds the signalling of browsers: their rooms and the WebSocket handler.
+    /// </summary>
+    /// <param name="services">The services.</param>
+    /// <param name="options">The validated options.</param>
+    /// <returns>The services.</returns>
+    public static IServiceCollection AddSignalServer(this IServiceCollection services, SignalServerOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        services.AddSingleton(options);
+        services.AddSingleton<SignalRegistry>();
+        services.AddSingleton<SignalHub>();
         return services;
     }
 

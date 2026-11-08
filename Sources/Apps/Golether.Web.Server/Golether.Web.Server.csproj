@@ -42,6 +42,7 @@
   <ItemGroup>
     <ProjectReference Include="../../Transports/Golether.Transports.Rendezvous/Golether.Transports.Rendezvous.csproj" />
     <ProjectReference Include="../../Transports/Golether.Transports.Relay/Golether.Transports.Relay.csproj" />
+    <ProjectReference Include="../../Transports/Golether.Transports.WebRtc/Golether.Transports.WebRtc.csproj" />
     <ProjectReference Include="../Golether.Web.Server.Contracts/Golether.Web.Server.Contracts.csproj" />
   </ItemGroup>
 

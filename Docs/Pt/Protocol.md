@@ -230,14 +230,49 @@ pedida ao anfitrião. O mesmo acontece quando a transferência para durante 5 se
 distingue-se desde os primeiros caracteres. A ordem dos campos não significa nada para um leitor. `endpoints` contém de 1
 a 16 endereços.
 
-O mesmo convite como ligação web: `https://depthrel.github.io/Golether/join/#` + o mesmo base64url. O navegador não envia
+O mesmo convite como ligação web: `https://golether.github.io/Golether/join/#` + o mesmo base64url. O navegador não envia
 ao servidor a parte depois do `#`; a página transforma-a em `golether://join/v1/…` e entrega-a à aplicação. A aplicação
 aceita as duas formas.
+As ligações da página no endereço anterior à mudança do projeto,
+`https://depthrel.github.io/Golether/join/#`, continuam a ser lidas: os anfitriões de versões anteriores
+distribuem-nas, e o endereço antigo passa-as à página nova.
 
 Os campos `meet` e `room` são opcionais e vêm sempre juntos: o servidor de encontro do anfitrião e a sua sala nele (uma
 nova para cada sessão). Com apenas um deles, ou com um mal formado, o convite é considerado danificado. As versões
 antigas não leem estes campos. O protocolo do próprio servidor está descrito em
 [RendezvousServer.md](RendezvousServer.md#protocolo-versão-1).
+
+Num navegador o anfitrião não tem endereço: o seu convite tem `endpoints` vazio e só é alcançado por `meet` e `room`.
+Um convite sem endereços nem sala está danificado; as versões anteriores à do navegador recusam um convite sem
+endereços.
+
+O campo `signal` (opcional, só com `meet` e `room`) indica a sinalização onde o anfitrião mantém a mesma sala para
+ligações WebRTC: `wss://…/signal`, ou `ws://` para este computador em testes. Um navegador só entra em convites que o
+têm; uma aplicação tenta-o depois dos endereços e do servidor de encontro. Os leitores anteriores saltam o campo.
+
+## Transporte de um navegador (protótipo)
+
+Num navegador cada fluxo é um canal de dados de uma ligação WebRTC em vez de uma ligação TLS. A etiqueta do canal é o
+propósito (`1` Control, `2` MediaData); o fluxo é cortado em mensagens de no máximo 16 KiB. A ligação faz-se pela
+sinalização do servidor de encontros ([RendezvousServer.md](RendezvousServer.md)).
+
+Antes de qualquer fluxo, os dois lados provam as suas chaves no canal `golether-auth`: o convidado envia
+`{ "key": <SubjectPublicKeyInfo, base64>, "signature": <base64> }`, o anfitrião verifica e responde da mesma forma. A
+assinatura (ECDSA P-256, SHA-256, r‖s) cobre `golether-webrtc-v1\n<impressões do anfitrião>\n<impressões do
+convidado>\n<room>`, sendo as impressões as linhas `a=fingerprint:` das descrições, em maiúsculas, ordenadas e unidas
+por vírgulas. O convidado exige o `PeerId` do convite; o anfitrião fecha os canais de uma ligação que não provou uma
+chave. Depois as mensagens são as das secções acima.
+
+As câmaras, as vozes e a troca de partes de um navegador vão em ligações próprias entre cada dois participantes,
+feitas com os mesmos sinais `rtc` e o mesmo canal `golether` que nas aplicações (ver "Troca de partes entre
+participantes").
+
+As aplicações usam o mesmo transporte, feito pelo `webrtcbin` (`GStreamerDataLink`): assim um anfitrião de aplicação
+aceita convidados de navegador, uma aplicação chega a um anfitrião de navegador e duas aplicações tentam-no depois de
+todos os outros caminhos. Como o `webrtcbin` não compara o certificado DTLS com a impressão digital da descrição, a
+aplicação fá-lo ela própria antes de abrir qualquer canal. Entre aplicações também os fluxos de relé das câmaras
+(`Relay`, `RelayShared`) vão por aqui; um navegador chega ao relé de um anfitrião de aplicação diretamente, por TCP,
+no seu endereço público.
 
 ## Código de verificação
 

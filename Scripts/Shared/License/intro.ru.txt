@@ -6,7 +6,7 @@ Golether предоставляется БЕЗ КАКИХ-ЛИБО ГАРАНТ�
 лицензии.
 
 Golether содержит компоненты других авторов под их собственными лицензиями; они перечислены в THIRD-PARTY-NOTICES.txt в
-папке установки. Исходный код Golether: https://github.com/DepthRel/Golether
+папке установки. Исходный код Golether: https://github.com/Golether/Golether
 
 Ниже приведён оригинальный английский текст лицензии: юридическую силу имеет только он. Неофициальные переводы:
 https://www.gnu.org/licenses/translations.html

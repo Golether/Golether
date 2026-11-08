@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Tests of sessions over WebRTC data channels, with the WebRTC itself replaced by stubs. -->
+  <ItemGroup>
+    <ProjectReference Include="../../Sources/Transports/Golether.Transports.WebRtc/Golether.Transports.WebRtc.csproj" />
+  </ItemGroup>
+
+</Project>

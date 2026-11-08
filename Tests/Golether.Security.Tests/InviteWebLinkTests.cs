@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Time.Testing;
+using Golether.Core.Configuration;
 using Golether.Core.Identity;
 using Golether.Core.Networking;
 using Golether.Security.Invites;
@@ -48,6 +49,23 @@ public sealed class InviteWebLinkTests
     }
 
     /// <summary>
+    /// A link of the page at its address before the move to the organization, which hosts of older versions hand out,
+    /// still carries the invitation.
+    /// </summary>
+    [Fact]
+    public void LegacyWebLink_IsStillRead()
+    {
+        var invite = Sample();
+
+        var parsed = Invite.ParseLink(ProjectSite.LEGACY_JOIN_URL_PREFIX + invite.ToLink()[Invite.LINK_PREFIX.Length..]);
+
+        Assert.NotEqual(ProjectSite.LEGACY_JOIN_URL_PREFIX, Invite.WEB_LINK_PREFIX);
+        Assert.Equal(invite.HostPeerId, parsed.HostPeerId);
+        Assert.Equal(invite.Token, parsed.Token);
+        Assert.Equal(invite.Rendezvous, parsed.Rendezvous);
+    }
+
+    /// <summary>
     /// Two invitations of one session differ from their first characters: the one-time part is written first, so a
     /// new invitation looks new even in a field that shows only its beginning. The rest stays readable as before.
     /// </summary>
@@ -83,16 +101,22 @@ public sealed class InviteWebLinkTests
     }
 
     /// <summary>
-    /// Only the two spellings look like an invitation; a look-alike on another site or scheme does not.
+    /// The key and the links of the project page (its address now and before the move to the organization) look like an
+    /// invitation; a look-alike on another site or scheme does not.
     /// </summary>
     /// <param name="text">The text.</param>
     /// <param name="expected">Whether it looks like an invitation.</param>
     [Theory]
     [InlineData("golether://join/v1/abc", true)]
     [InlineData("  golether://join/v1/abc  ", true)]
+    [InlineData("https://golether.github.io/Golether/join/#abc", true)]
+    [InlineData("https://golether.github.io/Golether/watch/#abc", true)]
     [InlineData("https://depthrel.github.io/Golether/join/#abc", true)]
+    [InlineData("https://golether.github.io/Golether/join/abc", false)]
     [InlineData("https://depthrel.github.io/Golether/join/abc", false)]
+    [InlineData("https://depthrel.github.io/Golether/watch/#abc", false)]
     [InlineData("https://example.org/Golether/join/#abc", false)]
+    [InlineData("http://golether.github.io/Golether/join/#abc", false)]
     [InlineData("http://depthrel.github.io/Golether/join/#abc", false)]
     [InlineData("GOLETHER://join/v1/abc", false)]
     [InlineData("C:\\Films\\film.mkv", false)]

@@ -5,6 +5,7 @@ using Golether.Core.Identity;
 using Golether.Localization;
 using Golether.Media.Conference;
 using Golether.Media.Conference.GStreamer;
+using Golether.Transports.WebRtc;
 
 namespace Golether.UI.Services;
 
@@ -79,6 +80,12 @@ public sealed class ConferenceHost : IConferenceMedia, Golether.Client.ViewModel
     public event EventHandler<ConferenceSignal>? SignalReady;
 
     /// <summary>
+    /// Gets what makes the WebRTC connections of sessions with browsers once the conference component works, or
+    /// <see langword="null"/> before.
+    /// </summary>
+    public IDataLinkFactory? DataLinks { get; private set; }
+
+    /// <summary>
     /// Raised when the backend changed.
     /// </summary>
     public event EventHandler? BackendChanged;
@@ -126,19 +133,21 @@ public sealed class ConferenceHost : IConferenceMedia, Golether.Client.ViewModel
             return _current.IsAvailable;
         }
 
-        var media = new GStreamerConferenceMedia(
-            new GStreamerConferenceOptions
-            {
-                BundleRoot = status.Source == ComponentSource.System ? null : status.Path,
-                RegistryFile = _registryFile,
-            },
-            _loggerFactory.CreateLogger<GStreamerConferenceMedia>());
+        var options = new GStreamerConferenceOptions
+        {
+            BundleRoot = status.Source == ComponentSource.System ? null : status.Path,
+            RegistryFile = _registryFile,
+        };
+        var media = new GStreamerConferenceMedia(options, _loggerFactory.CreateLogger<GStreamerConferenceMedia>());
         if (!media.IsAvailable)
         {
             _current = new UnavailableConferenceMedia(media.UnavailableReason ?? Texts.Get("Conference.GStreamerFailed"));
             BackendChanged?.Invoke(this, EventArgs.Empty);
             return false;
         }
+
+        var links = new GStreamerDataLinkFactory(options, _loggerFactory);
+        DataLinks = links.IsAvailable ? links : null;
 
         media.VideoFrameReceived += (_, frame) => VideoFrameReceived?.Invoke(this, frame);
         media.SignalReady += (_, signal) => SignalReady?.Invoke(this, signal);

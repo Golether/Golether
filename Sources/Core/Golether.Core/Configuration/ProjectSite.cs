@@ -12,13 +12,26 @@ public static class ProjectSite
     /// <summary>
     /// The address of the page, ending with a slash. It doubles as the page with the downloads.
     /// </summary>
-    public const string BASE_URL = "https://depthrel.github.io/Golether/";
+    public const string BASE_URL = "https://golether.github.io/Golether/";
 
     /// <summary>
     /// The beginning of an invitation link. The invitation follows the <c>#</c>, so browsers never send it to the
     /// server of the page.
     /// </summary>
     public const string JOIN_URL_PREFIX = BASE_URL + "join/#";
+
+    /// <summary>
+    /// The beginning of an invitation link of versions before the move of the project to the organization Golether.
+    /// Such hosts still hand these links out, so the applications go on reading them; the old address keeps a page
+    /// that passes the invitation on to the new one.
+    /// </summary>
+    public const string LEGACY_JOIN_URL_PREFIX = "https://depthrel.github.io/Golether/join/#";
+
+    /// <summary>
+    /// The beginning of a link of the browser version: its page with the invitation after the <c>#</c>. Such a link
+    /// opens the session in a browser; the applications read it as an invitation as well.
+    /// </summary>
+    public const string WATCH_URL_PREFIX = BASE_URL + "watch/#";
 
     /// <summary>
     /// The address of the file that names the rendezvous server of the project.
@@ -33,7 +46,7 @@ public static class ProjectSite
     /// <summary>
     /// The address of the source code.
     /// </summary>
-    public const string SOURCE_URL = "https://github.com/DepthRel/Golether";
+    public const string SOURCE_URL = "https://github.com/Golether/Golether";
 
     /// <summary>
     /// The address of the license text of Golether.

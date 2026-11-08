@@ -72,6 +72,12 @@ public sealed record SessionOptions
     public long MediaCacheCapacity { get; init; } = ChunkCache.DEFAULT_CAPACITY;
 
     /// <summary>
+    /// Gets a value indicating whether the cameras may reach the relay of the host through a local entrance (a TCP
+    /// port on this device that leads through the session). A browser cannot open one; it reaches the relay directly.
+    /// </summary>
+    public bool OpensRelayTunnel { get; init; } = true;
+
+    /// <summary>
     /// Validates the options.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">A value is out of range.</exception>

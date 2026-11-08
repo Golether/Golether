@@ -303,7 +303,7 @@ marque tanto a rede privada como a pública.
 
 ## Atualizações
 
-Ao arrancar, o Golether pergunta à [página do projeto](https://depthrel.github.io/Golether/) se saiu uma versão nova. Se
+Ao arrancar, o Golether pergunta à [página do projeto](https://golether.github.io/Golether/) se saiu uma versão nova. Se
 sim, aparece no topo a barra “Está disponível uma versão nova” com o botão **Abrir a página de transferência**: o seu
 navegador abre a página com as ligações para o seu sistema. Nada é transferido nem instalado sozinho: é você quem
 decide. A caixa **Ignorar esta versão**, marcada antes de fechar a barra, desliga o aviso dessa versão; o Golether

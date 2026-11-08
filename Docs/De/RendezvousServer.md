@@ -232,6 +232,35 @@ und die Seiten könnten verschiedene wählen. Deshalb wählt nur der Teilnehmer:
 Teilnehmer spricht auch zuerst (TLS ClientHello). Der Gastgeber hält alle, die sich geöffnet haben, und nimmt die, in
 der der Teilnehmer gesprochen hat; die übrigen werden geschlossen.
 
+## Signalisierung für Browser (Prototyp)
+
+Ein Browser öffnet keine eigene TCP-Verbindung, daher nimmt der Server mit `Signal:Enabled` zusätzlich einen
+WebSocket unter der Adresse `Signal:Url`, Pfad `/signal` an (`wss://` mit Zertifikat für Seiten über HTTPS). Die
+erlaubten Seiten stehen in `Signal:AllowedOrigins`. Der Server reicht die Beschreibungen einer WebRTC-Verbindung
+zwischen Gastgeber und Gast weiter und liest keine davon; nach Sekunden sprechen die Browser direkt, und der WebSocket
+des Gastes schließt sich. Eine Nachricht ist UTF-8-JSON in einer Textnachricht von höchstens 16 KiB:
+
+| `$t` | Richtung | Felder | Bedeutung |
+|---|---|---|---|
+| `server-hello` | S → D | `version`, `nonce` | erste Nachricht des Servers |
+| `register` | H → S | `room`, `key` (SPKI, base64), `signature` | der Gastgeber nimmt einen Raum; die Signatur (P-256, SHA-256, r‖s) deckt `golether-signal-v1\n<nonce>\n<room>` |
+| `registered` | S → H | — | der Raum ist genommen; der WebSocket bleibt offen |
+| `connect` | P → S | `room` | ein Gast bittet um ein Treffen |
+| `meeting` | S → P | `meeting` | die Nummer des Treffens |
+| `incoming` | S → H | `meeting` | ein Gast wartet |
+| `signal` | H ↔ S ↔ P | `meeting` (H), `data` | eine Beschreibung oder ein Kandidat, unverändert weitergegeben (höchstens 12 KiB; höchstens 100 von einem Gast) |
+| `closed` | S → H | `meeting` | der WebSocket des Gastes wurde geschlossen |
+| `error` | S → D | `error` | eine Ablehnung, ein Name aus der Tabelle oben |
+
+Es gelten die Grenzen des TCP-Teils: Räume und Verbindungen werden gezählt, die Rate neuer WebSockets von einer IP
+ist begrenzt, ein Treffen dauert höchstens `Signal:MeetingTimeout`. Ein Raum gehört dem Schlüssel, der ihn genommen
+hat, wie oben. Der Server sieht, was er bisher sah (Adressen, Räume, öffentliche Schlüssel), und die
+DTLS-Fingerabdrücke, die ebenfalls öffentlich sind.
+
+Die Anwendungen nutzen dieselbe Signalisierung: Ein Anwendungs-Gastgeber hält hier seinen Raum neben dem Raum des
+Treffpunkt-Protokolls, und eine Anwendung trifft hier einen Browser-Gastgeber. Für ein gemischtes Treffen ist sie der
+einzige nötige Teil des Servers, daher braucht der Server dafür eine Domain mit TLS-Zertifikat (`wss://`).
+
 ## Einschränkungen
 
 - **Ein symmetrisches NAT** (der Router gibt jedem Ziel einen neuen externen Port) auf einer der Seiten macht das

@@ -191,6 +191,31 @@ defaults all the same. A key missing from the file takes its default value too.
 | `Logging:LogLevel:Default` | `Information` | how detailed the log is; `Debug` logs every connection |
 | `Logging:Console:FormatterOptions:TimestampFormat` | `yyyy-MM-dd HH:mm:ss.fff zzz ` | the stamp at the beginning of every log line in the console and in the file: the date, the server time and the offset from UTC (`2026-10-11 16:14:12.250 +07:00`). Under systemd and in the Windows Event Viewer the time of an entry is set by the system itself |
 
+### Browsers (prototype)
+
+The browser version of Golether reaches the server over a WebSocket. It is off by default:
+
+Applications use it too: a session of the application takes guests from a browser only through it. For such mixed meetings switch it on, give the server a domain with a TLS certificate (`wss://`) and publish the address as `signal` in `config.json` of the project page.
+
+```json
+"Signal": {
+  "Enabled": true,
+  "Url": "https://0.0.0.0:47943",
+  "AllowedOrigins": [ "https://golether.github.io" ]
+},
+"Kestrel": { "Certificates": { "Default": { "Path": "config/signal.pfx", "Password": "…" } } }
+```
+
+| Parameter `Signal:…` | Default | What it sets |
+|---|---|---|
+| `Enabled` | `false` | whether to take browsers |
+| `Url` | `http://0.0.0.0:47943` | the address of the WebSocket; a page served over HTTPS opens only `wss://`, so on the internet this is `https://` with the certificate of `Kestrel:Certificates:Default` (a domain name and, for example, Let's Encrypt) |
+| `AllowedOrigins` | `http://localhost:47950`, `http://127.0.0.1:47950` | the pages allowed to use the server |
+| `MaxConnections`, `MaxRooms`, `MaxMeetingsPerRoom`, `MaxConnectionsPerMinute` | `1024`, `1024`, `16`, `120` | the same limits as for the applications |
+| `FirstMessageTimeout`, `MeetingTimeout` | `00:00:10`, `00:01:00` | how long to wait for the first message and how long a meeting lasts |
+
+Open the TCP port of `Url` on the router as well.
+
 Any parameter can also be set without editing the file, with an environment variable (a double underscore instead of
 the colon) or a command-line argument; they override the file:
 

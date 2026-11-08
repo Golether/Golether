@@ -1,9 +1,9 @@
-namespace Golether.Media.Conference.GStreamer;
+namespace Golether.Media.Conference;
 
 /// <summary>
-/// The signaling kinds exchanged between peers.
+/// The signaling kinds exchanged between the cameras of two participants, the same for every implementation.
 /// </summary>
-internal static class SignalKinds
+public static class SignalKinds
 {
     /// <summary>
     /// An SDP offer.

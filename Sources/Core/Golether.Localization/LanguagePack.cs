@@ -59,7 +59,7 @@ public sealed class LanguagePack : ILanguagePack
         Dictionary<string, string>? texts;
         try
         {
-            texts = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+            texts = JsonSerializer.Deserialize(json, LanguageJsonContext.Default.DictionaryStringString);
         }
         catch (JsonException ex)
         {

@@ -5,6 +5,7 @@ using Golether.Web.Server.Contracts;
 using Golether.Web.Server.Enums;
 using Golether.Web.Server.Infrastructure;
 using Golether.Web.Server.Options;
+using Golether.Web.Server.Signal;
 
 namespace Golether.Web.Server;
 
@@ -53,7 +54,8 @@ public static class Program
         builder.Services.AddSystemd();
         builder.Services.AddLogTimestamps();
         var options = builder.Configuration.GetSection(RendezvousServerOptions.SECTION).Get<RendezvousServerOptions>() ?? new RendezvousServerOptions();
-        if (options.Validate() is { Count: > 0 } problems)
+        var signal = builder.Configuration.GetSection(SignalServerOptions.SECTION).Get<SignalServerOptions>() ?? new SignalServerOptions();
+        if (options.Validate().Concat(signal.Validate()).ToList() is { Count: > 0 } problems)
         {
             Console.Error.WriteLine(Texts.Get("Server.Error.Invalid"));
             foreach (var problem in problems)
@@ -65,6 +67,15 @@ public static class Program
         }
 
         builder.Services.AddRendezvousServer(options);
+        if (signal.Enabled)
+        {
+            // The address of the browsers is one more address of the same web server, next to the status page. An
+            // https address takes the certificate of Kestrel:Certificates:Default.
+            var urls = (builder.Configuration["Urls"] ?? string.Empty).Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            builder.WebHost.UseUrls([.. urls, signal.Url]);
+            builder.Services.AddSignalServer(signal);
+        }
+
         var app = builder.Build();
         var startLog = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(Program));
         var settingsPath = Path.Combine(configDirectory, DefaultSettings.FILE_NAME);
@@ -85,6 +96,11 @@ public static class Program
             => context.Connection.RemoteIpAddress is { } remote && System.Net.IPAddress.IsLoopback(remote)
                 ? Results.Json(journal.Read(after ?? 0), ServerContract.Json)
                 : Results.StatusCode(StatusCodes.Status403Forbidden));
+        if (signal.Enabled)
+        {
+            MapSignal(app, signal);
+        }
+
         var events = app.Services.GetRequiredService<ServerJournal>();
         var version = app.Services.GetRequiredService<ServerStatistics>().Snapshot().Version;
         // The order of a start, as it happens: starting, then the ports are opened (Listening, StunListening, recorded
@@ -94,5 +110,32 @@ public static class Program
         app.Lifetime.ApplicationStopping.Register(() => events.Record(JournalEvent.ServerStopping));
         app.Run();
         return 0;
+    }
+
+    /// <summary>
+    /// Opens the WebSocket of the browsers on its own port: a browser that is refused gets an HTTP status, an
+    /// accepted one is served by <see cref="SignalHub"/> until it closes.
+    /// </summary>
+    /// <param name="app">The web application.</param>
+    /// <param name="signal">The settings of the signalling.</param>
+    private static void MapSignal(WebApplication app, SignalServerOptions signal)
+    {
+        app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(20) });
+        app.Map(SignalServerOptions.PATH, async (HttpContext context, SignalHub hub) =>
+        {
+            if (!context.WebSockets.IsWebSocketRequest)
+            {
+                return Results.StatusCode(StatusCodes.Status400BadRequest);
+            }
+
+            if (hub.Admit(context.Request.Headers.Origin, context.Connection.RemoteIpAddress) is { } refusal)
+            {
+                return Results.StatusCode(refusal);
+            }
+
+            using var socket = await context.WebSockets.AcceptWebSocketAsync();
+            await hub.ServeAsync(socket, context.RequestAborted);
+            return Results.Empty;
+        }).RequireHost("*:" + signal.Port);
     }
 }

@@ -1,6 +1,6 @@
 # Golether.Pages
 
-The project page: <https://depthrel.github.io/Golether/>. Plain static files with no build step, published by GitHub
+The project page: <https://golether.github.io/Golether/>. Plain static files with no build step, published by GitHub
 Pages from this folder (`.github/workflows/pages.yml`) on every change in the `main` branch.
 
 | File | What for |
@@ -16,7 +16,7 @@ Pages from this folder (`.github/workflows/pages.yml`) on every change in the `m
 1. Open the repository on GitHub: **Settings → Pages**.
 2. Under **Build and deployment** choose **Source: GitHub Actions**.
 3. Push a commit with this folder to `main` (or run the **Pages** workflow by hand on the **Actions** tab).
-4. A couple of minutes later the page opens at <https://depthrel.github.io/Golether/>.
+4. A couple of minutes later the page opens at <https://golether.github.io/Golether/>.
 
 ## A new release
 
@@ -28,8 +28,25 @@ Pages from this folder (`.github/workflows/pages.yml`) on every change in the `m
 2. In `updates.json` replace the version number in `version` and in the `url` of every system. The optional `notes`
    field is a "what is new" line the application shows.
 3. Commit. The page updates itself, and applications of earlier versions say "A new version is available" at start.
+4. Copy the same `updates.json` over `Golether/updates.json` of the old address (see below): applications from
+   before the move to the organization read it there.
 
 `Scripts/App/build-installer.ps1` prints a ready entry for Windows.
+
+## The old address
+
+Up to version 0.4.1 the page lived at `https://depthrel.github.io/Golether/`, and the applications of those versions
+read `config.json` and `updates.json` there and hand out invitations `https://depthrel.github.io/Golether/join/#…`.
+GitHub Pages cannot redirect over HTTP, so the personal site of the owner (the repository
+`DepthRel/depthrel.github.io`) keeps a folder `Golether/` with:
+
+- `index.html`: a page that sends the visitor to the new address;
+- `join/index.html` with its script: passes the invitation after `#` to `join/` of the new address, the part after
+  `#` never leaves the browser;
+- copies of `config.json` and `updates.json`: copy them again whenever they change here.
+
+Never create a new repository `DepthRel/Golether`: GitHub would stop redirecting the old address of the moved
+repository (its code, releases and downloads) to `Golether/Golether`.
 
 ## A new picture
 
@@ -46,6 +63,12 @@ empty string means "no server": the application creates a session without one an
 The sealing is a mask against scanners, not a secret: the key is in the open code of the application
 (`Golether.Security.Discovery.EndpointSeal`), and the server address is part of every invitation.
 
+An optional `signal` field names the signalling of the same server for browsers, not sealed (the browser version has
+to reach it anyway): `{ "rendezvous": "g1.…", "signal": "wss://meet.example.org/signal" }`. With it, the sessions the
+application hosts in the "Automatically" mode take guests from a browser, and their invitations offer the
+`watch/` page of the browser version. Only `wss://` with a valid certificate is accepted; without the field the
+applications work as before.
+
 ## Rules of the page
 
 - Nothing is loaded from other servers but one thing: the main page counts visits with Umami Cloud (no cookies), its
@@ -53,7 +76,7 @@ The sealing is a mask against scanners, not a secret: the key is in the open cod
   the download links (`data-umami-event-package`: `windows`, `windows-zip`, `linux-deb`, `linux-archive`, `macos`,
   `macos-intel`;
   `data-umami-event-place`: `card` or `hero`, the button at the top, which `site.js` marks for the system of the
-  visitor). It counts only on `depthrel.github.io`, keeps
+  visitor). It counts only on `golether.github.io`, keeps
   the part of the address after `#` and `?` out of its reports and skips browsers that ask not to be tracked. The
   invitation page has no counter: a script of another server would see the invitation in its address. Both pages
   pin what they may load with a `Content-Security-Policy` header; there are no inline scripts or styles either.

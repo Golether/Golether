@@ -47,11 +47,13 @@ Sources/
   Transports/Golether.Transports.PortMapping  Portweiterleitung am Router: NAT-PMP und UPnP IGD, Verlängerung der Lease
   Transports/Golether.Transports.Relay     das TURN-Relay des Gastgebers für Kameras und Sprache (RFC 5766 über TCP)
   Transports/Golether.Transports.Rendezvous  Protokoll des Vermittlungsservers, Client für Gastgeber und Teilnehmer, TCP hole punching
+  Transports/Golether.Transports.WebRtc    Sitzungen über WebRTC-Datenkanäle: Signalisierungsclient, Schlüsselnachweise, Raum des Gastgebers, Gast
   Sync/Golether.Sync                       Protokoll, Schätzung des Uhrenversatzes, PlaybackAuthority, PlaybackFollower
   Media/Golether.Media.Streaming           Stück-Server, paralleler Client, Cache, Vorauslesen, Stream für den Player
   Media/Golether.Media.Player              libmpv (P/Invoke, Einbettung, golether://), ein simulierter Player
   Media/Golether.Media.Player.Android      libmpv unter Android: die Hardware-Decoder von FFmpeg
   Media/Golether.Media.Conference          Vertrag für Kameras und Sprache, ein Platzhalter
+  Media/Golether.Media.Conference.Browser  Kameras und Sprache eines Browsers: die Entscheidungen, ohne Browser getestet
   Media/Golether.Media.Conference.GStreamer  Kameras und Sprache: Aufnahme, VP8/Opus, webrtcbin, Mischer, Echounterdrückung
   Media/Golether.Media.Conference.GStreamer.Android  der Start von GStreamer unter Android
   Tunnels/Golether.Tunnels.AmneziaWG       X25519-Schlüssel, Verschleierung, .conf, signierte Pakete, Steuerung über die CLI
@@ -60,6 +62,7 @@ Sources/
   Apps/Golether.Client                     gemeinsame Client-Schicht: Dienste, View-Models und Steuerelemente ohne Fenster, die Farben des Designs, Bezahlfunktionen
   Apps/Golether.Mobile                     die Bildschirme des mobilen Clients: Avalonia, eine Ansicht statt Fenster, eigenes Design und eigene Symbole
   Apps/Golether.Mobile.Android             das Android-Paket: Activity, Vordergrunddienst der Sitzung, native Komponenten
+  Apps/Golether.Browser                    die Browserversion (ein Prototyp): die Sitzungen in WebAssembly über WebRTC, eine Seite statt Fenstern
   Apps/Golether.UI                         Avalonia: Fenster, Dialoge, Zusammensetzung der Abhängigkeiten
   Apps/Golether.Web.Server                 der Vermittlungsserver (eine eigene Anwendung, siehe RendezvousServer.md)
   Apps/Golether.Web.Server.Contracts       was Server und Monitor teilen: Einstellungen, Dienstnamen, Zustand, Journal
@@ -249,7 +252,7 @@ Der Zustand der Sitzung (`PlaybackState`): „Im Moment `ReferenceTime` nach der
   zuerst: Alles andere ist in jeder Einladung einer Sitzung gleich, so unterscheidet sich eine neue Einladung ab den
   ersten Zeichen.
   - *Zwei Schreibweisen.* Der **Schlüssel** (`golether://…`) wird in die Anwendung eingefügt, der **Link**
-    (`https://depthrel.github.io/Golether/join/#…`) ist in jedem Messenger anklickbar; der Inhalt ist derselbe. Das
+    (`https://golether.github.io/Golether/join/#…`) ist in jedem Messenger anklickbar; der Inhalt ist derselbe. Das
     Einladungsfenster gibt sie als zwei Einladungen mit eigenen Token aus: Der Link lebt 15 Minuten, der Schlüssel
     15 Minuten oder eine Stunde. `InviteRegistry` gibt nichts aus, was länger als eine Stunde lebt.
   - *Eine für die ganze Runde.* Alle, die der Gastgeber eingeladen hat, treten mit einer Einladung bei, bis sie abläuft
@@ -476,6 +479,66 @@ Benutzerprofil wird nicht verwendet, außer bei einer Installation „für alle 
 | `Settings` | Einstellungen (Benutzername, Sprache der Oberfläche `ui.language`, Lautstärke, Geräte) |
 
 Das Schema wird durch Migrationen beim Start der Anwendung oder über `Golether.Dbs.SQLite.DbMigrator` erstellt.
+
+## Golether im Browser (Prototyp)
+
+`Sources/Apps/Golether.Browser` führt dieselben `HostSession` und `ParticipantSession` im Browser aus: .NET, nach
+WebAssembly übersetzt, mit den Teilen des Browsers darunter. Nichts wird installiert, und es gibt kein Konto: Man
+öffnet die Seite, wählt eine Datei und schickt den Link.
+
+- **Transport.** Ein Browser kann weder eine TCP-Verbindung öffnen noch auf einem Port lauschen, daher ist jeder Strom
+  einer Sitzung (Control, MediaData) ein Datenkanal einer WebRTC-Verbindung (SCTP über DTLS). `DataChannelStream`
+  macht aus den Nachrichten eines Kanals den Strom, den die Sitzungen lesen; `WebRtcListener` und `WebRtcConnector`
+  ersetzen Listener und Connector von TLS. Relay-Ströme werden nicht verwendet: Ein Browser hat ein eigenes ICE.
+- **Treffen.** Die Seiten reichen einander die Beschreibungen der Verbindung (SDP und ICE-Kandidaten) über den
+  WebSocket des Rendezvous-Servers weiter ([RendezvousServer.md](RendezvousServer.md)); STUN kommt vom selben Server.
+  Film, Steuerung und Chat gehen direkt zwischen den Browsern.
+- **Wer am anderen Ende ist.** Der Geräteschlüssel ist ECDSA P-256 von WebCrypto, nicht exportierbar und in IndexedDB
+  der Seite abgelegt; die `PeerId` wird wie auf dem Desktop berechnet. Nach dem DTLS-Handshake signiert jede Seite die
+  Fingerabdrücke beider DTLS-Zertifikate und den Raum ([Protocol.md](Protocol.md)): Der Gast vergleicht den Schlüssel
+  mit der Einladung, der Gastgeber erfährt die `PeerId` des Gastes. Ein Server, der die Beschreibungen vertauscht,
+  brächte ein anderes DTLS-Zertifikat, und die Signatur hielte nicht. Danach ist alles wie in der Anwendung: der
+  Bestätigungscode mit Festlegung, die Zulassung durch den Gastgeber, die Grenzen einer Einladung.
+- **Datei und Player.** Die Datei des Gastgebers wird an Ort und Stelle gelesen (`Blob.slice`), über `OpenedFiles` wie
+  auf dem Telefon, und in denselben Stücken von 256 KiB mit SHA-256 ausgeliefert. Das `<video>`-Element eines Gastes
+  fragt den Service Worker der Seite nach `stream/<n>`; der Worker nimmt die Bytes aus dem Cache der Sitzung: das
+  Gegenstück zum Protokoll `golether://` von libmpv. Ein Browser spielt MP4 und WebM ab (H.264, VP9, AV1, AAC, Opus).
+- **Kameras, Stimme und Austausch.** `Golether.Media.Conference.Browser` ist das `IConferenceMedia` eines Browsers:
+  Die Entscheidungen (wer anbietet, welche Signale angenommen werden, wann eine gescheiterte Verbindung neu aufgebaut
+  wird, der Sparstrom, wer spricht) trifft .NET nach den Regeln der Anwendungen (`SignalRules`, `ConnectionRules`,
+  `VideoQualityPolicy`, `VoiceActivityDetector`), getestet ohne Browser; `conference.js` hält nur die
+  `RTCPeerConnection`s, die Spuren und die Datenkanäle. Je zwei Teilnehmer haben eine eigene Verbindung, wie auf dem
+  Desktop, mit VP8 und Opus vorn und dem Kanal `golether`, daher tauschen die Zuschauer Stücke des Films wie in den
+  Anwendungen aus. Der Browser prüft das DTLS-Zertifikat gegen den Fingerabdruck der Beschreibung, die nur über die
+  authentifizierte Sitzung ankommt. Das Relay des Gastgebers kann ein Browser noch nicht nutzen: Ein Paar ohne direkten
+  Weg sieht keine Kameras, und seine Stücke kommen vom Gastgeber. Kamera und Mikrofon werden beim Klick auf
+  „Erstellen“ oder „Beitreten“ angefragt, wie es ein Telefon verlangt; die Seite einer Sitzung hält den Bildschirm an.
+- **Einladung.** Der Gastgeber hat keine Adresse, daher trägt seine Einladung nur den Raum (`endpoints` ist leer). Der
+  Link ist die Adresse der Seite mit der Einladung nach `#`; die Seite nimmt sie sofort aus der Adresszeile.
+- **Gemischte Treffen.** Die Anwendungen sprechen denselben Transport: `Golether.Transports.WebRtc` hält den Raum
+  eines Anwendungs-Gastgebers in der Signalisierung (`WebRtcSessionHost`) und trifft einen Gastgeber als Gast
+  (`WebRtcSessionConnector`); `GStreamerDataLink` baut die Verbindung mit einem `webrtcbin` nur aus Datenkanälen
+  und öffnet keinen Kanal, bevor das DTLS-Zertifikat der Gegenseite zum Fingerabdruck ihrer Beschreibung passt. So
+  nimmt ein Gastgeber auf dem Computer oder Telefon Gäste aus dem Browser an, eine Anwendung tritt einem
+  Browser-Gastgeber bei, und zwei Anwendungen, die kein anderer Weg verbunden hat, versuchen zuletzt diesen. Die Adresse
+  der Signalisierung kommt aus `config.json` der Projektseite (`signal`), nur im Modus „Automatisch“: Mit einem
+  privaten Treffpunkt-Server hat die Einladung keinen Browser-Weg, und die Seite sagt das.
+- **Grenzen des Prototyps.** Die Seite hat den Chat und die Reaktionen und zeigt die Stiftstriche und die Avatare der
+  anderen; Zeichnen, ein eigener Avatar und Untertitel sind Funktionen der Anwendung, ihre Knöpfe bleiben gesperrt auf
+  der Seite, mit dem Hinweis „Nutzen Sie für diese Funktion die Anwendung“. Ein Browser wechselt die Tonspuren einer
+  Datei nur, wo er es kann (Safari). Kein Zeigen von Ordnern; ein Tab hält eine Sitzung, und der Tab des Gastgebers
+  muss offen bleiben. Der Download ist komprimiert etwa 2,7 MB groß: Das JSON der Sitzungen, der Einladungen und der
+  Sprachpakete entsteht beim Bauen, daher wird der Build gekürzt. Der Code der Seite kommt bei jedem Besuch von der
+  Website, also gehört die Website selbst zum Vertrauen.
+
+Ein Versuch auf einem Computer: der Server mit eingeschalteter Signalisierung, die veröffentlichte Seite auf
+`http://localhost:47950` (die Adressen der Server stehen in `wwwroot/config.json`):
+
+```bash
+dotnet run --project Sources/Apps/Golether.Web.Server -- --Signal:Enabled=true
+dotnet publish Sources/Apps/Golether.Browser -c Release -o artifacts/browser
+# artifacts/browser/wwwroot → http://localhost:47950 (any static server)
+```
 
 ## Etappen
 

@@ -15,7 +15,7 @@
 ; The page of the project (PackageProjectUrl of Directory.Build.props): the link of the program in the list of
 ; installed apps.
 #ifndef GoletherUrl
-  #define GoletherUrl "https://depthrel.github.io/Golether"
+  #define GoletherUrl "https://golether.github.io/Golether"
 #endif
 #ifndef GoletherSource
   #define GoletherSource "..\..\artifacts\publish\win-x64\Golether"

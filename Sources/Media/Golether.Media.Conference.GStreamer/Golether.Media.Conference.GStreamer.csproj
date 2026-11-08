@@ -2,7 +2,8 @@
 
   <!--
     Cameras and voices over WebRTC with GStreamer (webrtcbin): one capture pipeline with echo cancellation and a
-    single encoder, one pipeline per remote participant, one mixing playback pipeline. Native interop by P/Invoke.
+    single encoder, one pipeline per remote participant, one mixing playback pipeline. Also the data-only webrtcbin
+    connections of sessions with browsers (GStreamerDataLink). Native interop by P/Invoke.
   -->
   <PropertyGroup>
     <RootNamespace>Golether.Media.Conference.GStreamer</RootNamespace>
@@ -19,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Golether.Media.Conference\Golether.Media.Conference.csproj" />
+    <ProjectReference Include="..\..\Transports\Golether.Transports.WebRtc\Golether.Transports.WebRtc.csproj" />
   </ItemGroup>
 
 </Project>

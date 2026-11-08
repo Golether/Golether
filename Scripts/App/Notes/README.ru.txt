@@ -10,4 +10,4 @@ Golether {version} ({runtime})
 [linux] Видео: установите пакет libmpv вашего дистрибутива (libmpv2 / mpv-libs). Камеры и голос: gstreamer1.0-plugins-base, -good, -bad и gstreamer1.0-nice. Туннели: amneziawg-tools и модуль amneziawg (или amneziawg-go).
 [macos] Сборка не подписана Apple: при первом запуске откройте «Системные настройки → Конфиденциальность и безопасность → Всё равно открыть» или выполните: xattr -dr com.apple.quarantine Golether.app
 [macos] Видео: brew install mpv. Камеры и голос: brew install gstreamer.
-Руководство: https://github.com/DepthRel/Golether/blob/main/Docs/Ru/UserGuide.md
+Руководство: https://github.com/Golether/Golether/blob/main/Docs/Ru/UserGuide.md

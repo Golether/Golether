@@ -40,7 +40,7 @@ Videos des Ordners werden wie ein Film bereitgestellt.
 | Wohin | Wann | Was die Gegenseite erfährt |
 |---|---|---|
 | Der Vermittlungsserver des Projekts (seine Adresse kommt aus `config.json` der Projektseite) | wenn ein Gastgeber eine Sitzung über den Server öffnet und wenn ein Teilnehmer einer solchen Sitzung beitritt | die Netzwerkadressen von Gastgeber und Teilnehmer, den Fingerabdruck des Gastgeberschlüssels, das zufällige Kennzeichen des Raums; nie den Inhalt der Sitzung |
-| Die Projektseite `depthrel.github.io` (GitHub Pages) | `updates.json` beim Start (die neueste Version; die Prüfung lässt sich in den Einstellungen abschalten); `config.json`, wenn ein Gastgeber eine Sitzung mit automatisch gewähltem Vermittlungsserver öffnet | Ihre IP-Adresse, wie bei jeder Webseite; es gilt die Datenschutzerklärung von GitHub |
+| Die Projektseite `golether.github.io` (GitHub Pages) | `updates.json` beim Start (die neueste Version; die Prüfung lässt sich in den Einstellungen abschalten); `config.json`, wenn ein Gastgeber eine Sitzung mit automatisch gewähltem Vermittlungsserver öffnet | Ihre IP-Adresse, wie bei jeder Webseite; es gilt die Datenschutzerklärung von GitHub |
 | GitHub und `gstreamer.freedesktop.org` | unter Windows nur, wenn Sie eine fehlende Komponente mit der Schaltfläche **Installieren** einrichten | Ihre IP-Adresse |
 | Die öffentlichen STUN-Server von Google (`stun.l.google.com`) und Cloudflare (`stun.cloudflare.com`) | nur beim Einrichten eines AmneziaWG-Tunnels: Sie nennen dem Rechner seine Adresse nach außen | Ihre IP-Adresse und Ihren Port; es gelten ihre eigenen Datenschutzerklärungen |
 | Ihr Router (UPnP, NAT-PMP) | wenn der Gastgeber den Router bittet, einen Port zu öffnen | nichts außerhalb Ihres lokalen Netzes |
@@ -50,7 +50,7 @@ eigenen Server („Vermittlungsserver“ im [Handbuch](UserGuide.md)).
 
 ## Die Projektseite
 
-Die Projektseite `depthrel.github.io/Golether` zählt ihre Besuche mit Umami Cloud. Umami verwendet keine Cookies und
+Die Projektseite `golether.github.io/Golether` zählt ihre Besuche mit Umami Cloud. Umami verwendet keine Cookies und
 speichert nach eigener Beschreibung keine IP-Adressen: Es erfasst die Adresse der Seite (ohne den Teil nach `#` und
 `?`), die Seite, von der Sie kamen, den Browser, das System, die Art des Geräts, die Bildschirmgröße, die Sprache und
 das Land, das es aus Ihrer Adresse ableitet. Auch ein Klick auf eine Download-Schaltfläche wird gezählt: welches Paket

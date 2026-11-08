@@ -7,6 +7,7 @@ using Golether.Media.Streaming.Gallery;
 using Golether.Security.Admission;
 using Golether.Security.Identity;
 using Golether.Transports.PortMapping;
+using Golether.Transports.WebRtc;
 
 namespace Golether.Session.Hosting;
 
@@ -96,4 +97,16 @@ public sealed class HostingSetup
     /// Gets what opens the ports on the router, or <see langword="null"/> to leave the router alone.
     /// </summary>
     public PortMapper? PortMapper { get; init; }
+
+    /// <summary>
+    /// Gets the signalling where the session keeps the room of <see cref="Rendezvous"/> for WebRTC connections, or
+    /// <see langword="null"/>: browsers can then join, and invitations carry it.
+    /// </summary>
+    public Uri? Signal { get; init; }
+
+    /// <summary>
+    /// Gets what makes the WebRTC connections, or <see langword="null"/> when there is none (no GStreamer): the
+    /// session then offers no WebRTC way in.
+    /// </summary>
+    public IDataLinkFactory? DataLinks { get; init; }
 }
