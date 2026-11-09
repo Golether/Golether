@@ -21,13 +21,6 @@ public static class ProjectSite
     public const string JOIN_URL_PREFIX = BASE_URL + "join/#";
 
     /// <summary>
-    /// The beginning of an invitation link of versions before the move of the project to the organization Golether.
-    /// Such hosts still hand these links out, so the applications go on reading them; the old address keeps a page
-    /// that passes the invitation on to the new one.
-    /// </summary>
-    public const string LEGACY_JOIN_URL_PREFIX = "https://depthrel.github.io/Golether/join/#";
-
-    /// <summary>
     /// The beginning of a link of the browser version: its page with the invitation after the <c>#</c>. Such a link
     /// opens the session in a browser; the applications read it as an invitation as well.
     /// </summary>

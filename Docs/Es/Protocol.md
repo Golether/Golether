@@ -236,9 +236,6 @@ nueva se diferencia desde sus primeros caracteres. El orden de los campos no sig
 La misma invitación como enlace web: `https://golether.github.io/join/#` + el mismo base64url. El navegador no
 envía al servidor la parte tras `#`; la página la convierte en `golether://join/v1/…` y se la entrega a la aplicación.
 La aplicación acepta ambas formas.
-Los enlaces de la página en su dirección anterior al traslado del proyecto,
-`https://depthrel.github.io/Golether/join/#`, se siguen leyendo: los anfitriones de versiones anteriores los reparten,
-y la dirección antigua los pasa a la página nueva.
 
 Los campos `meet` y `room` son opcionales y van siempre juntos: el servidor de encuentro del anfitrión y su sala en él
 (una nueva para cada sesión). Con solo uno de ellos, o con uno mal formado, la invitación se considera dañada. Las

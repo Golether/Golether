@@ -230,9 +230,6 @@ holds from 1 to 16 addresses.
 The same invitation as a web link: `https://golether.github.io/join/#` + the same base64url. The browser
 does not send the part after `#` to the server; the page turns it into `golether://join/v1/…` and hands it to the
 application. The application accepts both spellings.
-Links of the page at its address before the move of the project,
-`https://depthrel.github.io/Golether/join/#`, are still read: hosts of older versions hand them out, and the old
-address passes them on to the new page.
 
 The `meet` and `room` fields are optional and come only together: the host's rendezvous server and its room there
 (a new one for every session). With only one of them, or with a malformed one, the invitation counts as damaged.

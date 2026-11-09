@@ -233,9 +233,6 @@ a 16 endereços.
 O mesmo convite como ligação web: `https://golether.github.io/join/#` + o mesmo base64url. O navegador não envia
 ao servidor a parte depois do `#`; a página transforma-a em `golether://join/v1/…` e entrega-a à aplicação. A aplicação
 aceita as duas formas.
-As ligações da página no endereço anterior à mudança do projeto,
-`https://depthrel.github.io/Golether/join/#`, continuam a ser lidas: os anfitriões de versões anteriores
-distribuem-nas, e o endereço antigo passa-as à página nova.
 
 Os campos `meet` e `room` são opcionais e vêm sempre juntos: o servidor de encontro do anfitrião e a sua sala nele (uma
 nova para cada sessão). Com apenas um deles, ou com um mal formado, o convite é considerado danificado. As versões

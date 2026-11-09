@@ -37,29 +37,17 @@ Pages serve the root of the organization's site.
 2. In `updates.json` replace the version number in `version` and in the `url` of every system. The optional `notes`
    field is a "what is new" line the application shows.
 3. Commit. The page updates itself, and applications of earlier versions say "A new version is available" at start.
-4. Copy the same `updates.json` over `Golether/updates.json` of the old address (see below): applications from
-   before the move to the organization read it there.
 
 `Scripts/App/build-installer.ps1` prints a ready entry for Windows.
 
-A pre-release (a beta) is built the same way, but on GitHub tick **Set as a pre-release** and leave `updates.json` and
-its copy at the old address alone: the update check offers it to nobody, and testers take it from the releases page.
-The version number is an ordinary one, and the final release takes the next number.
+A pre-release (a beta) is built the same way, but on GitHub tick **Set as a pre-release** and leave `updates.json`
+alone: the update check offers it to nobody, and testers take it from the releases page. The version number is an
+ordinary one, and the final release takes the next number.
 
-## The old address
+## The old address of the repository
 
-Up to version 0.4.1 the page lived at `https://depthrel.github.io/Golether/`, and the applications of those versions
-read `config.json` and `updates.json` there and hand out invitations `https://depthrel.github.io/Golether/join/#…`.
-GitHub Pages cannot redirect over HTTP, so the personal site of the owner (the repository
-`DepthRel/depthrel.github.io`) keeps a folder `Golether/` with:
-
-- `index.html`: a page that sends the visitor to the new address;
-- `join/index.html` with its script: passes the invitation after `#` to `join/` of the new address, the part after
-  `#` never leaves the browser;
-- copies of `config.json` and `updates.json`: copy them again whenever they change here.
-
-Never create a new repository `DepthRel/Golether`: GitHub would stop redirecting the old address of the moved
-repository (its code, releases and downloads) to `Golether/Golether`.
+The repository used to be `DepthRel/Golether`; GitHub redirects that address (the code, the releases and the
+downloads) to `Golether/Golether`. Never create a new repository `DepthRel/Golether`: GitHub would stop redirecting.
 
 ## A new picture
 

@@ -146,7 +146,6 @@ public sealed partial record Invite
         => text.StartsWith(LINK_PREFIX, StringComparison.Ordinal) ? LINK_PREFIX
             : text.StartsWith(WEB_LINK_PREFIX, StringComparison.Ordinal) ? WEB_LINK_PREFIX
             : text.StartsWith(ProjectSite.WATCH_URL_PREFIX, StringComparison.Ordinal) ? ProjectSite.WATCH_URL_PREFIX
-            : text.StartsWith(ProjectSite.LEGACY_JOIN_URL_PREFIX, StringComparison.Ordinal) ? ProjectSite.LEGACY_JOIN_URL_PREFIX
             : null;
 
     /// <summary>

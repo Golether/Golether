@@ -233,9 +233,6 @@ lecteur. `endpoints` contient de 1 à 16 adresses.
 La même invitation sous forme de lien web : `https://golether.github.io/join/#` + le même base64url. Le
 navigateur n'envoie pas au serveur la partie après `#` ; la page la transforme en `golether://join/v1/…` et la transmet
 à l'application. L'application accepte les deux formes.
-Les liens de la page à son adresse d'avant le déménagement du projet,
-`https://depthrel.github.io/Golether/join/#`, sont toujours lus : les hôtes des versions plus anciennes les
-distribuent, et l'ancienne adresse les transmet à la nouvelle page.
 
 Les champs `meet` et `room` sont facultatifs et vont toujours ensemble : le serveur de rendez-vous de l'hôte et sa salle
 sur ce serveur (une nouvelle pour chaque séance). Avec un seul des deux, ou avec un champ mal formé, l'invitation est

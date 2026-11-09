@@ -242,9 +242,6 @@ unterscheidet sich eine neue Einladung ab den ersten Zeichen. Die Reihenfolge de
 Dieselbe Einladung als Weblink: `https://golether.github.io/join/#` + dasselbe base64url. Der Browser schickt
 den Teil nach `#` nicht an den Server; die Seite macht daraus `golether://join/v1/…` und übergibt es der Anwendung. Die
 Anwendung nimmt beide Schreibweisen an.
-Links der Seite unter ihrer Adresse vor dem Umzug des Projekts,
-`https://depthrel.github.io/Golether/join/#`, werden weiter gelesen: Gastgeber älterer Versionen geben sie aus, und
-die alte Adresse reicht sie an die neue Seite weiter.
 
 Die Felder `meet` und `room` sind optional und kommen nur zusammen: der Vermittlungsserver des Gastgebers und sein Raum
 dort (ein neuer für jede Sitzung). Mit nur einem davon oder mit einem fehlerhaften gilt die Einladung als beschädigt.
