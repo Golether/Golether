@@ -3,61 +3,92 @@ using System.Runtime.InteropServices.JavaScript;
 namespace Golether.Browser.Interop;
 
 /// <summary>
-/// The page itself (<c>app.js</c>): it redraws what changed, asks the host about guests and hands the bytes of the
-/// film to the service worker.
+/// The page around the canvas (<c>page.js</c>): its address, its settings, the clipboard, the full screen, the
+/// sleep of the display and the bytes of the film the service worker asks for.
 /// </summary>
 internal static partial class PageInterop
 {
     /// <summary>
-    /// Tells the page that the session changed; it reads the snapshot when it redraws.
+    /// Gives the servers the page was published with (<c>config.json</c>).
     /// </summary>
-    [JSImport("page.changed", JsModule.NAME)]
-    public static partial void Changed();
+    /// <returns>The JSON of the file.</returns>
+    [JSImport("page.config", JsModule.NAME)]
+    public static partial string Config();
 
     /// <summary>
-    /// Adds a line to the event feed.
+    /// Takes the invitation the page was opened with (after the <c>#</c>) and removes it from the address bar, so it
+    /// is not left in the history.
     /// </summary>
-    /// <param name="text">The line, in the language of the page.</param>
-    [JSImport("page.event", JsModule.NAME)]
-    public static partial void Event(string text);
+    /// <returns>The invitation, or an empty string.</returns>
+    [JSImport("page.takeInvitation", JsModule.NAME)]
+    public static partial string TakeInvitation();
 
     /// <summary>
-    /// Asks the host whether to let a guest in.
+    /// Gives the address of this page without its fragment: an invitation link of a browser host is this address
+    /// with the invitation after <c>#</c>.
     /// </summary>
-    /// <param name="request">The number of the question, for <see cref="BrowserApi.Answer"/>.</param>
-    /// <param name="name">The name of the guest.</param>
-    /// <param name="code">The verification code to read aloud.</param>
-    [JSImport("page.ask", JsModule.NAME)]
-    public static partial void Ask(int request, string name, string code);
+    /// <returns>The address.</returns>
+    [JSImport("page.address", JsModule.NAME)]
+    public static partial string Address();
 
     /// <summary>
-    /// Shows a chat message or a reaction.
+    /// Reads a setting of this browser.
     /// </summary>
-    /// <param name="message">The message as JSON (<see cref="Session.PageEventsJson.Chat"/>).</param>
-    [JSImport("page.chat", JsModule.NAME)]
-    public static partial void Chat(string message);
+    /// <param name="key">The key.</param>
+    /// <returns>The value, or <see langword="null"/>.</returns>
+    [JSImport("page.getSetting", JsModule.NAME)]
+    public static partial string? GetSetting(string key);
 
     /// <summary>
-    /// Draws a part of a pen stroke over the picture.
+    /// Stores a setting of this browser.
     /// </summary>
-    /// <param name="stroke">The part as JSON (<see cref="Session.PageEventsJson.Stroke"/>).</param>
-    [JSImport("page.stroke", JsModule.NAME)]
-    public static partial void Stroke(string stroke);
+    /// <param name="key">The key.</param>
+    /// <param name="value">The value.</param>
+    [JSImport("page.setSetting", JsModule.NAME)]
+    public static partial void SetSetting(string key, string value);
 
     /// <summary>
-    /// Shows the picture a participant chose to show while its camera is off.
+    /// Puts a text on the clipboard.
     /// </summary>
-    /// <param name="peer">The participant.</param>
-    /// <param name="image">The PNG in base64, or an empty string when the picture was reset.</param>
-    [JSImport("page.avatar", JsModule.NAME)]
-    public static partial void Avatar(string peer, string image);
+    /// <param name="text">The text.</param>
+    /// <returns>A task that completes when the browser took the text.</returns>
+    [JSImport("page.copy", JsModule.NAME)]
+    [return: JSMarshalAs<JSType.Promise<JSType.Void>>]
+    public static partial Task CopyAsync(string text);
 
     /// <summary>
-    /// Takes a question back: the guest left or the time ran out.
+    /// Reads the text on the clipboard; the browser asks the user the first time.
     /// </summary>
-    /// <param name="request">The number of the question.</param>
-    [JSImport("page.cancelAsk", JsModule.NAME)]
-    public static partial void CancelAsk(int request);
+    /// <returns>The text, or an empty string when the browser refused.</returns>
+    [JSImport("page.paste", JsModule.NAME)]
+    [return: JSMarshalAs<JSType.Promise<JSType.String>>]
+    public static partial Task<string> PasteAsync();
+
+    /// <summary>
+    /// Enters or leaves the full screen.
+    /// </summary>
+    [JSImport("page.toggleFullScreen", JsModule.NAME)]
+    public static partial void ToggleFullScreen();
+
+    /// <summary>
+    /// Keeps the display on during a session, or lets it sleep again.
+    /// </summary>
+    /// <param name="awake">Whether to keep the display on.</param>
+    [JSImport("page.keepAwake", JsModule.NAME)]
+    public static partial void KeepAwake(bool awake);
+
+    /// <summary>
+    /// Shows that the page could not start; there are no language packs before .NET runs, so the reason is a code.
+    /// </summary>
+    /// <param name="code">The reason.</param>
+    [JSImport("page.failed", JsModule.NAME)]
+    public static partial void Failed(string code);
+
+    /// <summary>
+    /// Takes the start screen of the page away: the canvas is drawn.
+    /// </summary>
+    [JSImport("page.ready", JsModule.NAME)]
+    public static partial void Ready();
 
     /// <summary>
     /// Answers a read of the service worker; the page copies the bytes before returning.
@@ -73,4 +104,18 @@ internal static partial class PageInterop
     /// <param name="request">The number of the read.</param>
     [JSImport("page.readFailed", JsModule.NAME)]
     public static partial void ReadFailed(int request);
+
+    /// <summary>
+    /// Plays a short sound.
+    /// </summary>
+    /// <param name="wave">The sound as a WAV file.</param>
+    [JSImport("page.playSound", JsModule.NAME)]
+    public static partial void PlaySound(byte[] wave);
+
+    /// <summary>
+    /// Tells whether the page is in full screen now.
+    /// </summary>
+    /// <returns><see langword="true"/> in full screen.</returns>
+    [JSImport("page.isFullScreen", JsModule.NAME)]
+    public static partial bool IsFullScreen();
 }

@@ -1,4 +1,3 @@
-using Golether.Browser.Interop;
 using Golether.Security.Admission;
 
 namespace Golether.Browser.Session;
@@ -14,20 +13,39 @@ internal sealed class BrowserAdmissionPrompt : IAdmissionPrompt
     private readonly Dictionary<int, TaskCompletionSource<bool>> _questions = [];
 
     /// <summary>
+    /// Guards <see cref="_questions"/>.
+    /// </summary>
+    private readonly Lock _gate = new();
+
+    /// <summary>
     /// The number of the last question.
     /// </summary>
     private int _last;
+
+    /// <summary>
+    /// Raised with a new question. May be raised on any thread.
+    /// </summary>
+    public event EventHandler<AdmissionQuestion>? Asked;
+
+    /// <summary>
+    /// Raised with the number of a question taken back: the guest left or the time ran out. May be raised on any thread.
+    /// </summary>
+    public event EventHandler<int>? Withdrawn;
 
     /// <inheritdoc />
     public async Task<bool> AskAsync(AdmissionRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var id = ++_last;
         var answer = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _questions[id] = answer;
-        PageInterop.Ask(id, request.DisplayName, request.VerificationCode.ToString());
+        int id;
+        lock (_gate)
+        {
+            id = ++_last;
+            _questions[id] = answer;
+        }
 
+        Asked?.Invoke(this, new AdmissionQuestion(id, request.DisplayName, request.VerificationCode.ToString()));
         try
         {
             using (cancellationToken.Register(() => answer.TrySetCanceled(cancellationToken)))
@@ -37,23 +55,32 @@ internal sealed class BrowserAdmissionPrompt : IAdmissionPrompt
         }
         finally
         {
-            if (_questions.Remove(id))
+            bool open;
+            lock (_gate)
             {
-                PageInterop.CancelAsk(id);
+                open = _questions.Remove(id);
+            }
+
+            if (open)
+            {
+                Withdrawn?.Invoke(this, id);
             }
         }
     }
 
     /// <summary>
-    /// Takes the answer of the host.
+    /// Answers a question.
     /// </summary>
     /// <param name="id">The number of the question.</param>
-    /// <param name="approve">Whether the guest is let in.</param>
+    /// <param name="approve">Whether to let the guest in.</param>
     public void Answer(int id, bool approve)
     {
-        if (_questions.Remove(id, out var answer))
+        TaskCompletionSource<bool>? answer;
+        lock (_gate)
         {
-            answer.TrySetResult(approve);
+            _questions.Remove(id, out answer);
         }
+
+        answer?.TrySetResult(approve);
     }
 }

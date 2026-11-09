@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Golether.Core.Networking;
 
 namespace Golether.Browser;
@@ -15,6 +16,26 @@ internal sealed record BrowserConfig(string SignalUrl, string StunUrl, PeerEndpo
     /// Gets the signalling as an address; a session hosted on this page names it in its invitations.
     /// </summary>
     public Uri Signal => new(SignalUrl);
+
+    /// <summary>
+    /// Reads the configuration from the JSON of <c>config.json</c> (<c>signal</c>, <c>stun</c>, <c>meet</c>).
+    /// </summary>
+    /// <param name="json">The JSON.</param>
+    /// <returns>The configuration.</returns>
+    /// <exception cref="FormatException">The file or a value is not valid.</exception>
+    public static BrowserConfig FromJson(string json)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            var root = document.RootElement;
+            return Parse(Read(root, "signal"), Read(root, "stun"), Read(root, "meet"));
+        }
+        catch (JsonException ex)
+        {
+            throw new FormatException("config.json is not valid JSON.", ex);
+        }
+    }
 
     /// <summary>
     /// Checks the values the page read and builds the configuration.
@@ -43,4 +64,16 @@ internal sealed record BrowserConfig(string SignalUrl, string StunUrl, PeerEndpo
 
         return new BrowserConfig(signalUrl, stunUrl, endpoint);
     }
+
+    /// <summary>
+    /// Reads a text value of the configuration.
+    /// </summary>
+    /// <param name="root">The object of the file.</param>
+    /// <param name="name">The name of the value.</param>
+    /// <returns>The value.</returns>
+    /// <exception cref="FormatException">The value is missing or not a text.</exception>
+    private static string Read(JsonElement root, string name)
+        => root.ValueKind == JsonValueKind.Object && root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString() ?? string.Empty
+            : throw new FormatException("config.json has no " + name + ".");
 }

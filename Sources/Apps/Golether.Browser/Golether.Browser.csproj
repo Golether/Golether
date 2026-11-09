@@ -1,14 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk.WebAssembly">
 
   <!--
-    Golether in a browser (a prototype): the sessions of the desktop application compiled to WebAssembly, on top of
-    WebRTC data channels instead of TCP, the <video> element instead of libmpv and a page instead of windows. The
+    Golether in a browser: the sessions of the applications compiled to WebAssembly, on top of WebRTC data channels
+    instead of TCP, and the screens of the desktop application drawn by Avalonia. The film plays in a <video> element
+    of the page (through avbridge, which opens MKV, AVI and the rest) placed under the canvas of Avalonia. The
     published wwwroot is a static site; the signalling goes through the rendezvous server (Signal section).
+    Building it needs the wasm-tools workload: Avalonia links the native Skia into the WebAssembly of .NET.
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <RootNamespace>Golether.Browser</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <!-- main.js imports _framework/dotnet.js by its plain name. -->
     <WasmFingerprintAssets>false</WasmFingerprintAssets>
     <!--
@@ -18,7 +21,14 @@
     -->
     <PublishTrimmed>true</PublishTrimmed>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+    <!-- The native SQLite of the data layer is not linked (see below) and never called, so its varargs do not matter. -->
+    <NoWarn>$(NoWarn);WASM0001</NoWarn>
   </PropertyGroup>
+
+  <!-- The texts of {loc:Loc} are bound by reflection, which the trimmer cannot see. -->
+  <ItemGroup>
+    <TrimmerRootDescriptor Include="Trimming.xml" />
+  </ItemGroup>
 
   <!-- The interop with the page exists only in a browser. -->
   <ItemGroup>
@@ -28,10 +38,39 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Browser" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
   </ItemGroup>
 
+  <!--
+    The look of the desktop application is used as it is, not copied: its theme, its logo and flags, and the panels
+    and the timeline its main window is laid out with. The files stay in Golether.UI; here they are only compiled
+    once more.
+  -->
   <ItemGroup>
+    <AvaloniaXaml Include="..\Golether.UI\Styles\Theme.axaml" Link="Styles\Theme.axaml" />
+    <AvaloniaResource Include="..\Golether.UI\Assets\golether-256.png" Link="Assets\golether-256.png" />
+    <AvaloniaResource Include="..\Golether.UI\Assets\golether-512.png" Link="Assets\golether-512.png" />
+    <AvaloniaResource Include="..\Golether.UI\Assets\Flags\*.png" Link="Assets\Flags\%(Filename)%(Extension)" />
+    <AvaloniaResource Include="Assets\Reactions\*.png" />
+    <Compile Include="..\Golether.UI\Controls\AspectPanel.cs" Link="Controls\Desktop\AspectPanel.cs" />
+    <Compile Include="..\Golether.UI\Controls\ChromeAutoHide.cs" Link="Controls\Desktop\ChromeAutoHide.cs" />
+    <Compile Include="..\Golether.UI\Controls\FallbackPanel.cs" Link="Controls\Desktop\FallbackPanel.cs" />
+    <Compile Include="..\Golether.UI\Controls\FractionRange.cs" Link="Controls\Desktop\FractionRange.cs" />
+    <Compile Include="..\Golether.UI\Controls\IndicatorLevelBrushConverter.cs" Link="Controls\Desktop\IndicatorLevelBrushConverter.cs" />
+    <Compile Include="..\Golether.UI\Controls\OverflowPanel.cs" Link="Controls\Desktop\OverflowPanel.cs" />
+    <Compile Include="..\Golether.UI\Controls\RangeBar.cs" Link="Controls\Desktop\RangeBar.cs" />
+    <Compile Include="..\Golether.UI\Controls\ShrinkPanel.cs" Link="Controls\Desktop\ShrinkPanel.cs" />
+    <Compile Include="..\Golether.UI\Controls\SlideReveal.cs" Link="Controls\Desktop\SlideReveal.cs" />
+    <Compile Include="..\Golether.UI\Controls\TimelineSlider.cs" Link="Controls\Desktop\TimelineSlider.cs" />
+    <Compile Include="..\Golether.UI\Enums\PointerZone.cs" Link="Enums\Desktop\PointerZone.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Golether.Client/Golether.Client.csproj" />
     <ProjectReference Include="../../Media/Golether.Media.Conference.Browser/Golether.Media.Conference.Browser.csproj" />
     <ProjectReference Include="../../Session/Golether.Session/Golether.Session.csproj" />
     <ProjectReference Include="../../Transports/Golether.Transports.WebRtc/Golether.Transports.WebRtc.csproj" />
@@ -39,9 +78,9 @@
 
   <!--
     The sessions reference the data layer, which brings the native SQLite for WebAssembly. A browser keeps no
-    database, and linking a native library would need the wasm-tools workload, so the library is left out.
+    database, so the library is not linked into the WebAssembly of .NET.
   -->
-  <Target Name="GoletherDropNativeSqlite" BeforeTargets="_CheckBrowserWorkloadNeededButNotAvailable">
+  <Target Name="GoletherDropNativeSqlite" BeforeTargets="_CheckBrowserWorkloadNeededButNotAvailable;_BrowserWasmWriteRspForLinking">
     <ItemGroup>
       <NativeFileReference Remove="@(NativeFileReference)" Condition="'%(Filename)' == 'e_sqlite3'" />
     </ItemGroup>

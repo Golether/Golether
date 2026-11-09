@@ -104,6 +104,39 @@ internal sealed class BrowserStreams : IMediaUriRegistry
     }
 
     /// <summary>
+    /// Tells how much of a published film is cached from a point of it on, and has the cache read ahead from there
+    /// while less than wanted is: the decoder of the page reads too little ahead for the cache to start on its own.
+    /// </summary>
+    /// <param name="pageUrl">The address the element plays.</param>
+    /// <param name="fraction">Where the film is, as a part of its size from 0 to 1.</param>
+    /// <param name="wanted">How much is wanted ahead, as a part of the size.</param>
+    /// <param name="ahead">How much is cached one piece after another from there, as a part of the size.</param>
+    /// <returns><see langword="true"/> when the film is published and read already, so its cache can tell.</returns>
+    public bool TryGetCachedAhead(string pageUrl, double fraction, double wanted, out double ahead)
+    {
+        ahead = 0;
+        if (!pageUrl.StartsWith(PAGE_PATH, StringComparison.Ordinal) ||
+            !int.TryParse(pageUrl.AsSpan(PAGE_PATH.Length), NumberStyles.None, CultureInfo.InvariantCulture, out var id) ||
+            !_streams.TryGetValue(id, out var published) ||
+            published.Opened is not MediaReadStream { Length: > 0 } stream)
+        {
+            return false;
+        }
+
+        var reader = stream.Reader;
+        var length = stream.Length;
+        var position = (long)(Math.Clamp(fraction, 0, 1) * length);
+        var bytes = reader.GetBufferedBytesAhead(position);
+        if (bytes < wanted * length)
+        {
+            reader.ReadAheadFrom(position);
+        }
+
+        ahead = (double)bytes / length;
+        return true;
+    }
+
+    /// <summary>
     /// Reads the number of a film from its address.
     /// </summary>
     /// <param name="uri">The address.</param>
@@ -148,6 +181,11 @@ internal sealed class BrowserStreams : IMediaUriRegistry
         /// Gets the stream, opening it on the first use.
         /// </summary>
         public Stream Stream => _stream ??= _factory();
+
+        /// <summary>
+        /// Gets the stream if it is open already, without opening it.
+        /// </summary>
+        public Stream? Opened => _stream;
 
         /// <summary>
         /// Closes the stream.

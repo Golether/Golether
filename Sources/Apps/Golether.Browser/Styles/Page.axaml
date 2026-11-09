@@ -1,0 +1,66 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:embedding="using:Avalonia.Controls.Embedding">
+  <!--
+    What a page needs on top of the theme of the desktop application. The film is a <video> of the page under the
+    canvas of Avalonia, so the root draws nothing at all: wherever no control paints, the film (or the page behind,
+    which has the colour of the background) shows through. The root of the default theme lays a white layer for the
+    windows that cannot be transparent, which would hide the film; it is hidden here. The colour is a transparent
+    black: the canvas mixes colours already multiplied by their opacity, and a transparent white would come out white.
+  -->
+  <Style Selector="embedding|EmbeddableControlRoot">
+    <Setter Property="Background" Value="#00000000" />
+    <Setter Property="TransparencyBackgroundFallback" Value="#00000000" />
+    <Setter Property="Foreground" Value="{StaticResource GoletherText}" />
+  </Style>
+  <Style Selector="embedding|EmbeddableControlRoot /template/ Border#PART_TransparencyFallback">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+
+  <!-- A line of the event feed or of a notice: the page has no title bar, so the notices sit under the top bar. -->
+  <Style Selector="Border.notice">
+    <Setter Property="Background" Value="{StaticResource GoletherPanel2}" />
+    <Setter Property="BorderBrush" Value="{StaticResource GoletherLine}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="12,8" />
+  </Style>
+
+  <!-- A dialog of the page: a card over a dimmed page, as the dialogs of the desktop are windows over the window. -->
+  <Style Selector="Border.dialogVeil">
+    <Setter Property="Background" Value="#B30A0F11" />
+  </Style>
+  <Style Selector="Border.dialog">
+    <Setter Property="Background" Value="{StaticResource GoletherPanel}" />
+    <Setter Property="BorderBrush" Value="{StaticResource GoletherLine}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Padding" Value="22,18" />
+    <Setter Property="MaxWidth" Value="520" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <!--
+    A feature of the application (the pen) stays on the bar of a page but is plainly out of reach: dimmed, with the
+    hint where to find it.
+  -->
+  <Style Selector="ToggleButton.ghost:disabled">
+    <Setter Property="Opacity" Value="0.35" />
+  </Style>
+
+  <!--
+    A flyout whose content is a fixed row always fits: no scroll bar, even where a browser rounds the size of the row
+    a pixel up (Firefox did).
+  -->
+  <Style Selector="FlyoutPresenter.fits">
+    <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+    <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled" />
+  </Style>
+
+  <!-- A reaction is a picture, not a glyph: the canvas of a page has no colour emoji font. -->
+  <Style Selector="Image.reaction">
+    <Setter Property="Width" Value="30" />
+    <Setter Property="Height" Value="30" />
+  </Style>
+</Styles>

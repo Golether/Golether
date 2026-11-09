@@ -70,6 +70,19 @@ application hosts in the "Automatically" mode take guests from a browser, and th
 `watch/` page of the browser version. Only `wss://` with a valid certificate is accepted; without the field the
 applications work as before.
 
+## The browser version
+
+The same workflow builds `Sources/Apps/Golether.Browser` and publishes it at <https://golether.github.io/watch/>,
+which is not a folder here. Its `config.json` is written by the workflow from the repository variable
+`BROWSER_SERVER`: **Settings → Secrets and variables → Actions → Variables → New repository variable**, the host name
+of the rendezvous server alone (`meet.example.org`, no scheme, no port). The page then signals at
+`wss://<host>:47943/signal` and uses the rendezvous and STUN at `<host>:47900`, the defaults of the server. Without
+the variable the site is published without `watch/`.
+
+The page opens with any server, but sessions start only when that server runs a version with the `Signal` section
+enabled, behind a certificate browsers trust, with `https://golether.github.io` among its `AllowedOrigins` (the
+administrator's guide of the server, "Browsers (prototype)").
+
 ## Rules of the page
 
 - Nothing is loaded from other servers but one thing: the main page counts visits with Umami Cloud (no cookies), its

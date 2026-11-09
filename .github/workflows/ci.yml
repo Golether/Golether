@@ -41,6 +41,9 @@ jobs:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj') }}
           restore-keys: nuget-${{ runner.os }}-
+      # The browser version links the native Skia of Avalonia into the WebAssembly of .NET, which needs the workload.
+      - name: Install wasm-tools
+        run: dotnet workload install wasm-tools
       - name: Build
         run: dotnet build Golether.slnx -c Release
       - name: Test

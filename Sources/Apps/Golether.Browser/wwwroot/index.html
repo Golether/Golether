@@ -5,138 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!--
     Nothing inline runs and nothing is loaded from other servers. 'wasm-unsafe-eval' lets the browser compile the
-    WebAssembly of .NET; connect-src allows the WebSocket of the rendezvous server named in config.json; the film is
-    played from blob: (the host) or from the service worker of this site (a guest).
+    WebAssembly of .NET, of Avalonia and of the film decoders; connect-src allows the WebSocket of the rendezvous server
+    named in config.json; the film comes from the chosen file (blob:) or from the service worker of this site; the
+    film element and Avalonia style themselves from script, and the decoders run in workers of this site.
   -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' ws: wss:; media-src 'self' blob:; img-src 'self' blob:; style-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' blob: ws: wss:; media-src 'self' blob:; img-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
   <title>Golether</title>
   <link rel="icon" href="golether.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/page.css">
   <script type="module" src="js/main.js"></script>
 </head>
 <body>
-  <header class="bar">
-    <div class="brand"><img src="golether.svg" alt="" width="28" height="28"> Golether <span class="tag" data-t="Browser.Prototype"></span></div>
-    <select id="language" data-t-title="Main.Language.Name"></select>
-  </header>
-
-  <main>
-    <section id="loading" class="screen center">
-      <div class="spinner"></div>
-    </section>
-
-    <section id="home" class="screen" hidden>
-      <div class="hero">
-        <h1 data-t="Main.Hero.Title"></h1>
-        <p data-t="Browser.Hero.Text"></p>
-      </div>
-
-      <label class="field">
-        <span data-t="Main.YourName"></span>
-        <input id="name" maxlength="64" autocomplete="nickname">
-      </label>
-
-      <div class="cards">
-        <article class="card" id="join-card" hidden>
-          <h2 data-t="Main.Link.Join.Title"></h2>
-          <p id="join-text" class="pre"></p>
-          <button id="join" class="btn accent" data-t="Main.Link.Join.Accept"></button>
-        </article>
-
-        <article class="card">
-          <h2 data-t="Main.Host.Title"></h2>
-          <p data-t="Browser.Host.Text"></p>
-          <label class="field">
-            <span data-t="Main.Host.SessionName"></span>
-            <input id="session-name" maxlength="64">
-          </label>
-          <input id="file" type="file" accept="video/*,.mkv,.mp4,.m4v,.webm,.mov" hidden>
-          <div class="row">
-            <button id="choose" class="btn" data-t="Main.Caption.ChooseFile"></button>
-            <span id="file-name" class="muted"></span>
-          </div>
-          <button id="host" class="btn accent" data-t="Main.Host.Start" disabled></button>
-        </article>
-      </div>
-
-      <p id="home-error" class="error" hidden></p>
-      <p class="note" data-t="Browser.Note"></p>
-    </section>
-
-    <section id="session" class="screen split" hidden>
-      <div id="stage" class="stage">
-        <video id="video" playsinline></video>
-        <canvas id="strokes" class="strokes"></canvas>
-        <div id="floating" class="floating"></div>
-        <div id="placeholder" class="placeholder"></div>
-        <button id="unblock" class="btn accent overlay" data-t="Main.Play.Play" hidden></button>
-        <div class="controls">
-          <button id="play" class="btn icon" disabled>▶</button>
-          <input id="timeline" type="range" min="0" max="1000" value="0" disabled>
-          <span id="time" class="time">0:00 / 0:00</span>
-          <button id="microphone" class="btn icon device" aria-pressed="true" disabled>🎙</button>
-          <button id="camera" class="btn icon device" aria-pressed="true" disabled>📷</button>
-          <select id="audio-track" class="track" data-t-title="Main.Tracks.Audio"></select>
-          <button id="subtitles" class="btn icon locked" data-locked="Main.Tracks.Subtitles">CC</button>
-          <button id="pen" class="btn icon locked" data-locked="Main.Pen.Name">✎</button>
-          <button id="avatar" class="btn icon locked" data-locked="Main.Avatar.Choose">☺</button>
-          <button id="fullscreen" class="btn icon" data-t-title="Main.FullScreen.Name">⛶</button>
-        </div>
-        <div class="statusline">
-          <span id="status"></span>
-          <button id="start-now" class="btn small" data-t="Main.StartNow" hidden></button>
-        </div>
-      </div>
-
-      <aside class="panel">
-        <div id="invite-box" class="box" hidden>
-          <h3 data-t="Invite.Dialog.LinkLabel"></h3>
-          <input id="invite-link" readonly>
-          <div class="row">
-            <button id="copy" class="btn accent" data-t="Invite.Dialog.CopyLink"></button>
-            <button id="renew" class="btn" data-t="Invite.Dialog.NewLink"></button>
-          </div>
-          <p id="invite-note" class="muted"></p>
-        </div>
-
-        <div id="approval" class="box" hidden>
-          <h3 data-t="Main.Approval.Title"></h3>
-          <p data-t="Main.Approval.Text"></p>
-          <p id="my-code" class="code"></p>
-        </div>
-
-        <p id="keep-open" class="box warn" data-t="Browser.KeepOpen" hidden></p>
-        <div id="tiles" class="tiles"></div>
-
-        <h3 id="participants-header"></h3>
-        <ul id="participants" class="list"></ul>
-
-        <h3 data-t="Main.Chat.Name"></h3>
-        <ul id="chat" class="list chat"></ul>
-        <div id="reactions" class="row reactions"></div>
-        <form id="chat-form" class="row chat-form">
-          <input id="chat-input" maxlength="100" autocomplete="off" data-t-placeholder="Main.Chat.Placeholder">
-          <button class="btn small" data-t="Main.Chat.SendName"></button>
-        </form>
-
-        <h3 data-t="Main.Events.Header"></h3>
-        <ul id="events" class="list events"></ul>
-
-        <button id="leave" class="btn danger"></button>
-      </aside>
-    </section>
-  </main>
-
-  <dialog id="admission">
-    <h2 id="admission-title"></h2>
-    <p data-t="Admission.NewDevice"></p>
-    <p class="label" data-t="Admission.CodeLabel"></p>
-    <p id="admission-code" class="code"></p>
-    <div class="row end">
-      <button id="reject" class="btn" data-t="Admission.Reject"></button>
-      <button id="approve" class="btn accent" data-t="Admission.Approve"></button>
-    </div>
-  </dialog>
+  <!-- Avalonia draws the screens into this element; the film element lies under its canvas. -->
+  <div id="out"></div>
+  <!-- Shown while .NET starts; a failure before the language packs shows a code. -->
+  <div id="loading"><img src="golether.svg" alt="" width="128" height="128"><div class="spinner"></div><p id="failure"></p></div>
 </body>
 </html>

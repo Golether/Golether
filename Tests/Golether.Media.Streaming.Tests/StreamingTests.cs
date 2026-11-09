@@ -425,6 +425,33 @@ public sealed class StreamingTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// A player that stops reading while paused (the decoder of a browser page) never goes on from one piece to the
+    /// next; asked to, the reader reads ahead from its position all the same.
+    /// </summary>
+    /// <returns>A task that completes when the test is done.</returns>
+    [Fact]
+    public async Task ReadAheadFrom_LoadsAheadWithoutReads()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var media = await DescribeAsync();
+        var source = new LocalChunkSource(media, MediaFiles.OpenRead(_path));
+        await using var reader = new CachedMediaReader(source, new ChunkCache());
+
+        await reader.ReadAsync(0, new byte[16], token);
+        await Task.Delay(200, token);
+        Assert.Equal(CHUNK_SIZE, reader.GetBufferedBytesAhead(0));
+
+        reader.ReadAheadFrom(0);
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        while (reader.GetBufferedBytesAhead(0) < _content.Length && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(20, token);
+        }
+
+        Assert.Equal(_content.Length, reader.GetBufferedBytesAhead(0));
+    }
+
+    /// <summary>
     /// The cache evicts the least recently used chunks above its capacity.
     /// </summary>
     [Fact]

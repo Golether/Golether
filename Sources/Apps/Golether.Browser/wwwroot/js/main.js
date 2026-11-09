@@ -1,18 +1,14 @@
-// Starts Golether in a browser: reads the servers, takes the service worker that streams the film to a guest,
-// starts .NET, connects the WebRTC modules to it and hands the page to app.js.
+// Starts Golether in a browser: reads the servers, takes the service worker that streams the film to a guest, starts
+// .NET, gives it the modules of the page and lets it draw the screens with Avalonia.
 
 import { dotnet } from '../_framework/dotnet.js';
-import * as app from './app.js';
 import * as conference from './conference.js';
 import * as files from './files.js';
 import * as keys from './keys.js';
+import * as page from './page.js';
 import * as player from './player.js';
 import * as rtc from './rtc.js';
-
-/** Shows a failure of the start; there are no language packs yet, so the reason is a code. */
-function failed(code) {
-  document.getElementById('loading').dataset.failed = code;
-}
+import * as stage from './stage.js';
 
 /** Takes the service worker and waits until it controls the page. */
 async function takeServiceWorker() {
@@ -30,18 +26,19 @@ try {
     throw new Error('NoWebRtc');
   }
 
-  const config = await (await fetch('./config.json', { cache: 'no-store' })).json();
+  page.setConfig(await (await fetch('./config.json', { cache: 'no-store' })).text());
   await takeServiceWorker();
 
   const runtime = await dotnet.create();
-  runtime.setModuleImports('golether', { rtc, conference, player, files, keys, page: app.page });
+  runtime.setModuleImports('golether', { rtc, conference, player, files, keys, page, stage });
   const exports = await runtime.getAssemblyExports(runtime.getConfig().mainAssemblyName);
-  rtc.bind(exports.Golether.Browser.Interop.RtcCallbacks);
-  conference.bind(exports.Golether.Browser.Interop.ConferenceCallbacks);
+  const api = exports.Golether.Browser.Interop;
+  rtc.bind(api.RtcCallbacks);
+  conference.bind(api.ConferenceCallbacks);
+  player.bind(api.PlayerCallbacks);
+  page.bind(api.StreamCallbacks, api.PageCallbacks);
   await runtime.runMain();
-
-  await app.start(exports, config);
 } catch (e) {
   console.error(e);
-  failed(e?.message ?? 'Start');
+  page.failed(e?.message ?? 'Start');
 }

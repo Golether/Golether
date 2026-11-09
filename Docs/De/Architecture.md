@@ -62,7 +62,7 @@ Sources/
   Apps/Golether.Client                     gemeinsame Client-Schicht: Dienste, View-Models und Steuerelemente ohne Fenster, die Farben des Designs, Bezahlfunktionen
   Apps/Golether.Mobile                     die Bildschirme des mobilen Clients: Avalonia, eine Ansicht statt Fenster, eigenes Design und eigene Symbole
   Apps/Golether.Mobile.Android             das Android-Paket: Activity, Vordergrunddienst der Sitzung, native Komponenten
-  Apps/Golether.Browser                    die Browserversion (ein Prototyp): die Sitzungen in WebAssembly über WebRTC, eine Seite statt Fenstern
+  Apps/Golether.Browser                    die Browserversion (ein Prototyp): die Sitzungen in WebAssembly über WebRTC, die Bildschirme der Desktop-Anwendung, gezeichnet von Avalonia
   Apps/Golether.UI                         Avalonia: Fenster, Dialoge, Zusammensetzung der Abhängigkeiten
   Apps/Golether.Web.Server                 der Vermittlungsserver (eine eigene Anwendung, siehe RendezvousServer.md)
   Apps/Golether.Web.Server.Contracts       was Server und Monitor teilen: Einstellungen, Dienstnamen, Zustand, Journal
@@ -502,7 +502,17 @@ WebAssembly übersetzt, mit den Teilen des Browsers darunter. Nichts wird instal
 - **Datei und Player.** Die Datei des Gastgebers wird an Ort und Stelle gelesen (`Blob.slice`), über `OpenedFiles` wie
   auf dem Telefon, und in denselben Stücken von 256 KiB mit SHA-256 ausgeliefert. Das `<video>`-Element eines Gastes
   fragt den Service Worker der Seite nach `stream/<n>`; der Worker nimmt die Bytes aus dem Cache der Sitzung: das
-  Gegenstück zum Protokoll `golether://` von libmpv. Ein Browser spielt MP4 und WebM ab (H.264, VP9, AV1, AAC, Opus).
+  Gegenstück zum Protokoll `golether://` von libmpv. Das Filmelement ist das `<avbridge-video>` von avbridge
+  (`Vendor/README.md` des Projekts): MP4 und WebM spielt der Browser selbst ab, MKV wird für ihn umverpackt, und AVI
+  sowie Ton, den Browser nicht dekodieren (AC-3, DTS), dekodiert libav.js in WebAssembly. Die Tonspur wählt jede Seite
+  für sich, wie in den Anwendungen; eine Datei, deren Video nicht dekodiert werden kann, wird mit einer Meldung
+  abgelehnt, die auf die Anwendung verweist.
+- **Bildschirme.** Die Seite zeichnet Avalonia (`Avalonia.Browser`) wie das Hauptfenster der Desktop-Anwendung: Thema,
+  Leisten und Zeitleiste sind die Dateien von `Golether.UI`, ein zweites Mal kompiliert, und Chat, Striche, Tonspuren,
+  Lautstärke, Kacheln und die Sprachen mit ihren Flaggen sind die View-Modelle von `Golether.Client`. Das Filmelement
+  liegt unter der Leinwand von Avalonia, die überall durchsichtig bleibt, wo kein Steuerelement malt: Knöpfe, Striche
+  und Reaktionen werden über den Film gezeichnet, und ein Klick auf den Film startet oder pausiert ihn. Die Bilder der
+  Kameras werden etwa zwölfmal pro Sekunde in die Kacheln kopiert, so wie der Desktop seine Bilder zeichnet.
 - **Kameras, Stimme und Austausch.** `Golether.Media.Conference.Browser` ist das `IConferenceMedia` eines Browsers:
   Die Entscheidungen (wer anbietet, welche Signale angenommen werden, wann eine gescheiterte Verbindung neu aufgebaut
   wird, der Sparstrom, wer spricht) trifft .NET nach den Regeln der Anwendungen (`SignalRules`, `ConnectionRules`,
@@ -523,13 +533,17 @@ WebAssembly übersetzt, mit den Teilen des Browsers darunter. Nichts wird instal
   Browser-Gastgeber bei, und zwei Anwendungen, die kein anderer Weg verbunden hat, versuchen zuletzt diesen. Die Adresse
   der Signalisierung kommt aus `config.json` der Projektseite (`signal`), nur im Modus „Automatisch“: Mit einem
   privaten Treffpunkt-Server hat die Einladung keinen Browser-Weg, und die Seite sagt das.
-- **Grenzen des Prototyps.** Die Seite hat den Chat und die Reaktionen und zeigt die Stiftstriche und die Avatare der
-  anderen; Zeichnen, ein eigener Avatar und Untertitel sind Funktionen der Anwendung, ihre Knöpfe bleiben gesperrt auf
-  der Seite, mit dem Hinweis „Nutzen Sie für diese Funktion die Anwendung“. Ein Browser wechselt die Tonspuren einer
-  Datei nur, wo er es kann (Safari). Kein Zeigen von Ordnern; ein Tab hält eine Sitzung, und der Tab des Gastgebers
-  muss offen bleiben. Der Download ist komprimiert etwa 2,7 MB groß: Das JSON der Sitzungen, der Einladungen und der
-  Sprachpakete entsteht beim Bauen, daher wird der Build gekürzt. Der Code der Seite kommt bei jedem Besuch von der
-  Website, also gehört die Website selbst zum Vertrauen.
+- **Grenzen des Prototyps.** Zeichnen, ein eigener Avatar und Untertitel sind Funktionen der Anwendung: Der Stift bleibt
+  gesperrt auf der Player-Leiste, mit dem Hinweis „Nutzen Sie für diese Funktion die Anwendung“, die Tonspuren sagen,
+  dass Untertitel nicht verfügbar sind, und einen eigenen Avatar gibt es nicht (die Avatare der anderen werden gezeigt).
+  Kein Zeigen von Ordnern und kein „Weiter, wo es aufgehört hat“; ein Tab hält eine Sitzung, und der Tab des Gastgebers
+  muss offen bleiben. Die Seite ist komprimiert etwa 6,5 MB groß (.NET, Avalonia mit Skia, die Sitzungen; das JSON
+  entsteht beim Bauen, daher wird der Build gekürzt); avbridge kommt mit dem ersten Film, libav.js nur mit einer Datei,
+  die es braucht. Der Code der Seite kommt bei jedem Besuch von der Website, also gehört die Website selbst zum
+  Vertrauen.
+
+Zum Bauen der Seite braucht .NET den Workload `wasm-tools` (`dotnet workload install wasm-tools`): Avalonia bindet Skia
+in das WebAssembly von .NET ein.
 
 Ein Versuch auf einem Computer: der Server mit eingeschalteter Signalisierung, die veröffentlichte Seite auf
 `http://localhost:47950` (die Adressen der Server stehen in `wwwroot/config.json`):

@@ -1,6 +1,6 @@
-using Golether.Browser.Interop;
 using Golether.Browser.Media;
 using Golether.Browser.Transport;
+using Golether.Client.Services;
 using Golether.Core.Data.Enums;
 using Golether.Core.Identity;
 using Golether.Core.Networking;
@@ -17,10 +17,9 @@ namespace Golether.Browser.Session;
 
 /// <summary>
 /// The session of the page: the same <see cref="HostSession"/> or <see cref="ParticipantSession"/> as on the
-/// desktop, put together with the pieces of the browser (WebRTC, the cameras, the <c>&lt;video&gt;</c> element, the
-/// chosen file).
+/// desktop, put together with the pieces of the browser (WebRTC, the cameras, the film element, the chosen file).
 /// </summary>
-internal sealed class BrowserSession : IAsyncDisposable
+internal sealed class BrowserSession : ISessionMessages, IAsyncDisposable
 {
     /// <summary>
     /// How long an invitation of the page lets guests in.
@@ -54,6 +53,11 @@ internal sealed class BrowserSession : IAsyncDisposable
     private readonly HashSet<PeerId> _speaking = [];
 
     /// <summary>
+    /// Guards <see cref="_speaking"/>: the levels come from the conference.
+    /// </summary>
+    private readonly Lock _speakingGate = new();
+
+    /// <summary>
     /// The invitation handed out, as the part of the link after the prefix.
     /// </summary>
     private string? _invite;
@@ -73,11 +77,14 @@ internal sealed class BrowserSession : IAsyncDisposable
         _conference.MuteChanged += OnMuteChanged;
         _conference.CameraFailed += OnCameraFailed;
         _conference.MicrophoneFailed += OnMicrophoneFailed;
+
         if (host is not null)
         {
             host.ChatReceived += OnChat;
             host.DrawReceived += OnStroke;
             host.AvatarReceived += OnAvatar;
+            host.Changed += OnChanged;
+            host.EventRaised += OnEvent;
         }
 
         if (participant is not null)
@@ -85,27 +92,46 @@ internal sealed class BrowserSession : IAsyncDisposable
             participant.ChatReceived += OnChat;
             participant.DrawReceived += OnStroke;
             participant.AvatarReceived += OnAvatar;
-        }
-
-        EventHandler changed = (_, _) => PageInterop.Changed();
-        EventHandler<SessionEvent> raised = (_, e) => PageInterop.Event(e.Text);
-        if (host is not null)
-        {
-            host.Changed += changed;
-            host.EventRaised += raised;
-        }
-
-        if (participant is not null)
-        {
-            participant.Changed += changed;
-            participant.EventRaised += raised;
+            participant.Changed += OnChanged;
+            participant.EventRaised += OnEvent;
         }
     }
+
+    /// <summary>
+    /// Raised when anything of the session changed; the snapshot tells what. May be raised on any thread.
+    /// </summary>
+    public event EventHandler? Changed;
+
+    /// <summary>
+    /// Raised with a line for the event feed. May be raised on any thread.
+    /// </summary>
+    public event EventHandler<SessionEvent>? EventRaised;
+
+    /// <inheritdoc />
+    public event EventHandler<ChatEntry>? ChatReceived;
+
+    /// <inheritdoc />
+    public event EventHandler<StrokeUpdate>? DrawReceived;
+
+    /// <summary>
+    /// Raised when a participant showed or reset its avatar. May be raised on any thread.
+    /// </summary>
+    public event EventHandler<AvatarUpdate>? AvatarReceived;
 
     /// <summary>
     /// Gets a value indicating whether this page hosts the session.
     /// </summary>
     public bool IsHost => _host is not null;
+
+    /// <summary>
+    /// Gets a value indicating whether the microphone of this page is off.
+    /// </summary>
+    public bool MicrophoneMuted => _conference.MicrophoneMuted;
+
+    /// <summary>
+    /// Gets a value indicating whether the camera of this page is off.
+    /// </summary>
+    public bool CameraOff => _conference.CameraOff;
 
     /// <summary>
     /// Creates a session on this page: takes a room on the rendezvous server and starts accepting guests.
@@ -185,9 +211,10 @@ internal sealed class BrowserSession : IAsyncDisposable
     /// Joins the session of an invitation; completes when the host let this page in.
     /// </summary>
     /// <param name="invite">The invitation.</param>
+    /// <param name="cancellationToken">Cancels the wait for the host.</param>
     /// <returns>A task that fails with the reason when the session was not joined.</returns>
-    public Task JoinAsync(Invite invite)
-        => (_participant ?? throw new InvalidOperationException("This page hosts the session.")).JoinAsync(invite, CancellationToken.None);
+    public Task JoinAsync(Invite invite, CancellationToken cancellationToken)
+        => (_participant ?? throw new InvalidOperationException("This page hosts the session.")).JoinAsync(invite, cancellationToken);
 
     /// <summary>
     /// Gives the invitation of the session, making it on the first call.
@@ -205,48 +232,74 @@ internal sealed class BrowserSession : IAsyncDisposable
     }
 
     /// <summary>
-    /// Reads the state of the session for the page.
+    /// Takes a snapshot of the session.
     /// </summary>
-    /// <returns>The snapshot as JSON.</returns>
-    public string Snapshot() => SnapshotJson.Write(_host?.GetSnapshot() ?? _participant!.GetSnapshot(), _conference, _speaking);
+    /// <returns>The snapshot.</returns>
+    public SessionSnapshot GetSnapshot() => _host?.GetSnapshot() ?? _participant!.GetSnapshot();
 
     /// <summary>
-    /// Switches the microphone and the camera of this page on or off.
+    /// Tells whether a participant speaks now.
     /// </summary>
-    /// <param name="microphone">Whether the microphone should be on.</param>
-    /// <param name="camera">Whether the camera should be on.</param>
+    /// <param name="peer">The participant, or <see langword="default"/> for this device.</param>
+    /// <returns><see langword="true"/> while the voice is heard.</returns>
+    public bool IsSpeaking(PeerId peer)
+    {
+        lock (_speakingGate)
+        {
+            return _speaking.Contains(peer);
+        }
+    }
+
+    /// <summary>
+    /// Switches the microphone and the camera of this page.
+    /// </summary>
+    /// <param name="microphone">Whether the microphone is on.</param>
+    /// <param name="camera">Whether the camera is on.</param>
     public void SetDevices(bool microphone, bool camera) => _conference.SetMuted(!microphone, !camera);
 
     /// <summary>
-    /// Sends a chat message or a reaction to everybody.
+    /// Sets how loud a participant is heard on this page.
     /// </summary>
-    /// <param name="kind">Text or reaction.</param>
-    /// <param name="text">The text, or the reaction.</param>
-    /// <returns>A task that completes when the message is sent.</returns>
-    public Task SendChatAsync(ChatKind kind, string text)
-        => _host?.SendChatAsync(kind, text) ?? _participant!.SendChatAsync(kind, text, CancellationToken.None);
+    /// <param name="peer">The participant.</param>
+    /// <param name="percent">The volume, 0–100.</param>
+    public void SetVoiceVolume(PeerId peer, double percent) => _conference.SetVoiceVolume(peer, Math.Clamp(percent, 0, 100) / 100);
+
+    /// <inheritdoc />
+    public Task SendChatAsync(ChatKind kind, string text, CancellationToken cancellationToken)
+        => _host?.SendChatAsync(kind, text) ?? _participant!.SendChatAsync(kind, text, cancellationToken);
+
+    /// <inheritdoc />
+    public Task SendDrawAsync(string strokeId, StrokePhase phase, IReadOnlyList<StrokePoint> points, CancellationToken cancellationToken)
+        => _host?.SendDrawAsync(strokeId, phase, points) ?? _participant!.SendDrawAsync(strokeId, phase, points, cancellationToken);
 
     /// <summary>
-    /// Switches the microphone or the camera of a guest off; only the host can.
+    /// Switches devices of a guest off (host).
     /// </summary>
     /// <param name="peer">The guest.</param>
     /// <param name="microphone">Whether to switch the microphone off.</param>
     /// <param name="camera">Whether to switch the camera off.</param>
-    /// <returns>A task that completes when the request is sent.</returns>
+    /// <returns>A task that completes when the guest was told.</returns>
     public Task SwitchOffAsync(PeerId peer, bool microphone, bool camera) => Host.SwitchOffParticipantDevicesAsync(peer, microphone, camera);
 
     /// <summary>
-    /// Sends an intention of the user to the session.
+    /// Removes a guest from the session (host).
+    /// </summary>
+    /// <param name="peer">The guest.</param>
+    /// <returns>A task that completes when the guest was removed.</returns>
+    public Task RemoveAsync(PeerId peer) => Host.RemoveParticipantAsync(peer);
+
+    /// <summary>
+    /// Sends an intention about the playback: the host decides, a guest asks the host.
     /// </summary>
     /// <param name="request">The intention.</param>
-    /// <returns>A task that completes when the intention was passed on.</returns>
+    /// <returns>A task that completes when the intention was sent.</returns>
     public Task RequestAsync(PlaybackRequest request)
         => _host?.RequestAsync(request, CancellationToken.None) ?? _participant!.RequestAsync(request, CancellationToken.None);
 
     /// <summary>
-    /// Leaves the session; a host ends it for everybody.
+    /// Leaves the session and stops the cameras.
     /// </summary>
-    /// <returns>A task that completes when the session is closed.</returns>
+    /// <returns>A task that completes when the session is over.</returns>
     public async ValueTask DisposeAsync()
     {
         _conference.SpeakingChanged -= OnSpeakingChanged;
@@ -268,66 +321,84 @@ internal sealed class BrowserSession : IAsyncDisposable
     }
 
     /// <summary>
-    /// Keeps who is speaking and redraws the page.
+    /// Remembers who speaks.
     /// </summary>
-    /// <param name="sender">The cameras.</param>
+    /// <param name="sender">The conference.</param>
     /// <param name="change">The change.</param>
     private void OnSpeakingChanged(object? sender, SpeakingChange change)
     {
-        if (change.IsSpeaking)
+        lock (_speakingGate)
         {
-            _speaking.Add(change.PeerId);
-        }
-        else
-        {
-            _speaking.Remove(change.PeerId);
+            if (change.IsSpeaking)
+            {
+                _speaking.Add(change.PeerId);
+            }
+            else
+            {
+                _speaking.Remove(change.PeerId);
+            }
         }
 
-        PageInterop.Changed();
+        OnChanged(this, EventArgs.Empty);
     }
 
     /// <summary>
-    /// Shows a chat message or a reaction.
+    /// Passes on a change of the session.
+    /// </summary>
+    /// <param name="sender">The session.</param>
+    /// <param name="e">Nothing.</param>
+    private void OnChanged(object? sender, EventArgs e) => Changed?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>
+    /// Passes on a line for the event feed.
+    /// </summary>
+    /// <param name="sender">The session.</param>
+    /// <param name="e">The line.</param>
+    private void OnEvent(object? sender, SessionEvent e) => EventRaised?.Invoke(this, e);
+
+    /// <summary>
+    /// Passes on a chat message or a reaction.
     /// </summary>
     /// <param name="sender">The session.</param>
     /// <param name="entry">The message.</param>
-    private void OnChat(object? sender, ChatEntry entry) => PageInterop.Chat(PageEventsJson.Chat(entry));
+    private void OnChat(object? sender, ChatEntry entry) => ChatReceived?.Invoke(this, entry);
 
     /// <summary>
-    /// Draws a part of a pen stroke.
+    /// Passes on a part of a pen stroke.
     /// </summary>
     /// <param name="sender">The session.</param>
     /// <param name="update">The part.</param>
-    private void OnStroke(object? sender, StrokeUpdate update) => PageInterop.Stroke(PageEventsJson.Stroke(update));
+    private void OnStroke(object? sender, StrokeUpdate update) => DrawReceived?.Invoke(this, update);
 
     /// <summary>
-    /// Shows the picture a participant chose.
+    /// Passes on the avatar of a participant.
     /// </summary>
     /// <param name="sender">The session.</param>
-    /// <param name="update">The picture.</param>
-    private void OnAvatar(object? sender, AvatarUpdate update)
-        => PageInterop.Avatar(update.IsLocal ? string.Empty : update.Peer.Value, update.Image is { Length: > 0 } image ? Convert.ToBase64String(image) : string.Empty);
+    /// <param name="update">The avatar.</param>
+    private void OnAvatar(object? sender, AvatarUpdate update) => AvatarReceived?.Invoke(this, update);
 
     /// <summary>
-    /// Redraws the buttons of the devices.
+    /// Shows a switched device.
     /// </summary>
-    /// <param name="sender">The cameras.</param>
+    /// <param name="sender">The conference.</param>
     /// <param name="e">Nothing.</param>
-    private void OnMuteChanged(object? sender, EventArgs e) => PageInterop.Changed();
+    private void OnMuteChanged(object? sender, EventArgs e) => OnChanged(this, EventArgs.Empty);
 
     /// <summary>
-    /// Tells the user that the camera does not work.
+    /// Tells that the camera does not work.
     /// </summary>
-    /// <param name="sender">The cameras.</param>
+    /// <param name="sender">The conference.</param>
     /// <param name="e">Nothing.</param>
-    private void OnCameraFailed(object? sender, EventArgs e) => PageInterop.Event(Texts.Get("Browser.Camera.Failed"));
+    private void OnCameraFailed(object? sender, EventArgs e)
+        => EventRaised?.Invoke(this, new SessionEvent(TimeProvider.System.GetLocalNow(), null, Texts.Get("Browser.Camera.Failed")));
 
     /// <summary>
-    /// Tells the user that the microphone does not work.
+    /// Tells that the microphone does not work.
     /// </summary>
-    /// <param name="sender">The cameras.</param>
+    /// <param name="sender">The conference.</param>
     /// <param name="e">Nothing.</param>
-    private void OnMicrophoneFailed(object? sender, EventArgs e) => PageInterop.Event(Texts.Get("Browser.Microphone.Failed"));
+    private void OnMicrophoneFailed(object? sender, EventArgs e)
+        => EventRaised?.Invoke(this, new SessionEvent(TimeProvider.System.GetLocalNow(), null, Texts.Get("Browser.Microphone.Failed")));
 
     /// <summary>
     /// Gets the hosted session.

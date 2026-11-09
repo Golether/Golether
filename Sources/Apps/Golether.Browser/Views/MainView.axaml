@@ -1,0 +1,691 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:Golether.Client.Localization"
+             xmlns:vm="using:Golether.Browser.ViewModels"
+             xmlns:client="using:Golether.Client.ViewModels"
+             xmlns:clientControls="using:Golether.Client.Controls"
+             xmlns:desktop="using:Golether.UI.Controls"
+             xmlns:controls="using:Golether.Browser.Controls"
+             xmlns:enums="using:Golether.Browser.Enums"
+             xmlns:protocol="using:Golether.Sync.Protocol"
+             x:Class="Golether.Browser.Views.MainView"
+             x:DataType="vm:MainViewModel">
+  <!--
+    The main window of the desktop application in a page: the top bar, the start screen or the session with the video,
+    the player bar under it and the participants on the right. The video is a <video> of the page under this canvas, so
+    nothing paints the area of the film: the strokes, the reactions and the buttons lie over the picture.
+  -->
+  <Panel>
+    <DockPanel>
+      <!-- Top bar -->
+      <Decorator x:Name="TopBarSlot" DockPanel.Dock="Top">
+      <desktop:SlideReveal x:Name="TopBar" SlideUp="True">
+      <Border Classes="panel" BorderBrush="{StaticResource GoletherLine}" BorderThickness="0,0,0,1" Padding="16,10">
+        <Grid ColumnDefinitions="Auto,*">
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,18,0">
+            <Image Source="/Assets/golether-256.png" Width="22" Height="22" Margin="0,0,8,0" />
+            <TextBlock Classes="logo" Text="gole" />
+            <TextBlock Classes="logo" Text="ther" Foreground="{StaticResource GoletherAccent}" />
+          </StackPanel>
+          <DockPanel Grid.Column="1">
+            <!-- When the page is narrow the actions fold into the "more" button. -->
+            <desktop:OverflowPanel DockPanel.Dock="Right" Spacing="8" ReservedWidth="160" VerticalAlignment="Center">
+              <Border Classes="chip" IsVisible="{Binding IsInSession}">
+                <TextBlock Text="{Binding SyncText}" Foreground="{Binding SyncLevel, Converter={x:Static desktop:IndicatorLevelBrushConverter.Instance}}" />
+              </Border>
+              <Border Classes="chip secure" IsVisible="{Binding IsInSession}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <PathIcon Data="{StaticResource IconLock}" Width="11" Height="11" Foreground="{StaticResource GoletherSecure}" />
+                  <TextBlock Text="{Binding SecurityText}" Foreground="{StaticResource GoletherSecure}" FontFamily="{StaticResource GoletherMono}" FontSize="11" FontWeight="SemiBold" />
+                </StackPanel>
+              </Border>
+              <Border Classes="chip" IsVisible="{Binding IsHost}" desktop:OverflowPanel.CanOverflow="True" desktop:OverflowPanel.OverflowOrder="1">
+                <TextBlock Text="{loc:Loc Main.HostYou}" Foreground="{StaticResource GoletherMuted}" />
+              </Border>
+              <!-- The language and the devices live behind one Settings button, as on the desktop. -->
+              <Button x:Name="SettingsButton" Classes="ghost" Command="{Binding OpenSettingsCommand}"
+                      desktop:OverflowPanel.CanOverflow="True" desktop:OverflowPanel.OverflowOrder="2"
+                      AutomationProperties.Name="{loc:Loc Main.Settings}" ToolTip.Tip="{loc:Loc Main.SettingsTip}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <PathIcon Data="{StaticResource IconSettings}" Width="14" Height="14" />
+                  <TextBlock Text="{loc:Loc Main.Settings}" />
+                </StackPanel>
+              </Button>
+              <Button x:Name="InviteButton" Classes="ghost" Content="{loc:Loc Main.Invite}" Command="{Binding OpenInviteCommand}" IsVisible="{Binding IsHost}"
+                      AutomationProperties.Name="{loc:Loc Main.Invite}"
+                      desktop:OverflowPanel.CanOverflow="True" desktop:OverflowPanel.OverflowOrder="3" />
+              <Button x:Name="LeaveButton" Classes="danger" Content="{loc:Loc Main.Leave}" Command="{Binding LeaveCommand}" IsVisible="{Binding IsInSession}"
+                      AutomationProperties.Name="{loc:Loc Main.Leave}"
+                      desktop:OverflowPanel.CanOverflow="True" desktop:OverflowPanel.OverflowOrder="4" />
+              <Button x:Name="MoreActions" Classes="ghost square" desktop:OverflowPanel.IsOverflowButton="True"
+                      AutomationProperties.Name="{loc:Loc Main.MoreName}" ToolTip.Tip="{loc:Loc Main.MoreTip}">
+                <PathIcon Data="{StaticResource IconMore}" />
+                <Button.Flyout>
+                  <MenuFlyout Placement="BottomEdgeAlignedRight">
+                    <MenuItem Header="{loc:Loc Main.Settings}" Command="{Binding OpenSettingsCommand}"
+                              IsVisible="{Binding #SettingsButton.(desktop:OverflowPanel.IsFolded)}">
+                      <MenuItem.Icon>
+                        <PathIcon Data="{StaticResource IconSettings}" Width="14" Height="14" />
+                      </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="{loc:Loc Main.Invite}" Command="{Binding OpenInviteCommand}"
+                              IsVisible="{Binding #InviteButton.(desktop:OverflowPanel.IsFolded)}">
+                      <MenuItem.Icon>
+                        <PathIcon Data="{StaticResource IconEnvelope}" Width="14" Height="14" />
+                      </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Classes="danger" Header="{loc:Loc Main.Leave}" Command="{Binding LeaveCommand}"
+                              IsVisible="{Binding #LeaveButton.(desktop:OverflowPanel.IsFolded)}"
+                              Foreground="{StaticResource GoletherBad}" />
+                  </MenuFlyout>
+                </Button.Flyout>
+              </Button>
+            </desktop:OverflowPanel>
+            <StackPanel VerticalAlignment="Center" IsVisible="{Binding IsInSession}" Margin="0,0,12,0">
+              <TextBlock Text="{Binding SessionTitle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+              <TextBlock Classes="mono muted" FontSize="11" Text="{Binding MediaCaption}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding MediaCaption}" />
+            </StackPanel>
+          </DockPanel>
+        </Grid>
+      </Border>
+      </desktop:SlideReveal>
+      </Decorator>
+
+      <Panel>
+        <!-- Start screen -->
+        <ScrollViewer IsVisible="{Binding !IsInSession}">
+          <StackPanel MaxWidth="980" Margin="24,36" Spacing="22">
+            <StackPanel Spacing="6">
+              <TextBlock FontSize="28" FontWeight="Bold" Text="{loc:Loc Main.Hero.Title}" />
+              <TextBlock Classes="muted" TextWrapping="Wrap" MaxWidth="720" HorizontalAlignment="Left" Text="{loc:Loc Browser.Hero.Text}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <TextBlock Classes="label" Text="{loc:Loc Main.YourName}" VerticalAlignment="Center" />
+              <TextBox Width="260" Text="{Binding DisplayName}" MaxLength="64" AutomationProperties.Name="{loc:Loc Main.YourName}" />
+            </StackPanel>
+            <Border Classes="notice" BorderBrush="{StaticResource GoletherBad}" IsVisible="{Binding HasHomeError}" HorizontalAlignment="Left" MaxWidth="940">
+              <TextBlock TextWrapping="Wrap" Foreground="{StaticResource GoletherBad}" Text="{Binding HomeError}" />
+            </Border>
+            <WrapPanel Orientation="Horizontal">
+              <Border Classes="card" Width="460" Margin="0,0,20,20">
+                <StackPanel Spacing="12">
+                  <TextBlock Classes="title" Text="{loc:Loc Main.Host.Title}" />
+                  <TextBlock Classes="muted" TextWrapping="Wrap" Text="{loc:Loc Browser.Host.Text}" />
+                  <TextBlock Classes="label" Text="{loc:Loc Main.Host.SessionName}" />
+                  <TextBox Text="{Binding NewSessionName}" MaxLength="64" AutomationProperties.Name="{loc:Loc Main.Host.SessionName}" />
+                  <Button Classes="accent" Content="{loc:Loc Main.Host.Start}" Command="{Binding StartHostingCommand}" />
+                </StackPanel>
+              </Border>
+              <Border Classes="card" Width="460" Margin="0,0,20,20">
+                <StackPanel Spacing="12">
+                  <TextBlock Classes="title" Text="{loc:Loc Main.Join.Title}" />
+                  <TextBlock Classes="muted" TextWrapping="Wrap" Text="{loc:Loc Main.Join.Text}" />
+                  <TextBlock Classes="label" Text="{loc:Loc Main.Join.Label}" />
+                  <TextBox Classes="package" Text="{Binding InviteLink}" PlaceholderText="https://golether.github.io/watch/#…"
+                           AutomationProperties.Name="{loc:Loc Main.Join.Label}" />
+                  <TextBlock TextWrapping="Wrap" Text="{Binding InviteDescription}"
+                             IsVisible="{Binding InviteDescription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                             Classes.muted="{Binding !CanJoin}" />
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Classes="ghost" Content="{loc:Loc Common.Paste}" Command="{Binding PasteInviteCommand}" />
+                    <Button Classes="accent" Content="{loc:Loc Main.Join.Connect}" Command="{Binding JoinCommand}" IsEnabled="{Binding CanJoin}" />
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+            </WrapPanel>
+          </StackPanel>
+        </ScrollViewer>
+
+        <!-- Session -->
+        <Grid IsVisible="{Binding IsInSession}" ColumnDefinitions="*,300">
+          <DockPanel Grid.Column="0">
+            <!-- Player bar -->
+            <Decorator x:Name="PlayerBarSlot" DockPanel.Dock="Bottom">
+            <desktop:SlideReveal x:Name="PlayerBar">
+            <Border Classes="panel" BorderBrush="{StaticResource GoletherLine}" BorderThickness="0,1,1,0" Padding="16,10,16,12">
+              <StackPanel Spacing="8">
+                <Panel Height="34" IsVisible="{Binding IsFilmOnScreen}">
+                  <desktop:TimelineSlider x:Name="Timeline" Classes="timeline" VerticalAlignment="Bottom" Margin="0,0,0,-8"
+                                          ToolTip.Tip="{loc:Loc Main.Timeline.Tip}"
+                                          Minimum="0" Maximum="{Binding DurationSeconds}" Value="{Binding PositionSeconds}"
+                                          IsEnabled="{Binding IsFilmOnScreen}" />
+                </Panel>
+                <DockPanel>
+                  <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <!-- The host shows a file; the browser reads it in place and sends it to the guests. -->
+                    <Button Focusable="False" Classes="ghost" Margin="0,0,8,0" IsVisible="{Binding IsHost}" Command="{Binding PickFileCommand}"
+                            ToolTip.Tip="{loc:Loc Main.File.Tip}">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="{StaticResource IconFolder}" Width="14" Height="14" />
+                        <TextBlock Text="{loc:Loc Gallery.ShowMenu.File}" />
+                      </StackPanel>
+                    </Button>
+                    <!-- The pen belongs to the applications: the button stays, and its hint says where to find it. -->
+                    <ToggleButton Focusable="False" Classes="ghost square" Margin="0,0,4,0" IsEnabled="{Binding Drawing.CanDraw}"
+                                  IsChecked="{Binding Drawing.IsPenActive, Mode=TwoWay}"
+                                  AutomationProperties.Name="{loc:Loc Main.Pen.Name}" ToolTip.Tip="{loc:Loc Browser.AppOnly}"
+                                  ToolTip.ShowOnDisabled="True">
+                      <PathIcon Data="{StaticResource IconPen}" />
+                    </ToggleButton>
+                    <!-- Reactions float over everybody's video for a few seconds. -->
+                    <Button x:Name="ReactionsButton" Focusable="False" Classes="ghost square" Margin="0,0,4,0"
+                            AutomationProperties.Name="{loc:Loc Main.Reactions.Name}" ToolTip.Tip="{loc:Loc Main.Reactions.Tip}">
+                      <PathIcon Data="{StaticResource IconReaction}" />
+                      <Button.Flyout>
+                        <Flyout Placement="Top" FlyoutPresenterClasses="fits">
+                          <ItemsControl ItemsSource="{Binding Chat.AvailableReactions}">
+                            <ItemsControl.ItemsPanel>
+                              <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="4" />
+                              </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate x:DataType="x:String">
+                                <Button Classes="ghost reaction" Focusable="False" Padding="0" Width="48" Height="48" Click="OnReactionChosen"
+                                        Command="{Binding $parent[ItemsControl].((vm:MainViewModel)DataContext).Chat.ReactCommand}"
+                                        CommandParameter="{Binding}" AutomationProperties.Name="{Binding}">
+                                  <Image Classes="reaction" Source="{Binding Converter={x:Static controls:ReactionPictureConverter.Instance}}" />
+                                </Button>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                        </Flyout>
+                      </Button.Flyout>
+                    </Button>
+                    <!-- Sound tracks of this page only: every participant picks their own. -->
+                    <Button x:Name="TracksButton" Focusable="False" Classes="ghost square" Margin="0,0,4,0"
+                            IsEnabled="{Binding IsFilmOnScreen}"
+                            AutomationProperties.Name="{loc:Loc Main.Tracks.Name}" ToolTip.Tip="{Binding Tracks.Summary}">
+                      <PathIcon Data="{StaticResource IconSubtitles}" />
+                      <Button.Flyout>
+                        <Flyout Placement="TopEdgeAlignedRight">
+                          <ScrollViewer MaxHeight="420" MaxWidth="380">
+                            <StackPanel Spacing="4" Margin="2">
+                              <TextBlock Classes="muted" FontSize="11" Text="{loc:Loc Main.Tracks.Audio}" Margin="6,0,0,2" />
+                              <ItemsControl ItemsSource="{Binding Tracks.AudioTracks}">
+                                <ItemsControl.ItemTemplate>
+                                  <DataTemplate x:DataType="client:TrackOptionViewModel">
+                                    <Button Classes="ghost trackOption" Command="{Binding SelectCommand}" Click="OnTrackChosen"
+                                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
+                                      <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Width="14" Text="✓" Foreground="{StaticResource GoletherAccent}" IsVisible="{Binding IsSelected}" />
+                                        <TextBlock Width="14" IsVisible="{Binding !IsSelected}" />
+                                        <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                                      </StackPanel>
+                                    </Button>
+                                  </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                              </ItemsControl>
+                              <TextBlock Classes="muted" FontSize="11" Text="{loc:Loc Main.Tracks.Subtitles}" Margin="6,8,0,2" />
+                              <TextBlock Classes="muted" Margin="28,2,6,4" TextWrapping="Wrap" Text="{loc:Loc Browser.Subtitles.Unavailable}" />
+                            </StackPanel>
+                          </ScrollViewer>
+                        </Flyout>
+                      </Button.Flyout>
+                    </Button>
+                    <!-- Volume of this page only: the scale opens on hover, the button mutes. -->
+                    <Panel Margin="0,0,8,0">
+                      <Button x:Name="VolumeButton" Focusable="False" Classes="ghost square" Command="{Binding Volume.ToggleMuteCommand}"
+                              IsEnabled="{Binding IsFilmOnScreen}"
+                              AutomationProperties.Name="{loc:Loc Main.Volume.ButtonName}" ToolTip.Tip="{loc:Loc Main.Volume.ButtonTip}"
+                              PointerEntered="OnVolumePointerEntered" PointerWheelChanged="OnVolumeWheel">
+                        <Panel>
+                          <PathIcon Data="{StaticResource IconSpeakerMuted}" IsVisible="{Binding Volume.IsSilent}" Foreground="{StaticResource GoletherBad}" />
+                          <PathIcon Data="{StaticResource IconSpeakerQuiet}" IsVisible="{Binding Volume.IsQuiet}" />
+                          <PathIcon Data="{StaticResource IconSpeakerLoud}" IsVisible="{Binding Volume.IsLoud}" />
+                        </Panel>
+                      </Button>
+                      <Popup x:Name="VolumePopup" PlacementTarget="{Binding #VolumeButton}" Placement="Top" VerticalOffset="-6" IsLightDismissEnabled="False">
+                        <Border x:Name="VolumePanel" Background="{StaticResource GoletherPanel2}" BorderBrush="{StaticResource GoletherLine}" BorderThickness="1"
+                                CornerRadius="8" Padding="10,10" PointerWheelChanged="OnVolumeWheel">
+                          <StackPanel Spacing="8" Width="44">
+                            <TextBlock Classes="mono" FontSize="11" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                                       Text="{Binding Volume.Caption}" />
+                            <Slider Orientation="Vertical" Height="150" HorizontalAlignment="Center"
+                                    Minimum="0" Maximum="100" SmallChange="1" LargeChange="10"
+                                    Value="{Binding Volume.Volume}" AutomationProperties.Name="{loc:Loc Main.Volume.SliderName}" />
+                          </StackPanel>
+                        </Border>
+                      </Popup>
+                    </Panel>
+                    <Button Focusable="False" Classes="ghost square" Command="{Binding ToggleFullScreenCommand}"
+                            AutomationProperties.Name="{loc:Loc Main.FullScreen.Name}" ToolTip.Tip="{loc:Loc Main.FullScreen.Tip}">
+                      <PathIcon Data="{StaticResource IconFullScreen}" />
+                    </Button>
+                  </StackPanel>
+                  <desktop:ShrinkPanel>
+                    <Button Focusable="False" Classes="ghost square" Command="{Binding SeekBackCommand}"
+                            AutomationProperties.Name="{loc:Loc Main.Back.Name}" ToolTip.Tip="{loc:Loc Main.Back.Tip}"
+                            IsVisible="{Binding IsFilmOnScreen}" desktop:ShrinkPanel.DropOrder="5">
+                      <PathIcon Data="{StaticResource IconBack}" />
+                    </Button>
+                    <Button Focusable="False" Classes="accent round" Margin="10,0" Command="{Binding TogglePlayCommand}"
+                            AutomationProperties.Name="{loc:Loc Main.PlayName}" IsVisible="{Binding IsFilmOnScreen}"
+                            ToolTip.Tip="{loc:Loc Key=Main.PlayTip, Arg={Binding PlayButtonText}}">
+                      <Panel>
+                        <PathIcon Width="19" Height="19" Data="{StaticResource IconPlay}" IsVisible="{Binding ShowPlayIcon}" Foreground="{StaticResource GoletherAccentInk}" />
+                        <PathIcon Width="19" Height="19" Data="{StaticResource IconReplay}" IsVisible="{Binding IsEnded}" Foreground="{StaticResource GoletherAccentInk}" />
+                        <PathIcon Width="19" Height="19" Data="{StaticResource IconPause}" IsVisible="{Binding ShowPauseIcon}" Foreground="{StaticResource GoletherAccentInk}" />
+                      </Panel>
+                    </Button>
+                    <Button Focusable="False" Classes="ghost square" Command="{Binding SeekForwardCommand}"
+                            AutomationProperties.Name="{loc:Loc Main.Forward.Name}" ToolTip.Tip="{loc:Loc Main.Forward.Tip}"
+                            IsVisible="{Binding IsFilmOnScreen}" desktop:ShrinkPanel.DropOrder="5">
+                      <PathIcon Data="{StaticResource IconForward}" />
+                    </Button>
+                    <TextBlock Classes="mono" FontWeight="SemiBold" VerticalAlignment="Center" Margin="14,0,0,0" Text="{Binding PositionText}"
+                               IsVisible="{Binding IsFilmOnScreen}" desktop:ShrinkPanel.DropOrder="2" />
+                    <TextBlock Classes="mono muted" VerticalAlignment="Center" Text="{Binding DurationText, StringFormat=' / {0}'}"
+                               IsVisible="{Binding IsFilmOnScreen}" desktop:ShrinkPanel.DropOrder="6" />
+                    <DockPanel Margin="16,0,0,0">
+                      <desktop:FallbackPanel DockPanel.Dock="Left" VerticalAlignment="Center" IsVisible="{Binding IsFilmOnScreen}">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                          <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource GoletherAccent}"
+                                     Text="{Binding CountdownText}" ToolTip.Tip="{Binding CountdownText}" />
+                          <Button Focusable="False" Classes="ghost" Padding="10,3" IsVisible="{Binding CanStartNow}" Command="{Binding StartNowCommand}"
+                                  Content="{loc:Loc Main.StartNow}" ToolTip.Tip="{loc:Loc Main.StartNowTip}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="10" ToolTip.Tip="{Binding CountdownText}">
+                          <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource GoletherAccent}"
+                                     Text="{Binding CountdownShort}" />
+                          <Button Focusable="False" Classes="ghost" Padding="10,3" IsVisible="{Binding CanStartNow}" Command="{Binding StartNowCommand}"
+                                  Content="{loc:Loc Main.StartNow}" ToolTip.Tip="{loc:Loc Main.StartNowTip}" />
+                        </StackPanel>
+                      </desktop:FallbackPanel>
+                      <TextBlock Margin="16,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Classes="muted" Text="{Binding LastEvent}" />
+                    </DockPanel>
+                  </desktop:ShrinkPanel>
+                </DockPanel>
+              </StackPanel>
+            </Border>
+            </desktop:SlideReveal>
+            </Decorator>
+
+            <!-- Video: the film of the page lies under this area; a click plays or pauses, a double click is the full screen. -->
+            <Panel x:Name="VideoArea" Background="#00000000">
+              <controls:FilmHost IsVisible="{Binding IsFilmOnScreen}" />
+              <Panel x:Name="ClickLayer" Background="#00000000" IsVisible="{Binding IsFilmOnScreen}" />
+              <!-- The strokes of the others and the floating reactions, over the picture. -->
+              <clientControls:StrokeCanvas Source="{Binding Drawing}" Aspect="{Binding VideoAspect}" IsHitTestVisible="False" />
+              <Border Width="280" Height="360" Background="#00000000" IsHitTestVisible="False"
+                      HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,18,18">
+                <ItemsControl ItemsSource="{Binding Chat.Reactions}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <Canvas />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.Styles>
+                    <Style Selector="ContentPresenter" x:DataType="client:FloatingReactionViewModel">
+                      <Setter Property="Canvas.Right" Value="{Binding Offset}" />
+                      <Setter Property="Canvas.Bottom" Value="0" />
+                    </Style>
+                  </ItemsControl.Styles>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="client:FloatingReactionViewModel">
+                      <StackPanel Classes="floatingReaction" Width="72" Height="84" Spacing="1">
+                        <Image Width="40" Height="40" Margin="0,13,0,7" HorizontalAlignment="Center"
+                               Source="{Binding Emoji, Converter={x:Static controls:ReactionPictureConverter.Instance}}" />
+                        <Border Background="#A0000000" CornerRadius="5" Padding="4,1" HorizontalAlignment="Center">
+                          <TextBlock Text="{Binding Sender}" FontSize="10" Foreground="White" MaxWidth="66" TextTrimming="CharacterEllipsis" />
+                        </Border>
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </Border>
+              <Border Background="{StaticResource GoletherBackground}" IsVisible="{Binding ShowPlaceholder}">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14" MaxWidth="560" Margin="24">
+                  <TextBlock Classes="title" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Text="{Binding VideoPlaceholder}" />
+                  <Button Classes="accent" HorizontalAlignment="Center" Content="{loc:Loc Main.PickFile}" Command="{Binding PickFileCommand}"
+                          IsVisible="{Binding CanPickFirstFile}" />
+                </StackPanel>
+              </Border>
+              <!-- In full screen the player bar lies here, over the bottom of the film, and slides away with the pointer. -->
+              <Decorator x:Name="PlayerBarLayer" VerticalAlignment="Bottom" />
+            </Panel>
+          </DockPanel>
+
+          <!-- Participants -->
+          <Border Grid.Column="1" Classes="panel" BorderBrush="{StaticResource GoletherLine}" BorderThickness="1,0,0,0">
+            <DockPanel>
+              <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="14,12,14,8">
+                <TextBlock Classes="label" Text="{loc:Loc Key=Main.Participants.Header, Arg={Binding Participants.Count}}" />
+                <TextBlock Grid.Column="1" Classes="label" Text="{loc:Loc Main.Participants.Limit}" />
+              </Grid>
+              <StackPanel DockPanel.Dock="Bottom" Margin="12" Spacing="8">
+                <UniformGrid Columns="2">
+                  <ToggleButton Classes="ghost" Margin="0,0,4,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                IsChecked="{Binding MicrophoneMuted, Mode=OneWay}" Command="{Binding ToggleMicrophoneCommand}"
+                                AutomationProperties.Name="{loc:Loc Main.Microphone.Name}" Content="{Binding MicrophoneText}" />
+                  <ToggleButton Classes="ghost" Margin="4,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                IsChecked="{Binding CameraOff, Mode=OneWay}" Command="{Binding ToggleCameraCommand}"
+                                AutomationProperties.Name="{loc:Loc Main.Camera.Name}" Content="{Binding CameraText}" />
+                </UniformGrid>
+                <!-- Chat and event feed share one area; a click on the open tab hides it. -->
+                <Grid ColumnDefinitions="Auto,Auto,*">
+                  <Panel>
+                    <Button Classes="ghost tab" Classes.selected="{Binding IsChatTab}" Padding="8,4"
+                            Command="{Binding ShowTabCommand}" CommandParameter="{x:Static enums:SideTab.Chat}"
+                            AutomationProperties.Name="{loc:Loc Main.Chat.Name}" ToolTip.Tip="{loc:Loc Main.Chat.Tip}">
+                      <TextBlock Classes="label" Classes.unread="{Binding Chat.HasUnread}" Text="{Binding Chat.Header}" />
+                    </Button>
+                    <Border Width="14" Height="14" CornerRadius="7" Margin="0,-6,-6,0"
+                            HorizontalAlignment="Right" VerticalAlignment="Top" IsHitTestVisible="False"
+                            Background="{StaticResource GoletherPanel}" IsVisible="{Binding Chat.HasUnread}">
+                      <PathIcon Data="{StaticResource IconUnread}" Width="12" Height="12" Foreground="{StaticResource GoletherAccent}" />
+                    </Border>
+                  </Panel>
+                  <Button Grid.Column="1" Classes="ghost tab" Classes.selected="{Binding IsEventsTab}" Padding="8,4" Margin="4,0,0,0"
+                          Command="{Binding ShowTabCommand}" CommandParameter="{x:Static enums:SideTab.Events}"
+                          AutomationProperties.Name="{loc:Loc Main.Events.Name}" ToolTip.Tip="{loc:Loc Main.Events.Tip}">
+                    <TextBlock Classes="label" Text="{loc:Loc Main.Events.Header}" />
+                  </Button>
+                </Grid>
+                <ScrollViewer Height="210" IsVisible="{Binding ShowEvents}">
+                  <ItemsControl ItemsSource="{Binding Events}" FontSize="12" Margin="6,0">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <StackPanel Spacing="6" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="x:String">
+                        <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+                <!-- The chat is seen only by the participants of the session and stored nowhere. -->
+                <StackPanel Spacing="6" IsVisible="{Binding ShowChat}">
+                  <ScrollViewer x:Name="ChatScroll" Height="166">
+                    <Panel Margin="6,0">
+                      <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding !Chat.HasLines}" Text="{loc:Loc Main.Chat.Note}" />
+                      <ItemsControl ItemsSource="{Binding Chat.Lines}">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <StackPanel Spacing="8" />
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="client:ChatLineViewModel">
+                            <StackPanel Spacing="1">
+                              <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding !IsSystem}">
+                                <TextBlock FontSize="12" FontWeight="SemiBold" Text="{Binding SenderText}" Classes.self="{Binding IsLocal}"
+                                           TextTrimming="CharacterEllipsis" MaxWidth="200" />
+                                <TextBlock Classes="mono muted" FontSize="10" VerticalAlignment="Bottom" Text="{Binding TimeText}" />
+                              </StackPanel>
+                              <SelectableTextBlock FontSize="12" TextWrapping="Wrap" Text="{Binding Text}" Classes.muted="{Binding IsSystem}" />
+                            </StackPanel>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </Panel>
+                  </ScrollViewer>
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBox Text="{Binding Chat.Draft}" PlaceholderText="{loc:Loc Main.Chat.Placeholder}" MaxLength="{x:Static protocol:ChatMessage.MAX_TEXT_LENGTH}"
+                             AcceptsReturn="False" TextWrapping="Wrap" MaxHeight="80" VerticalContentAlignment="Center"
+                             AutomationProperties.Name="{loc:Loc Main.Chat.InputName}">
+                      <TextBox.KeyBindings>
+                        <KeyBinding Gesture="Enter" Command="{Binding Chat.SendCommand}" />
+                      </TextBox.KeyBindings>
+                    </TextBox>
+                    <Button Grid.Column="1" Classes="ghost square" Margin="6,0,0,0" VerticalAlignment="Stretch"
+                            Command="{Binding Chat.SendCommand}" AutomationProperties.Name="{loc:Loc Main.Chat.SendName}" ToolTip.Tip="{loc:Loc Main.Chat.SendTip}">
+                      <PathIcon Data="{StaticResource IconSend}" Width="14" Height="14" />
+                    </Button>
+                  </Grid>
+                </StackPanel>
+              </StackPanel>
+              <ScrollViewer>
+                <ItemsControl ItemsSource="{Binding Participants}" Margin="12,0" VerticalAlignment="Top">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Spacing="10" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="client:ParticipantItemViewModel">
+                      <Panel>
+                        <Border Classes="tile">
+                          <Border.ContextMenu>
+                            <ContextMenu>
+                              <!-- The voice volume changes only on this page. -->
+                              <MenuItem StaysOpenOnClick="True" Classes="voiceVolume" Focusable="False" IsVisible="{Binding !IsLocal}">
+                                <MenuItem.Header>
+                                  <StackPanel Spacing="4" Width="212">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                      <TextBlock Text="{loc:Loc Main.Voice.Label}" VerticalAlignment="Center" />
+                                      <TextBlock Grid.Column="1" Classes="mono muted" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0" Text="{Binding VoiceVolumeText}" />
+                                    </Grid>
+                                    <Grid ColumnDefinitions="Auto,*">
+                                      <Button Classes="ghost square mute" Focusable="False" Width="28" Height="28" VerticalAlignment="Center"
+                                              Command="{Binding ToggleVoiceMuteCommand}" AutomationProperties.Name="{Binding VoiceMuteText}" ToolTip.Tip="{Binding VoiceMuteText}">
+                                        <Panel>
+                                          <PathIcon Data="{StaticResource IconSpeakerMuted}" Width="14" Height="14" IsVisible="{Binding IsVoiceMuted}" />
+                                          <PathIcon Data="{StaticResource IconSpeakerLoud}" Width="14" Height="14" IsVisible="{Binding !IsVoiceMuted}" />
+                                        </Panel>
+                                      </Button>
+                                      <Slider Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" Minimum="0" Maximum="100" SmallChange="5" LargeChange="25"
+                                              Value="{Binding VoiceVolume}" AutomationProperties.Name="{loc:Loc Main.Voice.SliderName}" />
+                                    </Grid>
+                                  </StackPanel>
+                                </MenuItem.Header>
+                              </MenuItem>
+                              <MenuItem Header="{loc:Loc Main.Voice.Reset}" Command="{Binding ResetVoiceVolumeCommand}" IsVisible="{Binding !IsLocal}" />
+                              <Separator IsVisible="{Binding CanModerate}" />
+                              <MenuItem Header="{loc:Loc Main.Moderation.Microphone}" Command="{Binding SwitchOffMicrophoneCommand}" IsVisible="{Binding CanModerate}">
+                                <MenuItem.Icon>
+                                  <PathIcon Data="{StaticResource IconMicrophone}" Width="14" Height="14" />
+                                </MenuItem.Icon>
+                              </MenuItem>
+                              <MenuItem Header="{loc:Loc Main.Moderation.Camera}" Command="{Binding SwitchOffCameraCommand}" IsVisible="{Binding CanModerate}">
+                                <MenuItem.Icon>
+                                  <PathIcon Data="{StaticResource IconCamera}" Width="14" Height="14" />
+                                </MenuItem.Icon>
+                              </MenuItem>
+                              <Separator IsVisible="{Binding CanModerate}" />
+                              <MenuItem Header="{loc:Loc Main.Moderation.Remove}" Command="{Binding RemoveCommand}" IsVisible="{Binding CanModerate}"
+                                        Foreground="{StaticResource GoletherBad}" />
+                            </ContextMenu>
+                          </Border.ContextMenu>
+                          <StackPanel>
+                            <desktop:AspectPanel HeightPerWidth="0.5625" Background="#0E1518">
+                              <Border Width="64" Height="64" CornerRadius="32" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      Background="{Binding AvatarColor, Converter={x:Static clientControls:ColorTextBrushConverter.Instance}}">
+                                <TextBlock Text="{Binding Initial}" FontSize="28" FontWeight="Bold" Foreground="#0A0F11"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                              </Border>
+                              <Border Width="64" Height="64" CornerRadius="32" ClipToBounds="True" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      IsVisible="{Binding ShowAvatarImage}">
+                                <Image Source="{Binding AvatarImage}" Stretch="UniformToFill" />
+                              </Border>
+                              <Panel Background="Black" IsVisible="{Binding HasCamera}">
+                                <Image Source="{Binding CameraImage}" Stretch="Uniform" />
+                              </Panel>
+                              <Border Background="#8C0A0F11" IsVisible="{Binding IsBuffering}">
+                                <TextBlock Text="{loc:Loc Main.Participant.Loading}" Classes="mono" Foreground="{StaticResource GoletherWarn}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                              </Border>
+                              <StackPanel Orientation="Horizontal" Spacing="4" Margin="8" HorizontalAlignment="Right" VerticalAlignment="Top">
+                                <Border Background="#99000000" CornerRadius="5" Padding="5,1" IsVisible="{Binding WeakConnection}"
+                                        ToolTip.Tip="{loc:Loc Main.Participant.WeakTip}" AutomationProperties.Name="{loc:Loc Main.Participant.WeakName}">
+                                  <TextBlock Text="{loc:Loc Main.Participant.Economy}" Classes="mono" FontSize="10" Foreground="{StaticResource GoletherWarn}" VerticalAlignment="Center" />
+                                </Border>
+                                <Border Background="#99000000" CornerRadius="5" Padding="5,3" IsVisible="{Binding MicrophoneOff}"
+                                        ToolTip.Tip="{loc:Loc Main.Participant.MicrophoneOffTip}" AutomationProperties.Name="{loc:Loc Main.Participant.MicrophoneOffTip}">
+                                  <PathIcon Data="{StaticResource IconMicrophone}" Width="12" Height="12" Foreground="{StaticResource GoletherBad}" />
+                                </Border>
+                                <Border Background="#99000000" CornerRadius="5" Padding="5,3" IsVisible="{Binding CameraOff}"
+                                        ToolTip.Tip="{loc:Loc Main.Participant.CameraOffTip}" AutomationProperties.Name="{loc:Loc Main.Participant.CameraOffTip}">
+                                  <PathIcon Data="{StaticResource IconCamera}" Width="12" Height="12" Foreground="{StaticResource GoletherBad}" />
+                                </Border>
+                              </StackPanel>
+                              <Border Background="#99000000" CornerRadius="5" Padding="7,2" Margin="8" HorizontalAlignment="Left" VerticalAlignment="Bottom">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                  <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" />
+                                  <TextBlock Text="{Binding RoleText}" FontSize="11" Classes="muted" />
+                                </StackPanel>
+                              </Border>
+                            </desktop:AspectPanel>
+                            <Grid ColumnDefinitions="*,*,*" Background="{StaticResource GoletherPanel2}">
+                              <StackPanel Margin="8,6">
+                                <TextBlock Classes="label" FontSize="9" Text="{loc:Loc Main.Participant.Ping}" />
+                                <TextBlock Classes="mono" FontSize="12" FontWeight="SemiBold" Text="{Binding PingText}"
+                                           Foreground="{Binding PingLevel, Converter={x:Static desktop:IndicatorLevelBrushConverter.Instance}}" />
+                              </StackPanel>
+                              <StackPanel Grid.Column="1" Margin="8,6">
+                                <TextBlock Classes="label" FontSize="9" Text="{loc:Loc Main.Participant.Drift}" />
+                                <TextBlock Classes="mono" FontSize="12" FontWeight="SemiBold" Text="{Binding DriftText}"
+                                           Foreground="{Binding DriftLevel, Converter={x:Static desktop:IndicatorLevelBrushConverter.Instance}}" />
+                              </StackPanel>
+                              <StackPanel Grid.Column="2" Margin="8,6">
+                                <TextBlock Classes="label" FontSize="9" Text="{loc:Loc Main.Participant.Buffer}" />
+                                <TextBlock Classes="mono" FontSize="12" FontWeight="SemiBold" Text="{Binding BufferText}"
+                                           Foreground="{Binding BufferLevel, Converter={x:Static desktop:IndicatorLevelBrushConverter.Instance}}" />
+                              </StackPanel>
+                            </Grid>
+                          </StackPanel>
+                        </Border>
+                        <!-- Green frame while the participant speaks; drawn over the tile so its layout does not move. -->
+                        <Border Classes="speakingFrame" IsVisible="{Binding IsSpeaking}" IsHitTestVisible="False"
+                                AutomationProperties.Name="{loc:Loc Main.Participant.Speaking}" />
+                      </Panel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+            </DockPanel>
+          </Border>
+        </Grid>
+
+        <!-- Busy overlay for the start screen -->
+        <Border Classes="dialogVeil" IsVisible="{Binding IsBusy}">
+          <ProgressBar IsIndeterminate="True" Width="260" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+      </Panel>
+    </DockPanel>
+
+    <!-- In full screen the top bar lies here, over the top of the page, and slides away with the pointer. -->
+    <Decorator x:Name="TopBarLayer" VerticalAlignment="Top" />
+
+    <!-- Joining a session: over everything from the click until the host let this page in. -->
+    <Border Background="{StaticResource GoletherBackground}" IsVisible="{Binding ShowJoinScreen}">
+      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16" MaxWidth="520" Margin="24">
+        <Image Source="/Assets/golether-512.png" Width="128" Height="128" HorizontalAlignment="Center" />
+        <TextBlock Classes="title" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Text="{Binding JoinTitle}" />
+        <ProgressBar IsIndeterminate="True" Width="260" HorizontalAlignment="Center" />
+        <TextBlock Classes="muted" TextWrapping="Wrap" TextAlignment="Center" Text="{Binding JoinText}" />
+        <Border Classes="code" HorizontalAlignment="Center" IsVisible="{Binding IsWaitingForHost}">
+          <TextBlock Text="{Binding VerificationText}" FontSize="20" />
+        </Border>
+        <Button Classes="ghost" HorizontalAlignment="Center" Content="{loc:Loc Main.Approval.Cancel}" Command="{Binding CancelJoinCommand}" />
+      </StackPanel>
+    </Border>
+
+    <!-- Settings: the language with its flag, the camera and the microphone. -->
+    <Border Classes="dialogVeil" IsVisible="{Binding IsSettingsOpen}">
+      <Border Classes="dialog" Width="460">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="title" Text="{loc:Loc Settings.General}" />
+          <TextBlock Classes="label" Text="{loc:Loc Settings.Language}" />
+          <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}" HorizontalAlignment="Stretch"
+                    AutomationProperties.Name="{loc:Loc Main.Language.Name}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="client:LanguageOption">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <Image Source="{Binding Flag}" Width="24" Height="16" Stretch="Uniform" />
+                  <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                </StackPanel>
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBlock Classes="title" Text="{loc:Loc Settings.Sounds}" Margin="0,10,0,0" />
+          <CheckBox IsChecked="{Binding ChatSoundEnabled}" Content="{loc:Loc Settings.Sounds.Chat}" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{loc:Loc Settings.Sounds.ChatNote}" />
+          <TextBlock Classes="title" Text="{loc:Loc Settings.CameraMic}" Margin="0,10,0,0" />
+          <TextBlock Classes="label" Text="{loc:Loc Main.Devices.CameraLabel}" />
+          <ComboBox ItemsSource="{Binding Devices.Cameras}" SelectedItem="{Binding Devices.SelectedCamera}" HorizontalAlignment="Stretch"
+                    AutomationProperties.Name="{loc:Loc Main.Devices.CameraLabel}" />
+          <TextBlock Classes="label" Text="{loc:Loc Main.Devices.MicrophoneLabel}" />
+          <ComboBox ItemsSource="{Binding Devices.Microphones}" SelectedItem="{Binding Devices.SelectedMicrophone}" HorizontalAlignment="Stretch"
+                    AutomationProperties.Name="{loc:Loc Main.Devices.MicrophoneLabel}" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{loc:Loc Main.Devices.Note}" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding Devices.Error}"
+                     IsVisible="{Binding Devices.Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <Button Classes="accent" HorizontalAlignment="Right" Content="{loc:Loc Common.Close}" Command="{Binding CloseSettingsCommand}" />
+        </StackPanel>
+      </Border>
+    </Border>
+
+    <!-- The invitation: the link, a button that copies it and one that makes a new one. -->
+    <Border Classes="dialogVeil" IsVisible="{Binding IsInviteOpen}">
+      <Border Classes="dialog" Width="560">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="title" Text="{loc:Loc Invite.WindowTitle}" />
+          <TextBlock Classes="muted" TextWrapping="Wrap" Text="{loc:Loc Invite.Dialog.Explanation}" />
+          <TextBlock Classes="label" Text="{loc:Loc Invite.Dialog.LinkLabel}" />
+          <TextBox Classes="package invite" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="120" Text="{Binding InviteText}"
+                   AutomationProperties.Name="{loc:Loc Invite.Dialog.LinkLabel}" />
+          <Grid ColumnDefinitions="*,12,Auto">
+            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" Text="{loc:Loc Browser.Invite.Note}" />
+            <Button Grid.Column="2" Classes="accent" VerticalAlignment="Top" Command="{Binding CopyInviteCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <PathIcon Data="{StaticResource IconCopy}" Width="14" Height="14" Foreground="{StaticResource GoletherAccentInk}" />
+                <TextBlock Text="{loc:Loc Invite.Dialog.CopyLink}" />
+              </StackPanel>
+            </Button>
+          </Grid>
+          <TextBlock Foreground="{StaticResource GoletherSecure}" TextWrapping="Wrap" Text="{Binding InviteNote}"
+                     IsVisible="{Binding InviteNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,4,0,0">
+            <Button Classes="ghost" Content="{loc:Loc Invite.Dialog.NewLink}" Command="{Binding RenewInviteCommand}" />
+            <Button Classes="ghost" Content="{loc:Loc Common.Close}" Command="{Binding CloseInviteCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Border>
+
+    <!-- The host is asked about a guest, with the code to compare. -->
+    <Border Classes="dialogVeil" IsVisible="{Binding HasQuestion}">
+      <Border Classes="dialog" Width="460">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="title" TextWrapping="Wrap" Text="{Binding QuestionTitle}" />
+          <TextBlock Classes="muted" TextWrapping="Wrap" Text="{loc:Loc Admission.NewDevice}" />
+          <Border Classes="code" HorizontalAlignment="Center">
+            <TextBlock Text="{Binding QuestionCode}" FontSize="20" />
+          </Border>
+          <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+            <Button Classes="danger" Content="{loc:Loc Admission.Reject}" Command="{Binding RejectCommand}" />
+            <Button Classes="accent" Content="{loc:Loc Admission.Approve}" Command="{Binding AdmitCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Border>
+
+    <!-- The host ends the session for everybody only after a confirmation. -->
+    <Border Classes="dialogVeil" IsVisible="{Binding IsLeaveConfirmOpen}">
+      <Border Classes="dialog" Width="460">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="title" TextWrapping="Wrap" Text="{loc:Loc Main.Leave}" />
+          <TextBlock TextWrapping="Wrap" Text="{loc:Loc Mobile.Leave.Host.Text}" />
+          <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+            <Button Classes="ghost" Content="{loc:Loc Common.Cancel}" Command="{Binding CancelLeaveCommand}" />
+            <Button Classes="danger" Content="{loc:Loc Main.Leave}" Command="{Binding ConfirmLeaveCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Border>
+
+    <!-- An error the shared parts reported. -->
+    <Border Classes="dialogVeil" IsVisible="{Binding HasError}">
+      <Border Classes="dialog" Width="460">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="title" TextWrapping="Wrap" Text="{Binding ErrorTitle}" />
+          <TextBlock TextWrapping="Wrap" Text="{Binding ErrorText}" />
+          <Button Classes="accent" HorizontalAlignment="Right" Content="{loc:Loc Common.Close}" Command="{Binding CloseErrorCommand}" />
+        </StackPanel>
+      </Border>
+    </Border>
+  </Panel>
+</UserControl>

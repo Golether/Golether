@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Golether.Browser.Interop;
 using Golether.Browser.Logging;
 using Golether.Browser.Media;
+using Golether.Browser.Services;
 using Golether.Browser.Session;
 using Golether.Core.Identity;
 using Golether.Media.Conference.Browser;
@@ -9,8 +10,8 @@ using Golether.Media.Conference.Browser;
 namespace Golether.Browser;
 
 /// <summary>
-/// The composition root of the page: the servers, the device key, the player, the cameras and the session. One page runs one
-/// session at a time.
+/// The composition root of the page: the servers, the device key, the player, the cameras and the session. One page
+/// runs one session at a time.
 /// </summary>
 internal sealed class BrowserApp
 {
@@ -46,27 +47,32 @@ internal sealed class BrowserApp
     public PeerId LocalPeer { get; }
 
     /// <summary>
-    /// Gets the log factory.
+    /// Gets the logging of the page (the console of the browser).
     /// </summary>
     public ILoggerFactory LoggerFactory { get; }
 
     /// <summary>
-    /// Gets the log of the page.
+    /// Gets the log of the page itself.
     /// </summary>
     public ILogger Log { get; }
 
     /// <summary>
-    /// Gets the films published to the player.
+    /// Gets the films published to the service worker.
     /// </summary>
     public BrowserStreams Streams { get; }
 
     /// <summary>
-    /// Gets the player.
+    /// Gets the film element the sessions control.
     /// </summary>
     public BrowserPlayer Player { get; }
 
     /// <summary>
-    /// Gets the cameras, the voices and the data channels of the page, shared by the sessions one after another.
+    /// Gets the volume and the sound track of the film on this page.
+    /// </summary>
+    public BrowserLocalControls LocalControls { get; } = new();
+
+    /// <summary>
+    /// Gets the cameras, the voices and the data channels.
     /// </summary>
     public BrowserConferenceMedia Conference { get; }
 
@@ -76,7 +82,12 @@ internal sealed class BrowserApp
     public BrowserAdmissionPrompt Prompt { get; } = new();
 
     /// <summary>
-    /// Gets or sets the current session, or <see langword="null"/>.
+    /// Gets the settings kept by this browser.
+    /// </summary>
+    public BrowserSettingsStore Settings { get; } = new();
+
+    /// <summary>
+    /// Gets or sets the session of the page, or <see langword="null"/> while there is none.
     /// </summary>
     public BrowserSession? Session { get; set; }
 
@@ -84,7 +95,7 @@ internal sealed class BrowserApp
     /// Starts the page.
     /// </summary>
     /// <param name="config">The servers of the page.</param>
-    /// <param name="localPeer">The identifier of the device key.</param>
+    /// <param name="localPeer">The identifier of the device key of the browser.</param>
     /// <returns>The page.</returns>
     public static BrowserApp Start(BrowserConfig config, PeerId localPeer)
     {

@@ -1,0 +1,58 @@
+/*
+  The page around the canvas of Avalonia: the colour of the background of the applications, so that wherever Avalonia
+  paints nothing and no film plays the page looks like the applications, and the screen shown while .NET starts.
+*/
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0a0f11;
+  color: #dde7e5;
+  font-family: system-ui, sans-serif;
+}
+
+#out {
+  position: fixed;
+  inset: 0;
+}
+
+#loading {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: #0a0f11;
+}
+
+#loading.done {
+  display: none;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #223036;
+  border-top-color: #f0a860;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+#loading[data-failed] .spinner {
+  display: none;
+}
+
+#failure {
+  font-family: ui-monospace, monospace;
+  color: #e0685a;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

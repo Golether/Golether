@@ -29,10 +29,32 @@ internal static partial class FileInterop
     public static partial int Copy(JSObject bytes, [JSMarshalAs<JSType.MemoryView>] Span<byte> target);
 
     /// <summary>
-    /// Gives the address the <c>&lt;video&gt;</c> element plays a file from.
+    /// Asks the user for a file. The browser shows its own dialog; it must be called right after a click.
+    /// </summary>
+    /// <returns>The number of the chosen file, or 0 when the user chose none.</returns>
+    [JSImport("files.pick", JsModule.NAME)]
+    [return: JSMarshalAs<JSType.Promise<JSType.Number>>]
+    public static partial Task<int> PickAsync();
+
+    /// <summary>
+    /// Gives the name of a chosen file.
     /// </summary>
     /// <param name="file">The number of the file.</param>
-    /// <returns>A <c>blob:</c> address valid on this page.</returns>
-    [JSImport("files.objectUrl", JsModule.NAME)]
-    public static partial string ObjectUrl(int file);
+    /// <returns>The name without the folder.</returns>
+    [JSImport("files.name", JsModule.NAME)]
+    public static partial string Name(int file);
+
+    /// <summary>
+    /// Gives the size of a chosen file.
+    /// </summary>
+    /// <param name="file">The number of the file.</param>
+    /// <returns>The size in bytes.</returns>
+    [JSImport("files.size", JsModule.NAME)]
+    public static partial double Size(int file);
+
+    /// <summary>
+    /// Forgets every chosen file.
+    /// </summary>
+    [JSImport("files.clear", JsModule.NAME)]
+    public static partial void Clear();
 }

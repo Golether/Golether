@@ -93,4 +93,13 @@ internal static partial class ConferenceInterop
     /// </summary>
     [JSImport("conference.stopAll", JsModule.NAME)]
     public static partial void StopAll();
+
+    /// <summary>
+    /// Asks for the devices and wakes the sound while the browser still counts the click as the user's: a phone
+    /// gives the camera, the microphone and the sound only then. The next change of the devices takes them over.
+    /// </summary>
+    /// <param name="camera">Whether to ask for the camera.</param>
+    /// <param name="microphone">Whether to ask for the microphone.</param>
+    [JSImport("conference.prepare", JsModule.NAME)]
+    public static partial void Prepare(bool camera, bool microphone);
 }

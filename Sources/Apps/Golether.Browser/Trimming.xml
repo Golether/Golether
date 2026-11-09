@@ -1,0 +1,9 @@
+<!--
+  What the trimmer of the published page must keep although no code names it: the texts of {loc:Loc} are bound by
+  reflection to the indexer of LocalizationSource, as on the desktop.
+-->
+<linker>
+  <assembly fullname="Golether.Client">
+    <type fullname="Golether.Client.Localization.LocalizationSource" preserve="all" />
+  </assembly>
+</linker>

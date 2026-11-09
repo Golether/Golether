@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.InteropServices.JavaScript;
 using Golether.Browser.Interop;
 using Golether.Core.Playback;
@@ -7,8 +8,8 @@ namespace Golether.Browser.Media;
 
 /// <summary>
 /// The player of the sessions in a browser: the <c>&lt;video&gt;</c> element of the page. The host plays the chosen
-/// file in place; a participant plays the film published by <see cref="BrowserStreams"/>. The browser decodes what it
-/// can (MP4 and WebM with H.264, VP9, AV1, AAC, Opus); another format is refused with a clear reason.
+/// file in place; a participant plays the film published by <see cref="BrowserStreams"/>. The element plays what the
+/// browser decodes and decodes the rest itself; a film it cannot open is refused with a clear reason.
 /// </summary>
 internal sealed class BrowserPlayer : IPlaybackController
 {
@@ -16,6 +17,22 @@ internal sealed class BrowserPlayer : IPlaybackController
     /// The number of values in a snapshot of the page.
     /// </summary>
     private const int SNAPSHOT_LENGTH = 7;
+
+    /// <summary>
+    /// The beginning of the source of a chosen file: the page plays the file itself, not an address of it.
+    /// </summary>
+    private const string FILE_SOURCE = "file:";
+
+    /// <summary>
+    /// How far ahead the element reads, as the desktop player (its demuxer reads 30 seconds ahead): the most a page
+    /// that decodes the film itself reports as loaded.
+    /// </summary>
+    private static readonly TimeSpan _lookAhead = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// The source the element plays, or <see langword="null"/> when nothing is loaded.
+    /// </summary>
+    private string? _source;
 
     /// <summary>
     /// The films of a participant.
@@ -43,13 +60,17 @@ internal sealed class BrowserPlayer : IPlaybackController
             return PlayerSnapshot.Empty;
         }
 
+        var position = Seconds(values[1]);
+        var duration = Seconds(values[2]);
+        var ahead = values[5] < 0 ? DecodedAhead(position, duration) : Seconds(values[5]) ?? TimeSpan.Zero;
+
         return new PlayerSnapshot(
             true,
-            Seconds(values[1]),
-            Seconds(values[2]),
+            position,
+            duration,
             values[3] != 0,
             values[4] != 0,
-            Seconds(values[5]) ?? TimeSpan.Zero,
+            ahead,
             double.IsFinite(values[6]) && values[6] > 0 ? values[6] : 1.0);
     }
 
@@ -58,6 +79,7 @@ internal sealed class BrowserPlayer : IPlaybackController
     {
         ArgumentNullException.ThrowIfNull(source);
         var url = Resolve(source);
+        _source = url;
 
         try
         {
@@ -93,6 +115,7 @@ internal sealed class BrowserPlayer : IPlaybackController
     /// <inheritdoc />
     public Task StopAsync(CancellationToken cancellationToken = default)
     {
+        _source = null;
         PlayerInterop.Stop();
         return Task.CompletedTask;
     }
@@ -117,7 +140,7 @@ internal sealed class BrowserPlayer : IPlaybackController
     {
         if (source.IsFile && BrowserFiles.TryFind(source.LocalPath, out var file))
         {
-            return FileInterop.ObjectUrl(file);
+            return FILE_SOURCE + file.ToString(CultureInfo.InvariantCulture);
         }
 
         if (_streams.TryGetPageUrl(source, out var pageUrl))
@@ -126,6 +149,33 @@ internal sealed class BrowserPlayer : IPlaybackController
         }
 
         throw new InvalidOperationException("The source is neither a chosen file nor a published film.");
+    }
+
+    /// <summary>
+    /// Tells how much is loaded ahead when the element decodes the film itself and the browser cannot say: a chosen
+    /// file is here whole, so as much as the element reads ahead; a film of the host as much as the cache of the
+    /// session holds from the position on, in the time of the film by its average bitrate, up to the same limit.
+    /// </summary>
+    /// <param name="position">The position.</param>
+    /// <param name="duration">The length of the film.</param>
+    /// <returns>The time loaded ahead.</returns>
+    private TimeSpan DecodedAhead(TimeSpan? position, TimeSpan? duration)
+    {
+        if (position is not { } at || duration is not { } length || length <= at)
+        {
+            return TimeSpan.Zero;
+        }
+
+        var ahead = _lookAhead;
+        if (_source is { } source &&
+            _streams.TryGetCachedAhead(source, at / length, _lookAhead / length, out var cached) &&
+            length * cached < ahead)
+        {
+            ahead = length * cached;
+        }
+
+        var remaining = length - at;
+        return ahead < remaining ? ahead : remaining;
     }
 
     /// <summary>

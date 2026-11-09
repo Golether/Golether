@@ -55,6 +55,11 @@ public sealed class MediaReadStream : Stream
     }
 
     /// <summary>
+    /// Gets the reader the stream reads from: what it holds ahead and where it reads ahead from.
+    /// </summary>
+    public CachedMediaReader Reader => _reader;
+
+    /// <summary>
     /// Unblocks a pending read; it fails with <see cref="OperationCanceledException"/>.
     /// </summary>
     public void CancelPendingRead()

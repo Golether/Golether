@@ -135,6 +135,28 @@ public sealed class CachedMediaReader : IAsyncDisposable
     }
 
     /// <summary>
+    /// Reads ahead from a position as if the player had gone on to it. A player that decodes only a few frames ahead
+    /// of the picture (the decoder of a browser page) stops reading while paused and never goes on from one piece to
+    /// the next, so nothing would be loaded for it before it plays.
+    /// </summary>
+    /// <param name="position">The byte position the player is at.</param>
+    public void ReadAheadFrom(long position)
+    {
+        if (position < 0 || position >= Media.Length)
+        {
+            return;
+        }
+
+        Interlocked.Exchange(ref _currentChunk, position / Media.ChunkSize);
+
+        // One pending wake is enough: the loop reads the whole window from the current piece each time.
+        if (_wake.CurrentCount == 0)
+        {
+            _wake.Release();
+        }
+    }
+
+    /// <summary>
     /// Stops the read-ahead loop and releases the source.
     /// </summary>
     /// <returns>A task that completes when the reader is closed.</returns>

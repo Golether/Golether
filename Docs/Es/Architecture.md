@@ -62,7 +62,7 @@ Sources/
   Apps/Golether.Client                     capa común del cliente: servicios, modelos de vista y controles sin ventanas, los colores del tema, funciones de pago
   Apps/Golether.Mobile                     las pantallas del cliente móvil: Avalonia, una vista en lugar de ventanas, tema e iconos propios
   Apps/Golether.Mobile.Android             el paquete de Android: actividad, servicio en primer plano de la sesión, componentes nativos
-  Apps/Golether.Browser                    la versión para navegador (un prototipo): las sesiones en WebAssembly sobre WebRTC, una página en vez de ventanas
+  Apps/Golether.Browser                    la versión para navegador (un prototipo): las sesiones en WebAssembly sobre WebRTC, las pantallas del escritorio dibujadas por Avalonia
   Apps/Golether.UI                         Avalonia: ventana, diálogos, composición de dependencias
   Apps/Golether.Web.Server                 el servidor de encuentro (una aplicación aparte, ver RendezvousServer.md)
   Apps/Golether.Web.Server.Contracts       lo que comparten el servidor y su monitor: ajustes, nombres del servicio, salud, registro
@@ -489,10 +489,21 @@ página, elige un archivo y envía el enlace.
   anfitrión conoce el `PeerId` del invitado. Un servidor que cambiara las descripciones traería otro certificado DTLS,
   y la firma no cuadraría. Después todo es como en la aplicación: el código de verificación con compromiso, la
   admisión por el anfitrión, los límites de una invitación.
-- **El archivo y el reproductor.** El archivo del anfitrión se lee en su sitio (`Blob.slice`) a través de
-  `OpenedFiles`, como en el teléfono, y se sirve en los mismos trozos de 256 KiB con SHA-256. El elemento `<video>`
-  de un invitado pide `stream/<n>` al service worker de la página; el worker toma los bytes de la caché de la sesión:
-  el equivalente del protocolo `golether://` de libmpv. Un navegador reproduce MP4 y WebM (H.264, VP9, AV1, AAC, Opus).
+- **El archivo y el reproductor.** El archivo del anfitrión se lee en su sitio (`Blob.slice`) a través de `OpenedFiles`,
+  como en el teléfono, y se sirve en los mismos trozos de 256 KiB con SHA-256. El elemento `<video>` de un invitado pide
+  `stream/<n>` al service worker de la página; el worker toma los bytes de la caché de la sesión: el equivalente del
+  protocolo `golether://` de libmpv. El elemento de la película es el `<avbridge-video>` de avbridge (`Vendor/README.md`
+  del proyecto): MP4 y WebM los reproduce el propio navegador, MKV se reempaqueta para él, y AVI y el sonido que los
+  navegadores no decodifican (AC-3, DTS) los decodifica libav.js en WebAssembly. Cada página elige su pista de sonido,
+  como en las aplicaciones; un archivo cuyo vídeo no se puede decodificar se rechaza con un mensaje que remite a la
+  aplicación.
+- **Pantallas.** La página la dibuja Avalonia (`Avalonia.Browser`) como la ventana principal del escritorio: su tema,
+  sus paneles y su línea de tiempo son los archivos de `Golether.UI`, compilados una vez más, y el chat, los trazos, las
+  pistas, el volumen, los mosaicos y los idiomas con sus banderas son los modelos de vista de `Golether.Client`. El
+  elemento de la película está bajo el lienzo de Avalonia, que queda transparente donde ningún control pinta: los
+  botones, los trazos y las reacciones se dibujan sobre la película, y un clic en ella la reproduce o la pausa. Las
+  imágenes de las cámaras se copian en los mosaicos unas doce veces por segundo, como el escritorio dibuja sus
+  fotogramas.
 - **Cámaras, voz e intercambio.** `Golether.Media.Conference.Browser` es el `IConferenceMedia` de un navegador: las
   decisiones (quién ofrece, qué señales se aceptan, cuándo se rehace una conexión fallida, el flujo económico, quién
   habla) se toman en .NET con las reglas de las aplicaciones (`SignalRules`, `ConnectionRules`,
@@ -514,13 +525,16 @@ página, elige un archivo y envía el enlace.
   navegador y dos aplicaciones que ningún otro camino conectó prueban este al final. La dirección de la señalización
   viene de `config.json` de la página del proyecto (`signal`), solo en el modo «Automáticamente»: con un servidor de
   encuentro privado la invitación no tiene camino para navegadores, y la página lo dice.
-- **Límites del prototipo.** La página tiene el chat y las reacciones y muestra los trazos del lápiz y los avatares de
-  los demás; dibujar, un avatar propio y los subtítulos son funciones de la aplicación, sus botones siguen en la página,
-  bloqueados, con el aviso «Usa la aplicación para esta función». Un navegador cambia las pistas de sonido de un
-  archivo solo donde puede (Safari). Sin muestra de carpetas; una pestaña tiene una sesión, y la pestaña del anfitrión
-  debe seguir abierta. La descarga ocupa unos 2,7 MB comprimidos: el JSON de las sesiones, las invitaciones y los
-  paquetes de idioma se genera al compilar, así que la compilación se recorta. El código de la página llega del sitio
-  en cada visita, así que el propio sitio forma parte de la confianza.
+- **Límites del prototipo.** Dibujar, un avatar propio y los subtítulos son funciones de la aplicación: el lápiz sigue
+  en la barra del reproductor, bloqueado, con el aviso «Usa la aplicación para esta función», las pistas dicen que los
+  subtítulos no están disponibles, y no hay avatar propio (los avatares de los demás se muestran). Sin muestra de
+  carpetas ni «continuar donde se dejó»; una pestaña tiene una sesión, y la pestaña del anfitrión debe seguir abierta.
+  La página ocupa unos 6,5 MB comprimidos (.NET, Avalonia con Skia, las sesiones; el JSON se genera al compilar, así que
+  la compilación se recorta); avbridge llega con la primera película y libav.js solo con un archivo que lo necesita. El
+  código de la página llega del sitio en cada visita, así que el propio sitio forma parte de la confianza.
+
+Para compilar la página .NET necesita la carga de trabajo `wasm-tools` (`dotnet workload install wasm-tools`): Avalonia
+enlaza Skia en el WebAssembly de .NET.
 
 Una prueba en un equipo: el servidor con la señalización activada, la página publicada en `http://localhost:47950`
 (las direcciones de los servidores están en `wwwroot/config.json`):

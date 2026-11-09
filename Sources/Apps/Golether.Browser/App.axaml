@@ -1,0 +1,13 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Golether.Browser.App"
+             Name="Golether"
+             RequestedThemeVariant="Dark">
+  <!-- Fluent in the dark variant, the theme of the desktop application and what a page needs on top of it. -->
+  <Application.Styles>
+    <FluentTheme />
+    <StyleInclude Source="avares://Golether.Browser/Styles/Theme.axaml" />
+    <StyleInclude Source="avares://Golether.Browser/Styles/Icons.axaml" />
+    <StyleInclude Source="avares://Golether.Browser/Styles/Page.axaml" />
+  </Application.Styles>
+</Application>
