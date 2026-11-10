@@ -75,11 +75,6 @@ public sealed partial class MainView : UserControl
     private const double TRACKS_ROOM = 140;
 
     /// <summary>
-    /// The room kept above and below a field scrolled back into sight when the keyboard of a phone opens.
-    /// </summary>
-    private const double FOCUS_ROOM = 16;
-
-    /// <summary>
     /// The layout the session has now; <see langword="null"/> until the page is first measured.
     /// </summary>
     private (bool Stacked, bool Short, bool FullScreen)? _layout;
@@ -211,27 +206,6 @@ public sealed partial class MainView : UserControl
     {
         base.OnSizeChanged(e);
         ApplyLayout(e.NewSize);
-
-        // The keyboard of a phone makes the page lower. The field being typed in may now lie under its edge, and the
-        // browser, which follows the hidden input of Avalonia at that field, pans the page and shows an empty strip.
-        if (e.NewSize.Height < e.PreviousSize.Height)
-        {
-            Dispatcher.UIThread.Post(KeepFocusInView, DispatcherPriority.Background);
-        }
-    }
-
-    /// <summary>
-    /// Scrolls the field that has the focus back into sight, with a little room around it, once the lower page is
-    /// laid out.
-    /// </summary>
-    private void KeepFocusInView()
-    {
-        if (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is not TextBox field)
-        {
-            return;
-        }
-
-        field.BringIntoView(new Rect(0, -FOCUS_ROOM, field.Bounds.Width, field.Bounds.Height + (2 * FOCUS_ROOM)));
     }
 
     /// <summary>
