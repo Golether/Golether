@@ -8,6 +8,7 @@ import * as keys from './keys.js';
 import * as page from './page.js';
 import * as player from './player.js';
 import * as rtc from './rtc.js';
+import * as softKeyboard from './softkeyboard.js';
 import * as stage from './stage.js';
 
 /** Takes the service worker and waits until it controls the page. */
@@ -30,13 +31,14 @@ try {
   await takeServiceWorker();
 
   const runtime = await dotnet.create();
-  runtime.setModuleImports('golether', { rtc, conference, player, files, keys, page, stage });
+  runtime.setModuleImports('golether', { rtc, conference, player, files, keys, page, softKeyboard, stage });
   const exports = await runtime.getAssemblyExports(runtime.getConfig().mainAssemblyName);
   const api = exports.Golether.Browser.Interop;
   rtc.bind(api.RtcCallbacks);
   conference.bind(api.ConferenceCallbacks);
   player.bind(api.PlayerCallbacks);
   page.bind(api.StreamCallbacks, api.PageCallbacks);
+  softKeyboard.bind(api.SoftKeyboardCallbacks);
   await runtime.runMain();
 } catch (e) {
   console.error(e);

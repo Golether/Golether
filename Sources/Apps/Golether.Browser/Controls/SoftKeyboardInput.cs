@@ -7,31 +7,32 @@ using Golether.Browser.Interop;
 namespace Golether.Browser.Controls;
 
 /// <summary>
-/// Types what the keyboard of a phone wrote. Avalonia in a browser takes text only from keys that name a character
-/// and from the end of a composition, and the keyboard of a phone sends neither: its keys are "Unidentified" and it
-/// writes into the hidden input of Avalonia directly. The page reads that change (<c>page.js</c>) and it is replayed
-/// here as the input a real keyboard would give, so the field keeps its own rules (the longest text, undo).
+/// The field side of the keyboard of a touch screen (<c>softkeyboard.js</c>): the change the keyboard made to the hidden
+/// input of Avalonia is made in the field at once, in the same event, so the two never differ; and when the field
+/// changes on its own (it took the focus, a button filled it), its text and selection are put into the input.
 /// </summary>
 internal static class SoftKeyboardInput
 {
     /// <summary>
-    /// Whether the fields are watched already.
+    /// Finds the field that has the focus, or <see langword="null"/>.
     /// </summary>
-    private static bool _attached;
+    private static Func<TextBox?>? _focusedField;
 
     /// <summary>
-    /// Starts keeping the hidden input of Avalonia in step with the field that has the focus: its text and its
-    /// selection. Avalonia copies the text there but not the moves of the caret, so without this the keyboard of a
-    /// phone would edit where the caret stood when the field took the focus.
+    /// Starts following the keyboard and the fields.
     /// </summary>
-    public static void Attach()
+    /// <param name="focusedField">Finds the field that has the focus.</param>
+    public static void Attach(Func<TextBox?> focusedField)
     {
-        if (_attached)
+        ArgumentNullException.ThrowIfNull(focusedField);
+        if (_focusedField is not null)
         {
             return;
         }
 
-        _attached = true;
+        _focusedField = focusedField;
+        SoftKeyboardCallbacks.TextEdited += (_, edit) => Apply(edit);
+        SoftKeyboardCallbacks.SelectionMoved += (_, selection) => Select(selection.Start, selection.End);
         TextBox.TextProperty.Changed.AddClassHandler<TextBox>((field, _) => Sync(field));
         TextBox.SelectionStartProperty.Changed.AddClassHandler<TextBox>((field, _) => Sync(field));
         TextBox.SelectionEndProperty.Changed.AddClassHandler<TextBox>((field, _) => Sync(field));
@@ -39,39 +40,55 @@ internal static class SoftKeyboardInput
     }
 
     /// <summary>
-    /// Applies a change to a field: selects the replaced stretch, then types the new text over it or deletes it.
+    /// Makes the change of the keyboard in the field: the stretch is selected and typed over or deleted, the way a real
+    /// keyboard would, so the field keeps its own rules (the longest text, undo); then the selection is put where the
+    /// keyboard left it.
     /// </summary>
-    /// <param name="field">The field that has the focus.</param>
-    /// <param name="edit">The change, counted from the start of the selection.</param>
-    public static void Apply(TextBox field, TextEdit edit)
+    /// <param name="edit">The change.</param>
+    private static void Apply(TextEdit edit)
     {
-        ArgumentNullException.ThrowIfNull(field);
-        ArgumentNullException.ThrowIfNull(edit);
-
-        var length = field.Text?.Length ?? 0;
-        var anchor = Math.Min(field.SelectionStart, field.SelectionEnd);
-        var start = Math.Clamp(anchor + edit.From, 0, length);
-        var end = Math.Clamp(anchor + edit.To, start, length);
-        if (start == end && edit.Text.Length == 0)
+        if (_focusedField?.Invoke() is not { } field)
         {
             return;
         }
 
+        var length = field.Text?.Length ?? 0;
+        var start = Math.Clamp(edit.From, 0, length);
+        var end = Math.Clamp(edit.To, start, length);
         field.SelectionStart = start;
         field.SelectionEnd = end;
         if (edit.Text.Length > 0)
         {
             field.RaiseEvent(new TextInputEventArgs { RoutedEvent = InputElement.TextInputEvent, Text = edit.Text });
         }
-        else
+        else if (end > start)
         {
             field.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Back });
         }
+
+        Select(edit.SelectionStart, edit.SelectionEnd);
     }
 
     /// <summary>
-    /// Copies the text and the selection of a field into the hidden input, once the field has settled after the
-    /// change (Avalonia writes its own copy of the text first).
+    /// Puts the selection of the field where the keyboard put the one of the input.
+    /// </summary>
+    /// <param name="start">The start of the selection.</param>
+    /// <param name="end">The end of the selection.</param>
+    private static void Select(int start, int end)
+    {
+        if (_focusedField?.Invoke() is not { } field)
+        {
+            return;
+        }
+
+        var length = field.Text?.Length ?? 0;
+        field.SelectionStart = Math.Clamp(start, 0, length);
+        field.SelectionEnd = Math.Clamp(end, 0, length);
+    }
+
+    /// <summary>
+    /// Puts the text and the selection of a field into the input once the field has settled; the page leaves the input
+    /// alone when they are equal already, as they are after every change of the keyboard.
     /// </summary>
     /// <param name="field">The field that changed.</param>
     private static void Sync(TextBox field)
@@ -90,7 +107,7 @@ internal static class SoftKeyboardInput
 
             var start = Math.Min(field.SelectionStart, field.SelectionEnd);
             var end = Math.Max(field.SelectionStart, field.SelectionEnd);
-            PageInterop.SyncSoftKeyboard(field.Text ?? string.Empty, start, end);
+            SoftKeyboardInterop.Sync(field.Text ?? string.Empty, start, end);
         }, DispatcherPriority.Background);
     }
 }

@@ -33,16 +33,6 @@ internal static partial class PageInterop
     public static partial string TakeInvitation();
 
     /// <summary>
-    /// Makes the hidden input of Avalonia hold the text and the selection of the field being typed in, so the keyboard
-    /// of a phone edits where the caret of the field is; does nothing without a touch screen.
-    /// </summary>
-    /// <param name="text">The text of the field.</param>
-    /// <param name="start">The start of the selection.</param>
-    /// <param name="end">The end of the selection.</param>
-    [JSImport("page.syncSoftKeyboard", JsModule.NAME)]
-    public static partial void SyncSoftKeyboard(string text, int start, int end);
-
-    /// <summary>
     /// Gives the address of this page without its fragment: an invitation link of a browser host is this address
     /// with the invitation after <c>#</c>.
     /// </summary>

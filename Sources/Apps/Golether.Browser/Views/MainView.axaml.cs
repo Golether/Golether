@@ -194,14 +194,7 @@ public sealed partial class MainView : UserControl
             ApplyLayout(Bounds.Size);
             UpdateChrome();
         });
-        SoftKeyboardInput.Attach();
-        PageCallbacks.TextEdited += (_, edit) => Dispatcher.UIThread.Post(() =>
-        {
-            if (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is TextBox field)
-            {
-                SoftKeyboardInput.Apply(field, edit);
-            }
-        });
+        SoftKeyboardInput.Attach(() => TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() as TextBox);
 
         var clickLayer = this.FindControl<Panel>("ClickLayer")!;
         clickLayer.Tapped += OnFilmTapped;
