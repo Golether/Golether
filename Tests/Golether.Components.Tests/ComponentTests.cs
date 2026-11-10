@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Time.Testing;
 using Golether.Components.Catalog;
@@ -172,6 +173,43 @@ public sealed class ComponentTests : IDisposable
     }
 
     /// <summary>
+    /// A download cut off on the way is continued from the bytes already received, after a pause, and the joined file
+    /// is the verified package.
+    /// </summary>
+    /// <returns>A task that completes when the test is done.</returns>
+    [Fact]
+    public async Task Download_ContinuesWhereTheConnectionBroke()
+    {
+        var content = RandomNumberGenerator.GetBytes(200_000);
+        var handler = new BreakingHandler(content);
+        var time = new FakeTimeProvider();
+        var installer = new ComponentInstaller(Path.Combine(_directory.FullName, "components"), new HttpClient(handler), new FakeTools(), time, existingGStreamer: new FakeGStreamerFinder());
+
+        var file = await RunWithTimeAsync(installer.DownloadAsync(Package(content, PackageFormat.SevenZip), null, TestContext.Current.CancellationToken), time);
+
+        Assert.Equal(content, await File.ReadAllBytesAsync(file, TestContext.Current.CancellationToken));
+        Assert.Equal(2, handler.Ranges.Count);
+        Assert.Null(handler.Ranges[0]);
+        Assert.Equal(BreakingHandler.SENT_BEFORE_BREAK, handler.Ranges[1]?.Ranges.Single().From);
+    }
+
+    /// <summary>
+    /// A file the server does not have is not asked for again: only a broken connection or a busy server is.
+    /// </summary>
+    /// <returns>A task that completes when the test is done.</returns>
+    [Fact]
+    public async Task Download_DoesNotRetryAMissingFile()
+    {
+        var content = RandomNumberGenerator.GetBytes(1000);
+        var handler = new StatusHandler(HttpStatusCode.NotFound);
+        var installer = CreateInstaller(handler, new FakeTools(), new FakeGStreamerFinder());
+
+        await Assert.ThrowsAsync<ComponentInstallException>(() => installer.DownloadAsync(Package(content, PackageFormat.SevenZip), null, TestContext.Current.CancellationToken));
+
+        Assert.Equal(1, handler.Requests);
+    }
+
+    /// <summary>
     /// Bundled components win over installed ones; a damaged marker is ignored.
     /// </summary>
     [Fact]
@@ -218,6 +256,24 @@ public sealed class ComponentTests : IDisposable
     /// <returns>The installer.</returns>
     private ComponentInstaller CreateInstaller(HttpMessageHandler handler, IToolRunner tools, IExistingGStreamerFinder finder)
         => new(Path.Combine(_directory.FullName, "components"), new HttpClient(handler), tools, new FakeTimeProvider(), existingGStreamer: finder);
+
+    /// <summary>
+    /// Waits for a task that pauses on a fake clock, moving the clock on until the task is done.
+    /// </summary>
+    /// <typeparam name="T">The result of the task.</typeparam>
+    /// <param name="task">The task.</param>
+    /// <param name="time">The fake clock the task waits on.</param>
+    /// <returns>The result of the task.</returns>
+    private static async Task<T> RunWithTimeAsync<T>(Task<T> task, FakeTimeProvider time)
+    {
+        while (!task.IsCompleted)
+        {
+            time.Advance(TimeSpan.FromSeconds(10));
+            await Task.Delay(20, TestContext.Current.CancellationToken);
+        }
+
+        return await task;
+    }
 
     /// <summary>
     /// Builds a fake GStreamer installation out of copies of a real executable.
@@ -272,6 +328,78 @@ public sealed class ComponentTests : IDisposable
             Requests++;
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(content) });
         }
+    }
+
+    /// <summary>
+    /// Answers every request with one status and counts the requests.
+    /// </summary>
+    /// <param name="status">The status.</param>
+    private sealed class StatusHandler(HttpStatusCode status) : HttpMessageHandler
+    {
+        /// <summary>
+        /// Gets the number of requests.
+        /// </summary>
+        public int Requests { get; private set; }
+
+        /// <inheritdoc />
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Requests++;
+            return Task.FromResult(new HttpResponseMessage(status));
+        }
+    }
+
+    /// <summary>
+    /// Breaks the first answer off on the way, as a server far away does, and answers a range with the rest.
+    /// </summary>
+    /// <param name="content">The whole file.</param>
+    private sealed class BreakingHandler(byte[] content) : HttpMessageHandler
+    {
+        /// <summary>
+        /// How many bytes the first answer carries before the connection breaks.
+        /// </summary>
+        public const int SENT_BEFORE_BREAK = 100_000;
+
+        /// <summary>
+        /// Gets the ranges asked for, one per request; <see langword="null"/> for the whole file.
+        /// </summary>
+        public List<RangeHeaderValue?> Ranges { get; } = [];
+
+        /// <inheritdoc />
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Ranges.Add(request.Headers.Range);
+            if (request.Headers.Range?.Ranges.Single().From is not { } from)
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(new BreakingStream(content[..SENT_BEFORE_BREAK])) });
+            }
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.PartialContent) { Content = new ByteArrayContent(content[(int)from..]) });
+        }
+    }
+
+    /// <summary>
+    /// Gives its bytes, then fails as a connection that broke.
+    /// </summary>
+    /// <param name="head">The bytes that arrive before the break.</param>
+    private sealed class BreakingStream(byte[] head) : MemoryStream(head)
+    {
+        /// <inheritdoc />
+        public override int Read(byte[] buffer, int offset, int count)
+            => Check(base.Read(buffer, offset, count));
+
+        /// <inheritdoc />
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+            => Check(await base.ReadAsync(buffer, cancellationToken));
+
+        /// <summary>
+        /// Turns the end of the bytes into the break of the connection.
+        /// </summary>
+        /// <param name="read">The bytes read.</param>
+        /// <returns>The same number while there are bytes.</returns>
+        /// <exception cref="IOException">The bytes are over.</exception>
+        private static int Check(int read)
+            => read > 0 ? read : throw new IOException("The response ended prematurely.");
     }
 
     /// <summary>

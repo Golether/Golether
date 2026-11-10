@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -18,6 +20,16 @@ namespace Golether.Components.Installation;
 /// </remarks>
 public sealed class ComponentInstaller
 {
+    /// <summary>
+    /// How many times a download is tried before it fails; every attempt continues the bytes already received.
+    /// </summary>
+    internal const int DOWNLOAD_ATTEMPTS = 5;
+
+    /// <summary>
+    /// The pause before the second attempt of a download; it grows with every next one.
+    /// </summary>
+    private static readonly TimeSpan _retryDelay = TimeSpan.FromSeconds(3);
+
     /// <summary>
     /// The JSON options of markers.
     /// </summary>
@@ -204,41 +216,32 @@ public sealed class ComponentInstaller
         }
 
         var partial = file + ".partial";
+        TryDelete(partial);
         try
         {
-            using var response = await _http.GetAsync(package.Url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
-            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-            await using (var source = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false))
+            // A large package (the GStreamer installer is about half a gigabyte) is often cut off on the way; every
+            // attempt continues where the last one stopped.
+            for (var attempt = 1; ; attempt++)
             {
-                await using (var target = new FileStream(partial, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 16, useAsync: true))
+                try
                 {
-                    var buffer = new byte[1 << 16];
-                    long total = 0;
-                    int read;
-                    while ((read = await source.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
-                    {
-                        total += read;
-                        if (total > package.Size)
-                        {
-                            throw new ComponentInstallException(Texts.Get("Install.Error.DownloadTooLarge"));
-                        }
-
-                        hash.AppendData(buffer, 0, read);
-                        await target.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
-                        progress?.Report(new InstallProgress(InstallStage.Downloading, total, package.Size));
-                    }
-
-                    progress?.Report(new InstallProgress(InstallStage.Verifying, total, package.Size));
-                    var actual = Convert.ToHexStringLower(hash.GetHashAndReset());
-                    if (total != package.Size || actual != package.Sha256)
-                    {
-                        throw new ComponentInstallException(Texts.Get("Install.Error.ChecksumMismatch"));
-                    }
+                    await DownloadPartAsync(package, partial, progress, cancellationToken).ConfigureAwait(false);
+                    break;
+                }
+                catch (Exception ex) when (attempt < DOWNLOAD_ATTEMPTS && IsTransient(ex) && !cancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogWarning("The download of {File} broke off ({Error}); attempt {Attempt} of {Attempts} continues it", package.FileName, ex.Message, attempt + 1, DOWNLOAD_ATTEMPTS);
+                    await Task.Delay(_retryDelay * attempt, _timeProvider, cancellationToken).ConfigureAwait(false);
                 }
             }
 
-            // The file is closed only now, so it can be moved into place.
+            var length = new FileInfo(partial).Length;
+            progress?.Report(new InstallProgress(InstallStage.Verifying, length, package.Size));
+            if (length != package.Size || await HashFileAsync(partial, cancellationToken).ConfigureAwait(false) != package.Sha256)
+            {
+                throw new ComponentInstallException(Texts.Get("Install.Error.ChecksumMismatch"));
+            }
+
             File.Move(partial, file, overwrite: true);
             return file;
         }
@@ -255,6 +258,67 @@ public sealed class ComponentInstaller
             TryDelete(partial);
         }
     }
+
+    /// <summary>
+    /// Downloads what is missing of a package into its partial file: the rest after the bytes already there, when the
+    /// server answers a range, or the whole file again when it does not.
+    /// </summary>
+    /// <param name="package">The package.</param>
+    /// <param name="partial">The partial file.</param>
+    /// <param name="progress">Receives progress.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task that completes when the server sent the whole file.</returns>
+    /// <exception cref="ComponentInstallException">The server sends more than the package holds.</exception>
+    private async Task DownloadPartAsync(ComponentPackage package, string partial, IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
+    {
+        var have = File.Exists(partial) ? new FileInfo(partial).Length : 0;
+        if (have >= package.Size)
+        {
+            return;
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, package.Url);
+        if (have > 0)
+        {
+            request.Headers.Range = new RangeHeaderValue(have, null);
+        }
+
+        using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        var append = have > 0 && response.StatusCode == HttpStatusCode.PartialContent;
+        var total = append ? have : 0;
+
+        await using var source = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        await using var target = new FileStream(partial, append ? FileMode.Append : FileMode.Create, FileAccess.Write, FileShare.None, 1 << 16, useAsync: true);
+        var buffer = new byte[1 << 16];
+        int read;
+        while ((read = await source.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+        {
+            total += read;
+            if (total > package.Size)
+            {
+                throw new ComponentInstallException(Texts.Get("Install.Error.DownloadTooLarge"));
+            }
+
+            await target.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+            progress?.Report(new InstallProgress(InstallStage.Downloading, total, package.Size));
+        }
+    }
+
+    /// <summary>
+    /// Tells whether a failed download may succeed when tried again: a connection that broke or a server that was
+    /// busy, not a missing file or a refusal.
+    /// </summary>
+    /// <param name="error">The failure.</param>
+    /// <returns><see langword="true"/> when another attempt makes sense.</returns>
+    private static bool IsTransient(Exception error)
+        => error switch
+        {
+            HttpRequestException { StatusCode: null } => true,
+            HttpRequestException { StatusCode: { } status } => status is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests || (int)status >= 500,
+            IOException => true,
+            _ => false,
+        };
 
     /// <summary>
     /// Computes the SHA-256 of a file.
