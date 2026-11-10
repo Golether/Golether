@@ -102,7 +102,14 @@
         <ScrollViewer IsVisible="{Binding !IsInSession}">
           <StackPanel Classes="start" MaxWidth="980" Spacing="22">
             <StackPanel Spacing="6">
-              <TextBlock Classes="hero" Text="{loc:Loc Main.Hero.Title}" />
+              <!--
+                The title in two parts cut at its comma: side by side where the page is wide enough, the second under the
+                first where it is not, so a phone never leaves its last word alone on a line.
+              -->
+              <WrapPanel Classes="hero" AutomationProperties.Name="{loc:Loc Main.Hero.Title}">
+                <TextBlock Classes="hero" Text="{Binding [Main.Hero.Title], Source={x:Static loc:LocalizationSource.Instance}, Converter={x:Static controls:PhrasePartConverter.Head}}" />
+                <TextBlock Classes="hero" Text="{Binding [Main.Hero.Title], Source={x:Static loc:LocalizationSource.Instance}, Converter={x:Static controls:PhrasePartConverter.Rest}}" />
+              </WrapPanel>
               <TextBlock Classes="muted" TextWrapping="Wrap" MaxWidth="720" HorizontalAlignment="Left" Text="{loc:Loc Browser.Hero.Text}" />
             </StackPanel>
             <StackPanel Classes="nameRow">
@@ -112,7 +119,11 @@
             <Border Classes="notice" BorderBrush="{StaticResource GoletherBad}" IsVisible="{Binding HasHomeError}" HorizontalAlignment="Left" MaxWidth="940">
               <TextBlock TextWrapping="Wrap" Foreground="{StaticResource GoletherBad}" Text="{Binding HomeError}" />
             </Border>
-            <WrapPanel Orientation="Horizontal">
+            <!--
+              The two cards: side by side and as high as each other on a wide page, one under the other and as wide as the
+              page on a narrow one (MainView arranges the grid).
+            -->
+            <Grid x:Name="StartCards" ColumnDefinitions="*,20,*">
               <Border Classes="card startCard">
                 <StackPanel Spacing="12">
                   <TextBlock Classes="title" Text="{loc:Loc Main.Host.Title}" />
@@ -125,7 +136,7 @@
                   <Button Classes="accent" Content="{loc:Loc Main.Host.Start}" Command="{Binding StartHostingCommand}" />
                 </StackPanel>
               </Border>
-              <Border Classes="card startCard">
+              <Border x:Name="JoinCard" Grid.Column="2" Classes="card startCard">
                 <StackPanel Spacing="12">
                   <TextBlock Classes="title" Text="{loc:Loc Main.Join.Title}" />
                   <TextBlock Classes="muted" TextWrapping="Wrap" Text="{loc:Loc Main.Join.Text}" />
@@ -141,7 +152,7 @@
                   </StackPanel>
                 </StackPanel>
               </Border>
-            </WrapPanel>
+            </Grid>
           </StackPanel>
         </ScrollViewer>
 

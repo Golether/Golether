@@ -75,6 +75,11 @@ public sealed partial class MainView : UserControl
     private const double TRACKS_ROOM = 140;
 
     /// <summary>
+    /// The room kept above and below a field scrolled back into sight when the keyboard of a phone opens.
+    /// </summary>
+    private const double FOCUS_ROOM = 16;
+
+    /// <summary>
     /// The layout the session has now; <see langword="null"/> until the page is first measured.
     /// </summary>
     private (bool Stacked, bool Short, bool FullScreen)? _layout;
@@ -84,6 +89,12 @@ public sealed partial class MainView : UserControl
     /// follows must not also play or pause the film.
     /// </summary>
     private bool _tapRevealsBars;
+
+    /// <summary>
+    /// Whether the cards of the start screen are arranged one under the other; <see langword="null"/> before the first
+    /// arrangement.
+    /// </summary>
+    private bool? _startCompact;
 
     /// <summary>
     /// How long the bars and the cursor stay after the pointer stopped, as on the desktop.
@@ -200,6 +211,27 @@ public sealed partial class MainView : UserControl
     {
         base.OnSizeChanged(e);
         ApplyLayout(e.NewSize);
+
+        // The keyboard of a phone makes the page lower. The field being typed in may now lie under its edge, and the
+        // browser, which follows the hidden input of Avalonia at that field, pans the page and shows an empty strip.
+        if (e.NewSize.Height < e.PreviousSize.Height)
+        {
+            Dispatcher.UIThread.Post(KeepFocusInView, DispatcherPriority.Background);
+        }
+    }
+
+    /// <summary>
+    /// Scrolls the field that has the focus back into sight, with a little room around it, once the lower page is
+    /// laid out.
+    /// </summary>
+    private void KeepFocusInView()
+    {
+        if (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is not TextBox field)
+        {
+            return;
+        }
+
+        field.BringIntoView(new Rect(0, -FOCUS_ROOM, field.Bounds.Width, field.Bounds.Height + (2 * FOCUS_ROOM)));
     }
 
     /// <summary>
@@ -439,7 +471,9 @@ public sealed partial class MainView : UserControl
 
         var stacked = size.Height > size.Width && size.Width < STACKED_MAX_WIDTH;
         var low = size.Height < SHORT_HEIGHT;
-        Classes.Set("compact", size.Width < COMPACT_WIDTH);
+        var compact = size.Width < COMPACT_WIDTH;
+        Classes.Set("compact", compact);
+        ArrangeStartCards(compact);
         Classes.Set("short", low);
         Classes.Set("stacked", stacked);
 
@@ -459,6 +493,27 @@ public sealed partial class MainView : UserControl
 
         _layout = (stacked, low, _fullScreen);
         ArrangeSession(stacked, low);
+    }
+
+    /// <summary>
+    /// Puts the cards of the start screen side by side, in two equal columns, or one under the other on a narrow page.
+    /// </summary>
+    /// <param name="compact">Whether the page is narrow.</param>
+    private void ArrangeStartCards(bool compact)
+    {
+        if (_startCompact == compact)
+        {
+            return;
+        }
+
+        _startCompact = compact;
+        var grid = this.FindControl<Grid>("StartCards")!;
+        var join = this.FindControl<Border>("JoinCard")!;
+
+        grid.ColumnDefinitions = new ColumnDefinitions(compact ? "*" : "*,20,*");
+        grid.RowDefinitions = new RowDefinitions(compact ? "Auto,16,Auto" : "Auto");
+        Grid.SetColumn(join, compact ? 0 : 2);
+        Grid.SetRow(join, compact ? 2 : 0);
     }
 
     /// <summary>

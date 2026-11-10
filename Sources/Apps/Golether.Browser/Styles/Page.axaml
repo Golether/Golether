@@ -87,6 +87,13 @@
   <Style Selector="views|MainView.compact TextBlock.hero">
     <Setter Property="FontSize" Value="24" />
   </Style>
+  <!-- The space between the two parts of the title, as wide as a space of its letters. -->
+  <Style Selector="WrapPanel.hero">
+    <Setter Property="ItemSpacing" Value="8" />
+  </Style>
+  <Style Selector="views|MainView.compact WrapPanel.hero">
+    <Setter Property="ItemSpacing" Value="7" />
+  </Style>
   <Style Selector="StackPanel.nameRow">
     <Setter Property="Orientation" Value="Horizontal" />
     <Setter Property="Spacing" Value="10" />
@@ -101,13 +108,12 @@
   <Style Selector="views|MainView.compact StackPanel.nameRow TextBox">
     <Setter Property="Width" Value="NaN" />
   </Style>
-  <Style Selector="Border.startCard">
-    <Setter Property="Width" Value="460" />
-    <Setter Property="Margin" Value="0,0,20,20" />
-  </Style>
+  <!--
+    The cards of the start screen fill their cells of the grid, so their edges line up with the field of the name. On a
+    phone the room inside them is that of the page around them, so their text does not sink much deeper than the title.
+  -->
   <Style Selector="views|MainView.compact Border.startCard">
-    <Setter Property="Width" Value="NaN" />
-    <Setter Property="Margin" Value="0,0,0,16" />
+    <Setter Property="Padding" Value="16" />
   </Style>
 
   <!--
