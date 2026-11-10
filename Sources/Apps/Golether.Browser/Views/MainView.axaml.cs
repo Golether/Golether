@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
+using Golether.Browser.Controls;
 using Golether.Browser.Interop;
 using Golether.Browser.ViewModels;
 using Golether.UI.Controls;
@@ -192,6 +193,14 @@ public sealed partial class MainView : UserControl
             _fullScreen = PageInterop.IsFullScreen();
             ApplyLayout(Bounds.Size);
             UpdateChrome();
+        });
+        SoftKeyboardInput.Attach();
+        PageCallbacks.TextEdited += (_, edit) => Dispatcher.UIThread.Post(() =>
+        {
+            if (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is TextBox field)
+            {
+                SoftKeyboardInput.Apply(field, edit);
+            }
         });
 
         var clickLayer = this.FindControl<Panel>("ClickLayer")!;
