@@ -47,12 +47,15 @@ export function bind(streamCallbacks, callbacks) {
   input either when the caret of the field moves, so the keyboard edits the wrong place (Backspace only moves the
   caret). On a touch screen the page therefore keeps the text events of that input from Avalonia, compares the input
   before and after each change and hands .NET the replaced stretch, which it types into the field; .NET in turn keeps
-  the text and the caret of the input equal to those of the field (syncSoftKeyboard). A real key (a keyboard plugged
-  into a tablet) is still typed by Avalonia, and its echo in the input is left alone.
+  the text and the caret of the input equal to those of the field (syncSoftKeyboard).
+  Every key of the keyboard of the phone (it has no code of a physical key) that changes text goes this one way, even
+  Backspace, which it sends as a named key: were Avalonia to delete the letter as well, the keyboard, which holds the
+  word being typed, would put the letter back, and Backspace would work only now and then. The keys that change no text
+  (Enter, the arrows) and every key of a real keyboard (one plugged into a tablet) are still Avalonia's, and the echo of
+  a real key in the input is left alone.
 */
 const AVALONIA_INPUT = 'avalonia-input-element';
-const UNTYPED_KEYS = new Set(['Unidentified', 'Process']);
-const UNTYPED_KEY_CODE = 229;
+const AVALONIA_SOFT_KEYS = new Set(['Enter', 'Tab', 'Escape', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End']);
 const softKeyboard = Boolean(window.matchMedia?.('(pointer: coarse)').matches);
 let beforeEdit = null;
 let keyTyped = false;
@@ -60,6 +63,11 @@ let keyTyped = false;
 /** Tells whether an event is about the hidden input of Avalonia. */
 function isAvaloniaInput(target) {
   return target instanceof HTMLInputElement && target.classList.contains(AVALONIA_INPUT);
+}
+
+/** Tells whether a key comes from the keyboard of the screen and changes text, so the page types it, not Avalonia. */
+function isSoftEditKey(e) {
+  return e.code === '' && !AVALONIA_SOFT_KEYS.has(e.key);
 }
 
 /** The value and the selection of the hidden input before the keyboard changes it. */
@@ -94,15 +102,26 @@ function bindSoftKeyboard() {
     return;
   }
   window.addEventListener('keydown', (e) => {
-    if (isAvaloniaInput(e.target)) {
-      keyTyped = !UNTYPED_KEYS.has(e.key) && e.keyCode !== UNTYPED_KEY_CODE;
-      // A phone announces each change with an "Unidentified" key; some changes come without the beforeinput event.
-      beforeEdit = keyTyped ? null : snapshot(e.target);
+    if (!isAvaloniaInput(e.target)) {
+      return;
     }
+    keyTyped = !isSoftEditKey(e);
+    if (keyTyped) {
+      beforeEdit = null;
+      return;
+    }
+    // The browser changes the input as the key asks; the change is read on input. Some changes come without the
+    // beforeinput event, so the input is taken as it stands now.
+    beforeEdit = snapshot(e.target);
+    e.stopImmediatePropagation();
   }, { capture: true });
   window.addEventListener('keyup', (e) => {
-    if (isAvaloniaInput(e.target)) {
-      keyTyped = false;
+    if (!isAvaloniaInput(e.target)) {
+      return;
+    }
+    keyTyped = false;
+    if (isSoftEditKey(e)) {
+      e.stopImmediatePropagation();
     }
   }, { capture: true });
   for (const type of ['compositionstart', 'compositionupdate', 'compositionend']) {
