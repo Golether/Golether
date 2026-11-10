@@ -5,8 +5,9 @@
 # copied there as a commit, and GitHub Pages of that repository publishes it from its main branch. The commit is
 # pushed with a deploy key: it can write to that one repository and nothing else.
 # One-time setup: Sources/Apps/Golether.Pages/README.md, "First publication".
-# The browser version talks to the rendezvous server named by the repository variable BROWSER_SERVER (a host name such
-# as meet.example.org); without it the site is published without watch/. See the README, "The browser version".
+# The browser version works with the servers config.json of the page names, sealed: the rendezvous server and its
+# signalling. While config.json names no signalling, watch/ is published all the same: it opens and says that sessions
+# in a browser are not available yet. See the README, "The browser version".
 name: Pages
 
 on:
@@ -49,28 +50,18 @@ jobs:
             echo "::error::The secret SITE_DEPLOY_KEY is missing: see Sources/Apps/Golether.Pages/README.md, First publication."
             exit 1
           fi
-      # The address is checked before anything is built: it ends up in a file every visitor's browser follows.
-      - name: Check the server of the browser version
-        id: server
-        env:
-          BROWSER_SERVER: ${{ vars.BROWSER_SERVER }}
+      # Sessions in the browser need the signalling of the project server: config.json of the page names it sealed, as
+      # Golether.AdminSettings writes it. Without it the browser version is published anyway and hosts nothing.
+      - name: Check the signalling of the browser version
         run: |
-          if [ -z "$BROWSER_SERVER" ]; then
-            echo "::warning::The variable BROWSER_SERVER is not set: the site is published without the browser version."
-            echo "host=" >> "$GITHUB_OUTPUT"
-          elif [[ "$BROWSER_SERVER" =~ ^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+$ ]]; then
-            echo "host=$BROWSER_SERVER" >> "$GITHUB_OUTPUT"
-          else
-            echo "::error::BROWSER_SERVER must be a host name such as meet.example.org, without a scheme or a port."
-            exit 1
+          if ! jq -e '.signal | if type == "string" then startswith("g1.") else false end' Sources/Apps/Golether.Pages/config.json > /dev/null; then
+            echo "::warning::config.json of the page names no sealed signalling: the browser version opens, but sessions in it are not available."
           fi
       - uses: actions/setup-dotnet@v4
-        if: steps.server.outputs.host != ''
         with:
           global-json-file: global.json
       # Avalonia links its native Skia into the WebAssembly of .NET, which needs the workload.
       - name: Build the browser version
-        if: steps.server.outputs.host != ''
         run: |
           dotnet workload install wasm-tools
           dotnet publish Sources/Apps/Golether.Browser -c Release -o browser
@@ -86,16 +77,12 @@ jobs:
           rsync -a --delete --exclude .git Sources/Apps/Golether.Pages/ site/
           touch site/.nojekyll
       # GitHub Pages compresses by itself, so the compressed copies of the build are left out. config.json of the
-      # sources points to a server on the developer's computer; the published one points to BROWSER_SERVER, at the
-      # default ports of the server: the rendezvous and STUN on 47900, the signalling on 47943.
+      # sources names servers on the developer's computer in the open; the published one is config.json of the page,
+      # so no address stands on the site unsealed.
       - name: Copy the browser version
-        if: steps.server.outputs.host != ''
-        env:
-          HOST: ${{ steps.server.outputs.host }}
         run: |
           rsync -a --exclude '*.gz' --exclude '*.br' browser/wwwroot/ site/watch/
-          printf '{\n  "signal": "wss://%s:47943/signal",\n  "stun": "stun:%s:47900",\n  "meet": "%s:47900"\n}\n' \
-            "$HOST" "$HOST" "$HOST" > site/watch/config.json
+          cp Sources/Apps/Golether.Pages/config.json site/watch/config.json
       - name: Push the page
         working-directory: site
         run: |

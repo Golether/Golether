@@ -195,7 +195,7 @@ defaults all the same. A key missing from the file takes its default value too.
 
 The browser version of Golether reaches the server over a WebSocket. It is off by default:
 
-Applications use it too: a session of the application takes guests from a browser only through it. For such mixed meetings switch it on, give the server a domain with a TLS certificate (`wss://`) and publish the address as `signal` in `config.json` of the project page.
+Applications use it too: a session of the application takes guests from a browser only through it. For such mixed meetings switch it on, give the server a domain with a TLS certificate (`wss://`) and give its `host:port` to the owner of the project page: it goes into `config.json`, sealed, as `signal`.
 
 ```json
 "Signal": {
@@ -203,7 +203,7 @@ Applications use it too: a session of the application takes guests from a browse
   "Url": "https://0.0.0.0:47943",
   "AllowedOrigins": [ "https://golether.github.io" ]
 },
-"Kestrel": { "Certificates": { "Default": { "Path": "config/signal.pfx", "Password": "…" } } }
+"Kestrel": { "Certificates": { "Default": { "Path": "signal.pfx", "Password": "…" } } }
 ```
 
 | Parameter `Signal:…` | Default | What it sets |
@@ -211,10 +211,33 @@ Applications use it too: a session of the application takes guests from a browse
 | `Enabled` | `false` | whether to take browsers |
 | `Url` | `http://0.0.0.0:47943` | the address of the WebSocket; a page served over HTTPS opens only `wss://`, so on the internet this is `https://` with the certificate of `Kestrel:Certificates:Default` (a domain name and, for example, Let's Encrypt) |
 | `AllowedOrigins` | `http://localhost:47950`, `http://127.0.0.1:47950` | the pages allowed to use the server |
+| `TrustedProxies` | empty | the networks of the proxies in front of the server (Cloudflare, for example): a browser behind them is counted by the address the proxy names in `X-Forwarded-For`, so the limit of connections per address holds for each browser; a request from elsewhere keeps its own address whatever it claims |
 | `MaxConnections`, `MaxRooms`, `MaxMeetingsPerRoom`, `MaxConnectionsPerMinute` | `1024`, `1024`, `16`, `120` | the same limits as for the applications |
 | `FirstMessageTimeout`, `MeetingTimeout` | `00:00:10`, `00:01:00` | how long to wait for the first message and how long a meeting lasts |
 
-Open the TCP port of `Url` on the router as well.
+Open the TCP port of `Url` on the router as well. A relative path of a certificate counts from the folder of `appsettings.json` (`config` of the package).
+
+**Behind Cloudflare.** A certificate without ports 80 and 443 and without renewals: a domain served by Cloudflare (the
+free plan), an `A` record of the signalling (`signal.example.org`) with the proxy on (the orange cloud), the SSL/TLS
+mode **Full (strict)** and an origin certificate (SSL/TLS → Origin Server → Create Certificate, PEM, up to 15 years):
+its two files go next to `appsettings.json`. Cloudflare passes on only some ports; 8443 is one of them and needs no
+administrator rights, while the Linux service runs without them:
+
+```json
+"Signal": {
+  "Enabled": true,
+  "Url": "https://0.0.0.0:8443",
+  "AllowedOrigins": [ "https://golether.github.io" ],
+  "TrustedProxies": [ "173.245.48.0/20", "103.21.244.0/22", "…", "2400:cb00::/32", "…" ]
+},
+"Kestrel": { "Certificates": { "Default": { "Path": "origin.pem", "KeyPath": "origin.key" } } }
+```
+
+`TrustedProxies` is the list of <https://www.cloudflare.com/ips/>, IPv4 and IPv6. Open TCP 8443 to the same networks
+only. The service must be able to read both files: give them the rights of `appsettings.json`. Make no record without
+the proxy pointing at this server: anybody could learn its address from it. The applications and STUN keep reaching
+port 47900 at the address of the server, Cloudflare does not touch them. The signalling of `config.json` is then
+`signal.example.org:8443`.
 
 Any parameter can also be set without editing the file, with an environment variable (a double underscore instead of
 the colon) or a command-line argument; they override the file:

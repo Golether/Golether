@@ -255,7 +255,9 @@ sees what it saw before (addresses, rooms, public keys) and the DTLS fingerprint
 
 Applications use the same signalling: an application host keeps its room here next to the room of the rendezvous
 protocol, and an application meets a browser host here. It is the only part of the server a mixed meeting needs, so for
-one the server needs a domain with a TLS certificate (`wss://`).
+one the server needs a domain with a TLS certificate (`wss://`). Behind a proxy such as Cloudflare the server counts a
+browser by the address the proxy names in `X-Forwarded-For`, but only for a request from the networks of
+`Signal:TrustedProxies`; the project page names the signalling as a sealed `host:port`, like the server itself.
 
 ## Limitations
 

@@ -36,15 +36,18 @@ internal sealed class WebRtcListener : IPeerListener
     /// <summary>
     /// Takes a room and starts accepting participants.
     /// </summary>
-    /// <param name="config">The servers of the page.</param>
+    /// <param name="signal">The signalling the room is taken at.</param>
+    /// <param name="stunUrl">The STUN server.</param>
     /// <param name="room">The room.</param>
     /// <returns>The listener.</returns>
     /// <exception cref="IOException">The room was not taken.</exception>
-    public static async Task<WebRtcListener> OpenAsync(BrowserConfig config, string room)
+    public static async Task<WebRtcListener> OpenAsync(Uri signal, string stunUrl, string room)
     {
+        ArgumentNullException.ThrowIfNull(signal);
+
         try
         {
-            await RtcInterop.HostOpenAsync(config.SignalUrl, config.StunUrl, room).ConfigureAwait(false);
+            await RtcInterop.HostOpenAsync(signal.OriginalString, stunUrl, room).ConfigureAwait(false);
         }
         catch (JSException ex)
         {

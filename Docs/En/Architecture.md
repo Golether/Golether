@@ -501,7 +501,7 @@ the page, chooses a file and sends the link.
   `GStreamerDataLink` makes the connection with a `webrtcbin` of data channels only and opens no channel before the
   DTLS certificate of the other side matched the fingerprint of its description. So a desktop or phone host takes
   guests from a browser, an application joins a browser host, and two applications that no other way connected try
-  this one last. The signalling address comes from `config.json` of the project page (`signal`), only in the
+  this one last. The signalling address comes from `config.json` of the project page (`signal`, a sealed `host:port`), only in the
   "Automatically" mode: with a private rendezvous server the invitation has no browser way, and the page says so.
 - **Limits of the prototype.** Drawing, an own avatar and subtitles are features of the application: the pen stays on
   the player bar, locked, with the hint "Use the application for this feature", the tracks say that subtitles are not
@@ -515,7 +515,8 @@ Building the page needs the `wasm-tools` workload of .NET (`dotnet workload inst
 into the WebAssembly of .NET.
 
 A try on one computer: the server with the signalling on, the published page on `http://localhost:47950` (the
-addresses of the servers are in `wwwroot/config.json`):
+addresses of the servers are in `wwwroot/config.json`, in the open; the published page carries `config.json` of
+the project page and opens its seals with WebCrypto):
 
 ```bash
 dotnet run --project Sources/Apps/Golether.Web.Server -- --Signal:Enabled=true

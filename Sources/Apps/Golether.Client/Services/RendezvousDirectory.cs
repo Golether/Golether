@@ -12,7 +12,8 @@ namespace Golether.Client.Services;
 /// Reads the address of the rendezvous server from the page of the project.
 /// </summary>
 /// <remarks>
-/// The file is <c>{"rendezvous":"g1.…"}</c>: the address sealed with <see cref="EndpointSeal"/>. Whatever the page
+/// The file is <c>{"rendezvous":"g1.…","signal":"g1.…"}</c>: the address of the server and, optionally, the
+/// <c>host:port</c> of its signalling, both sealed with <see cref="EndpointSeal"/>. Whatever the page
 /// returns is untrusted: it is limited in size, must open as a seal and must hold a valid address. A server named by
 /// a forged file could see who meets whom and refuse to help, but not read a session or pose as the host: the
 /// participants still pin the key of the host from the invitation.
@@ -103,12 +104,13 @@ public sealed class RendezvousDirectory : IRendezvousDirectory
     }
 
     /// <summary>
-    /// Reads the signalling from the file of the page; an address that is not acceptable counts as none.
+    /// Reads the signalling from the file of the page: its sealed <c>host:port</c>, which becomes
+    /// <c>wss://host:port/signal</c>; a text that does not open counts as none.
     /// </summary>
     /// <param name="json">The content of the file.</param>
-    /// <returns>The address as written, or <see langword="null"/>.</returns>
+    /// <returns>The address of the signalling, or <see langword="null"/>.</returns>
     public static string? ReadSignal(ReadOnlySpan<byte> json)
-        => ReadString(json, "signal") is { } text && SignalAddress.TryParse(text, out _) ? text : null;
+        => EndpointSeal.TryOpen(ReadString(json, "signal"), out var endpoint) ? SignalAddress.FromEndpoint(endpoint).AbsoluteUri : null;
 
     /// <summary>
     /// Reads the sealed address of the rendezvous server from the file of the page.

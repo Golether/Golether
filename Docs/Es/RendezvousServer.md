@@ -255,7 +255,10 @@ El servidor ve lo que ya veía (direcciones, salas, claves públicas) y las huel
 
 Las aplicaciones usan la misma señalización: un anfitrión de aplicación mantiene aquí su sala junto a la sala del
 protocolo de encuentro, y una aplicación se reúne aquí con un anfitrión de navegador. Es la única parte del servidor que
-necesita un encuentro mixto, así que para él el servidor necesita un dominio con un certificado TLS (`wss://`).
+necesita un encuentro mixto, así que para él el servidor necesita un dominio con un certificado TLS (`wss://`). Detrás
+de un proxy como Cloudflare el servidor cuenta un navegador por la dirección que el proxy nombra en `X-Forwarded-For`,
+pero solo en una petición de las redes de `Signal:TrustedProxies`; la página del proyecto nombra la señalización como
+un `host:puerto` cifrado, igual que el propio servidor.
 
 ## Limitaciones
 

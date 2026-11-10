@@ -16,6 +16,11 @@ public static class SignalAddress
     public const int MAX_LENGTH = 256;
 
     /// <summary>
+    /// The path of the WebSocket on the server.
+    /// </summary>
+    public const string PATH = "/signal";
+
+    /// <summary>
     /// Reads an address: <c>wss://</c>, or <c>ws://</c> to this computer only (for tests); without a user, a query or
     /// a fragment.
     /// </summary>
@@ -42,4 +47,12 @@ public static class SignalAddress
         address = uri;
         return true;
     }
+
+    /// <summary>
+    /// Builds the address of the signalling at a server: the project page publishes only its sealed
+    /// <c>host:port</c>, the scheme and the path are always the same.
+    /// </summary>
+    /// <param name="endpoint">The server, as <c>host:port</c>.</param>
+    /// <returns>The address <c>wss://host:port/signal</c>.</returns>
+    public static Uri FromEndpoint(PeerEndpoint endpoint) => new("wss://" + endpoint + PATH);
 }

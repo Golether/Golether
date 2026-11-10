@@ -140,13 +140,17 @@ internal sealed class BrowserSession : ISessionMessages, IAsyncDisposable
     /// <param name="sessionName">The session name.</param>
     /// <param name="displayName">The name of the host.</param>
     /// <returns>The session; the film is shared with <see cref="ShareAsync"/>.</returns>
-    /// <exception cref="IOException">The room was not taken.</exception>
+    /// <exception cref="IOException">The room was not taken, or the page has no signalling to take it at.</exception>
     public static async Task<BrowserSession> HostAsync(BrowserApp app, string sessionName, string displayName)
     {
         ArgumentNullException.ThrowIfNull(app);
+        if (app.Config.Signal is not { } signal)
+        {
+            throw new IOException(Texts.Get("Browser.Host.NoServer"));
+        }
 
         var point = new RendezvousPoint(app.Config.Meet, RendezvousPoint.CreateRoom());
-        var listener = await WebRtcListener.OpenAsync(app.Config, point.Room).ConfigureAwait(false);
+        var listener = await WebRtcListener.OpenAsync(signal, app.Config.StunUrl, point.Room).ConfigureAwait(false);
         var host = new HostSession(
             app.LocalPeer,
             listener,
@@ -163,7 +167,7 @@ internal sealed class BrowserSession : ISessionMessages, IAsyncDisposable
             app.Conference)
         {
             Rendezvous = point,
-            Signal = app.Config.Signal,
+            Signal = signal,
         };
 
         var session = new BrowserSession(host, null, app.Conference);

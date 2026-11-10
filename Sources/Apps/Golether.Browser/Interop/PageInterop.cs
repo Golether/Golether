@@ -16,6 +16,15 @@ internal static partial class PageInterop
     public static partial string Config();
 
     /// <summary>
+    /// Opens a sealed address of <c>config.json</c> with WebCrypto: .NET in a browser has no AES of its own.
+    /// </summary>
+    /// <param name="text">The sealed text (<c>g1.…</c>).</param>
+    /// <returns>The address as <c>host:port</c>, or an empty string when the text is not a valid seal.</returns>
+    [JSImport("page.openSeal", JsModule.NAME)]
+    [return: JSMarshalAs<JSType.Promise<JSType.String>>]
+    public static partial Task<string> OpenSealAsync(string text);
+
+    /// <summary>
     /// Takes the invitation the page was opened with (after the <c>#</c>) and removes it from the address bar, so it
     /// is not left in the history.
     /// </summary>

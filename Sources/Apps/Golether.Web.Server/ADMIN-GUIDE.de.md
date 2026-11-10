@@ -197,7 +197,7 @@ Standardwert.
 
 Die Browserversion von Golether erreicht den Server über einen WebSocket. Standardmäßig ist das aus:
 
-Auch die Anwendungen nutzen sie: Eine Sitzung der Anwendung nimmt Gäste aus dem Browser nur darüber an. Für solche gemischten Treffen schalten Sie sie ein, geben dem Server eine Domain mit TLS-Zertifikat (`wss://`) und veröffentlichen die Adresse als `signal` in `config.json` der Projektseite.
+Auch die Anwendungen nutzen sie: Eine Sitzung der Anwendung nimmt Gäste aus dem Browser nur darüber an. Für solche gemischten Treffen schalten Sie sie ein, geben dem Server eine Domain mit TLS-Zertifikat (`wss://`) und geben ihr `host:port` dem Besitzer der Projektseite: Es kommt verschlüsselt als `signal` in `config.json`.
 
 ```json
 "Signal": {
@@ -205,7 +205,7 @@ Auch die Anwendungen nutzen sie: Eine Sitzung der Anwendung nimmt Gäste aus dem
   "Url": "https://0.0.0.0:47943",
   "AllowedOrigins": [ "https://golether.github.io" ]
 },
-"Kestrel": { "Certificates": { "Default": { "Path": "config/signal.pfx", "Password": "…" } } }
+"Kestrel": { "Certificates": { "Default": { "Path": "signal.pfx", "Password": "…" } } }
 ```
 
 | Parameter `Signal:…` | Standard | Was er festlegt |
@@ -213,10 +213,33 @@ Auch die Anwendungen nutzen sie: Eine Sitzung der Anwendung nimmt Gäste aus dem
 | `Enabled` | `false` | ob Browser angenommen werden |
 | `Url` | `http://0.0.0.0:47943` | die Adresse des WebSockets; eine Seite über HTTPS öffnet nur `wss://`, im Internet ist das also `https://` mit dem Zertifikat aus `Kestrel:Certificates:Default` (ein Domainname und zum Beispiel Let's Encrypt) |
 | `AllowedOrigins` | `http://localhost:47950`, `http://127.0.0.1:47950` | die Seiten, die den Server nutzen dürfen |
+| `TrustedProxies` | leer | die Netze der Proxys vor dem Server (zum Beispiel Cloudflare): Ein Browser dahinter zählt mit der Adresse, die der Proxy in `X-Forwarded-For` nennt, damit die Grenze der Verbindungen je Adresse für jeden Browser gilt; eine Anfrage von anderswo behält ihre eigene Adresse, was sie auch behauptet |
 | `MaxConnections`, `MaxRooms`, `MaxMeetingsPerRoom`, `MaxConnectionsPerMinute` | `1024`, `1024`, `16`, `120` | dieselben Grenzen wie für die Anwendungen |
 | `FirstMessageTimeout`, `MeetingTimeout` | `00:00:10`, `00:01:00` | wie lange auf die erste Nachricht gewartet wird und wie lange ein Treffen dauert |
 
-Öffnen Sie auch den TCP-Port von `Url` am Router.
+Öffnen Sie auch den TCP-Port von `Url` am Router. Ein relativer Pfad eines Zertifikats zählt vom Ordner von `appsettings.json` aus (`config` des Pakets).
+
+**Hinter Cloudflare.** Ein Zertifikat ohne die Ports 80 und 443 und ohne Verlängerungen: eine Domain bei Cloudflare
+(der kostenlose Tarif), ein `A`-Eintrag der Signalisierung (`signal.example.org`) mit eingeschaltetem Proxy (die
+orange Wolke), der SSL/TLS-Modus **Full (strict)** und ein Ursprungszertifikat (SSL/TLS → Origin Server → Create
+Certificate, PEM, bis zu 15 Jahre): Seine zwei Dateien kommen neben `appsettings.json`. Cloudflare leitet nur manche
+Ports weiter; 8443 gehört dazu und braucht keine Administratorrechte, und der Linux-Dienst läuft ohne sie:
+
+```json
+"Signal": {
+  "Enabled": true,
+  "Url": "https://0.0.0.0:8443",
+  "AllowedOrigins": [ "https://golether.github.io" ],
+  "TrustedProxies": [ "173.245.48.0/20", "103.21.244.0/22", "…", "2400:cb00::/32", "…" ]
+},
+"Kestrel": { "Certificates": { "Default": { "Path": "origin.pem", "KeyPath": "origin.key" } } }
+```
+
+`TrustedProxies` ist die Liste von <https://www.cloudflare.com/ips/>, IPv4 und IPv6. Öffnen Sie TCP 8443 nur für
+dieselben Netze. Der Dienst muss beide Dateien lesen können: Geben Sie ihnen die Rechte von `appsettings.json`.
+Legen Sie keinen Eintrag ohne Proxy an, der auf diesen Server zeigt: Daraus könnte jeder seine Adresse erfahren. Die
+Anwendungen und STUN erreichen weiter Port 47900 an der Adresse des Servers, Cloudflare berührt sie nicht. Die
+Signalisierung für `config.json` ist dann `signal.example.org:8443`.
 
 Jeder Parameter lässt sich auch ohne Bearbeiten der Datei setzen, mit einer Umgebungsvariablen (doppelter Unterstrich
 statt des Doppelpunkts) oder einem Kommandozeilenargument; sie überschreiben die Datei:

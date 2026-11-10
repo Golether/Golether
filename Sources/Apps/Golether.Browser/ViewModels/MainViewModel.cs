@@ -464,6 +464,12 @@ internal sealed partial class MainViewModel : ObservableObject
     public bool CanStartNow => IsHost && IsWaiting;
 
     /// <summary>
+    /// Gets a value indicating whether this page can host a session: the project names a signalling for browsers.
+    /// Until it does the page still opens, and the start screen says why a session cannot start.
+    /// </summary>
+    public bool CanHost => _app.Config.Signal is not null;
+
+    /// <summary>
     /// Gets or sets the countdown or the line about whom the start waits for.
     /// </summary>
     [ObservableProperty]
@@ -645,7 +651,7 @@ internal sealed partial class MainViewModel : ObservableObject
     /// Opens a session on this page.
     /// </summary>
     /// <returns>A task that completes when the session is open or failed.</returns>
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanHost))]
     private async Task StartHostingAsync()
     {
         ConferenceInterop.Prepare(true, true);

@@ -194,7 +194,7 @@ con esos mismos valores por defecto. Una clave que falte en el archivo también 
 
 La versión para navegador de Golether llega al servidor por un WebSocket. Por defecto está desactivada:
 
-También la usan las aplicaciones: una sesión de la aplicación acepta invitados desde un navegador solo a través de ella. Para esos encuentros mixtos actívala, da al servidor un dominio con un certificado TLS (`wss://`) y publica la dirección como `signal` en `config.json` de la página del proyecto.
+También la usan las aplicaciones: una sesión de la aplicación acepta invitados desde un navegador solo a través de ella. Para esos encuentros mixtos actívala, da al servidor un dominio con un certificado TLS (`wss://`) y da su `host:puerto` al propietario de la página del proyecto: va a `config.json`, cifrado, como `signal`.
 
 ```json
 "Signal": {
@@ -202,7 +202,7 @@ También la usan las aplicaciones: una sesión de la aplicación acepta invitado
   "Url": "https://0.0.0.0:47943",
   "AllowedOrigins": [ "https://golether.github.io" ]
 },
-"Kestrel": { "Certificates": { "Default": { "Path": "config/signal.pfx", "Password": "…" } } }
+"Kestrel": { "Certificates": { "Default": { "Path": "signal.pfx", "Password": "…" } } }
 ```
 
 | Parámetro `Signal:…` | Por defecto | Qué ajusta |
@@ -210,10 +210,33 @@ También la usan las aplicaciones: una sesión de la aplicación acepta invitado
 | `Enabled` | `false` | si se aceptan navegadores |
 | `Url` | `http://0.0.0.0:47943` | la dirección del WebSocket; una página servida por HTTPS solo abre `wss://`, así que en internet es `https://` con el certificado de `Kestrel:Certificates:Default` (un nombre de dominio y, por ejemplo, Let's Encrypt) |
 | `AllowedOrigins` | `http://localhost:47950`, `http://127.0.0.1:47950` | las páginas que pueden usar el servidor |
+| `TrustedProxies` | vacío | las redes de los proxies delante del servidor (Cloudflare, por ejemplo): un navegador detrás de ellos cuenta con la dirección que el proxy nombra en `X-Forwarded-For`, así el límite de conexiones por dirección vale para cada navegador; una petición de otro sitio conserva su propia dirección, diga lo que diga |
 | `MaxConnections`, `MaxRooms`, `MaxMeetingsPerRoom`, `MaxConnectionsPerMinute` | `1024`, `1024`, `16`, `120` | los mismos límites que para las aplicaciones |
 | `FirstMessageTimeout`, `MeetingTimeout` | `00:00:10`, `00:01:00` | cuánto esperar el primer mensaje y cuánto dura un encuentro |
 
-Abre también en el router el puerto TCP de `Url`.
+Abre también en el router el puerto TCP de `Url`. Una ruta relativa de un certificado cuenta desde la carpeta de `appsettings.json` (`config` del paquete).
+
+**Detrás de Cloudflare.** Un certificado sin los puertos 80 y 443 y sin renovaciones: un dominio servido por
+Cloudflare (el plan gratuito), un registro `A` de la señalización (`signal.example.org`) con el proxy activado (la nube
+naranja), el modo SSL/TLS **Full (strict)** y un certificado de origen (SSL/TLS → Origin Server → Create Certificate,
+PEM, hasta 15 años): sus dos archivos van junto a `appsettings.json`. Cloudflare solo pasa algunos puertos; 8443 es uno
+de ellos y no necesita derechos de administrador, y el servicio de Linux funciona sin ellos:
+
+```json
+"Signal": {
+  "Enabled": true,
+  "Url": "https://0.0.0.0:8443",
+  "AllowedOrigins": [ "https://golether.github.io" ],
+  "TrustedProxies": [ "173.245.48.0/20", "103.21.244.0/22", "…", "2400:cb00::/32", "…" ]
+},
+"Kestrel": { "Certificates": { "Default": { "Path": "origin.pem", "KeyPath": "origin.key" } } }
+```
+
+`TrustedProxies` es la lista de <https://www.cloudflare.com/ips/>, IPv4 e IPv6. Abre TCP 8443 solo a esas mismas
+redes. El servicio debe poder leer ambos archivos: dales los permisos de `appsettings.json`. No crees ningún registro
+sin proxy que apunte a este servidor: cualquiera sabría su dirección por él. Las aplicaciones y STUN siguen llegando
+al puerto 47900 en la dirección del servidor; Cloudflare no las toca. La señalización de `config.json` es entonces
+`signal.example.org:8443`.
 
 Cualquier parámetro también se puede definir sin editar el archivo, con una variable de entorno (un doble guion bajo en
 lugar de los dos puntos) o un argumento de línea de comandos; tienen prioridad sobre el archivo:

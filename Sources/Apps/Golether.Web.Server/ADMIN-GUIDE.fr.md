@@ -197,7 +197,7 @@ quand même avec ces mêmes valeurs par défaut. Une clé absente du fichier pre
 
 La version pour navigateur de Golether joint le serveur par un WebSocket. Par défaut c'est désactivé :
 
-Les applications l'utilisent aussi : une séance de l'application n'accepte des invités d'un navigateur que par elle. Pour ces rencontres mixtes, activez-la, donnez au serveur un domaine avec un certificat TLS (`wss://`) et publiez l'adresse comme `signal` dans `config.json` de la page du projet.
+Les applications l'utilisent aussi : une séance de l'application n'accepte des invités d'un navigateur que par elle. Pour ces rencontres mixtes, activez-la, donnez au serveur un domaine avec un certificat TLS (`wss://`) et donnez son `hôte:port` au propriétaire de la page du projet : il va dans `config.json`, scellé, comme `signal`.
 
 ```json
 "Signal": {
@@ -205,7 +205,7 @@ Les applications l'utilisent aussi : une séance de l'application n'accepte des 
   "Url": "https://0.0.0.0:47943",
   "AllowedOrigins": [ "https://golether.github.io" ]
 },
-"Kestrel": { "Certificates": { "Default": { "Path": "config/signal.pfx", "Password": "…" } } }
+"Kestrel": { "Certificates": { "Default": { "Path": "signal.pfx", "Password": "…" } } }
 ```
 
 | Paramètre `Signal:…` | Par défaut | Ce qu'il règle |
@@ -213,10 +213,33 @@ Les applications l'utilisent aussi : une séance de l'application n'accepte des 
 | `Enabled` | `false` | si les navigateurs sont acceptés |
 | `Url` | `http://0.0.0.0:47943` | l'adresse du WebSocket ; une page servie en HTTPS n'ouvre que `wss://`, donc sur Internet c'est `https://` avec le certificat de `Kestrel:Certificates:Default` (un nom de domaine et, par exemple, Let's Encrypt) |
 | `AllowedOrigins` | `http://localhost:47950`, `http://127.0.0.1:47950` | les pages autorisées à utiliser le serveur |
+| `TrustedProxies` | vide | les réseaux des proxys devant le serveur (Cloudflare, par exemple) : un navigateur derrière eux compte avec l'adresse que le proxy nomme dans `X-Forwarded-For`, ainsi la limite de connexions par adresse vaut pour chaque navigateur ; une requête venue d'ailleurs garde sa propre adresse, quoi qu'elle prétende |
 | `MaxConnections`, `MaxRooms`, `MaxMeetingsPerRoom`, `MaxConnectionsPerMinute` | `1024`, `1024`, `16`, `120` | les mêmes limites que pour les applications |
 | `FirstMessageTimeout`, `MeetingTimeout` | `00:00:10`, `00:01:00` | combien de temps attendre le premier message et combien dure une rencontre |
 
-Ouvrez aussi sur le routeur le port TCP de `Url`.
+Ouvrez aussi sur le routeur le port TCP de `Url`. Un chemin relatif de certificat part du dossier de `appsettings.json` (`config` du paquet).
+
+**Derrière Cloudflare.** Un certificat sans les ports 80 et 443 et sans renouvellements : un domaine servi par
+Cloudflare (l'offre gratuite), un enregistrement `A` de la signalisation (`signal.example.org`) avec le proxy activé
+(le nuage orange), le mode SSL/TLS **Full (strict)** et un certificat d'origine (SSL/TLS → Origin Server → Create
+Certificate, PEM, jusqu'à 15 ans) : ses deux fichiers vont à côté de `appsettings.json`. Cloudflare ne transmet que
+certains ports ; 8443 en fait partie et ne demande pas de droits d'administrateur, et le service Linux tourne sans :
+
+```json
+"Signal": {
+  "Enabled": true,
+  "Url": "https://0.0.0.0:8443",
+  "AllowedOrigins": [ "https://golether.github.io" ],
+  "TrustedProxies": [ "173.245.48.0/20", "103.21.244.0/22", "…", "2400:cb00::/32", "…" ]
+},
+"Kestrel": { "Certificates": { "Default": { "Path": "origin.pem", "KeyPath": "origin.key" } } }
+```
+
+`TrustedProxies` est la liste de <https://www.cloudflare.com/ips/>, IPv4 et IPv6. N'ouvrez TCP 8443 qu'à ces mêmes
+réseaux. Le service doit pouvoir lire les deux fichiers : donnez-leur les droits de `appsettings.json`. Ne créez aucun
+enregistrement sans proxy qui pointe vers ce serveur : n'importe qui y lirait son adresse. Les applications et STUN
+continuent d'atteindre le port 47900 à l'adresse du serveur ; Cloudflare n'y touche pas. La signalisation de
+`config.json` est alors `signal.example.org:8443`.
 
 Tout paramètre peut aussi être défini sans modifier le fichier, par une variable d'environnement (un double soulignement
 à la place des deux-points) ou un argument de ligne de commande ; ils l'emportent sur le fichier :

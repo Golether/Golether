@@ -259,7 +259,10 @@ DTLS-Fingerabdrücke, die ebenfalls öffentlich sind.
 
 Die Anwendungen nutzen dieselbe Signalisierung: Ein Anwendungs-Gastgeber hält hier seinen Raum neben dem Raum des
 Treffpunkt-Protokolls, und eine Anwendung trifft hier einen Browser-Gastgeber. Für ein gemischtes Treffen ist sie der
-einzige nötige Teil des Servers, daher braucht der Server dafür eine Domain mit TLS-Zertifikat (`wss://`).
+einzige nötige Teil des Servers, daher braucht der Server dafür eine Domain mit TLS-Zertifikat (`wss://`). Hinter einem
+Proxy wie Cloudflare zählt der Server einen Browser mit der Adresse, die der Proxy in `X-Forwarded-For` nennt, aber nur
+bei einer Anfrage aus den Netzen von `Signal:TrustedProxies`; die Projektseite nennt die Signalisierung als
+verschlüsseltes `host:port`, wie den Server selbst.
 
 ## Einschränkungen
 

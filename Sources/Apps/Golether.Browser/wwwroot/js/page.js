@@ -5,6 +5,14 @@
 const PREFIX_KEYS = /^golether\./;
 // The project page the logo of the top bar leads to.
 const HOME = 'https://golether.github.io/';
+// The seal of the server addresses of the project page (Golether.Security.Discovery.EndpointSeal): AES-256-GCM with
+// the SHA-256 of this phrase as the key, the text is the prefix and base64url of nonce, tag and ciphertext. A mask
+// against scanners, not a secret: the key is in the open source.
+const SEAL_PHRASE = 'Golether server directory, seal 1';
+const SEAL_PREFIX = 'g1.';
+const SEAL_MAX_LENGTH = 512;
+const SEAL_NONCE_BYTES = 12;
+const SEAL_TAG_BYTES = 16;
 
 let configText = '{}';
 let streams = null;
@@ -69,6 +77,38 @@ export function isFullScreen() {
 /** The text of config.json. */
 export function config() {
   return configText;
+}
+
+/**
+ * Opens a sealed address of config.json; the text came from the network, so anything that is not a valid seal gives
+ * an empty string, which .NET refuses.
+ */
+export async function openSeal(text) {
+  if (typeof text !== 'string' || text.length > SEAL_MAX_LENGTH || !text.startsWith(SEAL_PREFIX)) {
+    return '';
+  }
+  const encoded = text.slice(SEAL_PREFIX.length);
+  if (!/^[A-Za-z0-9_-]+$/.test(encoded)) {
+    return '';
+  }
+  try {
+    const packed = Uint8Array.from(atob(encoded.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+    if (packed.length <= SEAL_NONCE_BYTES + SEAL_TAG_BYTES) {
+      return '';
+    }
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(SEAL_PHRASE));
+    const key = await crypto.subtle.importKey('raw', digest, 'AES-GCM', false, ['decrypt']);
+    // WebCrypto wants the tag after the ciphertext; the seal keeps it before.
+    const cipher = packed.subarray(SEAL_NONCE_BYTES + SEAL_TAG_BYTES);
+    const sealed = new Uint8Array(cipher.length + SEAL_TAG_BYTES);
+    sealed.set(cipher);
+    sealed.set(packed.subarray(SEAL_NONCE_BYTES, SEAL_NONCE_BYTES + SEAL_TAG_BYTES), cipher.length);
+    const iv = packed.subarray(0, SEAL_NONCE_BYTES);
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv, tagLength: SEAL_TAG_BYTES * 8 }, key, sealed);
+    return new TextDecoder('utf-8', { fatal: true }).decode(plain);
+  } catch {
+    return '';
+  }
 }
 
 /** Takes the invitation after the # and removes it from the address bar, so it stays out of the history. */

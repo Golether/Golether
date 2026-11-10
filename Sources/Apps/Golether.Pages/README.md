@@ -10,7 +10,7 @@ Pages serve the root of the organization's site.
 | `join/index.html`, `assets/join.js` | The invitation page: turns `https://…/join/#<invitation>` into `golether://join/v1/<invitation>` and hands it to the application. |
 | `assets/languages.js`, `assets/flags/*.svg` | The languages of both pages and the language picker with flags; the links to the documentation in the chosen language. |
 | `updates.json` | The latest release. The "Download" buttons of the page and the update check of the application both read it. |
-| `config.json` | The address of the project's rendezvous server, sealed. The application reads it in the "Automatically" mode. |
+| `config.json` | The addresses of the project's rendezvous server and of its signalling, sealed. The application reads it in the "Automatically" mode, the browser version at start. |
 
 ## First publication
 
@@ -64,24 +64,29 @@ empty string means "no server": the application creates a session without one an
 The sealing is a mask against scanners, not a secret: the key is in the open code of the application
 (`Golether.Security.Discovery.EndpointSeal`), and the server address is part of every invitation.
 
-An optional `signal` field names the signalling of the same server for browsers, not sealed (the browser version has
-to reach it anyway): `{ "rendezvous": "g1.…", "signal": "wss://meet.example.org/signal" }`. With it, the sessions the
-application hosts in the "Automatically" mode take guests from a browser, and their invitations offer the
-`watch/` page of the browser version. Only `wss://` with a valid certificate is accepted; without the field the
-applications work as before.
+An optional `signal` field names the signalling of the same server for browsers, sealed the same way: the utility
+takes its `host:port` in a second field (`signal.example.org:8443`) and writes
+`{ "rendezvous": "g1.…", "signal": "g1.…" }`. The signalling is always `wss://<host:port>/signal`, behind a
+certificate browsers trust; with Cloudflare in front of the server it needs no ports 80 and 443 (the administrator's
+guide of the server, "Browsers (prototype)", "Behind Cloudflare"). With the field, the sessions the application hosts
+in the "Automatically" mode take guests from a browser, and their invitations offer the `watch/` page of the browser
+version; a field that does not open is ignored, and without it the applications work as before.
 
 ## The browser version
 
 The same workflow builds `Sources/Apps/Golether.Browser` and publishes it at <https://golether.github.io/watch/>,
-which is not a folder here. Its `config.json` is written by the workflow from the repository variable
-`BROWSER_SERVER`: **Settings → Secrets and variables → Actions → Variables → New repository variable**, the host name
-of the rendezvous server alone (`meet.example.org`, no scheme, no port). The page then signals at
-`wss://<host>:47943/signal` and uses the rendezvous and STUN at `<host>:47900`, the defaults of the server. Without
-the variable the site is published without `watch/`.
+which is not a folder here. The published `watch/config.json` is a copy of this `config.json`: the page opens both
+seals itself (WebCrypto), signals at the server of `signal` and uses the rendezvous and STUN at the server of
+`rendezvous`, so no address stands on the site in the open. While `config.json` has no `signal` field the page is
+published all the same: it opens, says on the start screen that sessions in the browser are not available yet and
+joins only invitations that name a signalling of their own; sealing a `signal` into `config.json` makes sessions
+available with the next publication. A repository variable `BROWSER_SERVER` of earlier versions is no longer read and
+can be deleted.
 
 The page opens with any server, but sessions start only when that server runs a version with the `Signal` section
 enabled, behind a certificate browsers trust, with `https://golether.github.io` among its `AllowedOrigins` (the
-administrator's guide of the server, "Browsers (prototype)").
+administrator's guide of the server, "Browsers (prototype)"). `config.json` of `Golether.Browser` itself names servers
+on the developer's computer in the open (`signal`, `stun`, `meet`) for a local run.
 
 ## Rules of the page
 

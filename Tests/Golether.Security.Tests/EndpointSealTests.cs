@@ -56,6 +56,19 @@ public sealed class EndpointSealTests
     }
 
     /// <summary>
+    /// The browser version opens the seals of its config.json itself, with WebCrypto: its page.js derives the key
+    /// from the same phrase and reads the same format.
+    /// </summary>
+    [Fact]
+    public void BrowserPage_OpensTheSameSeal()
+    {
+        var script = File.ReadAllText(Path.Combine(RepositoryRoot(), "Sources", "Apps", "Golether.Browser", "wwwroot", "js", "page.js"));
+
+        Assert.Contains("'" + EndpointSeal.KEY_PHRASE + "'", script, StringComparison.Ordinal);
+        Assert.Contains("'" + EndpointSeal.PREFIX + "'", script, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// A text that was changed, cut, belongs to another format or is not a seal at all opens nothing.
     /// </summary>
     /// <param name="text">The text from the network.</param>
@@ -81,5 +94,22 @@ public sealed class EndpointSealTests
     public void TryOpen_RejectsOverlongText()
     {
         Assert.False(EndpointSeal.TryOpen(EndpointSeal.PREFIX + new string('A', EndpointSeal.MAX_LENGTH), out _));
+    }
+
+    /// <summary>
+    /// Returns the folder of the repository.
+    /// </summary>
+    /// <returns>The folder that holds <c>Golether.slnx</c>.</returns>
+    private static string RepositoryRoot()
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "Golether.slnx")))
+            {
+                return directory.FullName;
+            }
+        }
+
+        throw new DirectoryNotFoundException("Golether.slnx was not found above " + AppContext.BaseDirectory);
     }
 }

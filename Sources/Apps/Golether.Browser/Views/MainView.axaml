@@ -117,6 +117,9 @@
                 <StackPanel Spacing="12">
                   <TextBlock Classes="title" Text="{loc:Loc Main.Host.Title}" />
                   <TextBlock Classes="muted" TextWrapping="Wrap" Text="{loc:Loc Browser.Host.Text}" />
+                  <!-- Until the project names a signalling for browsers the page opens, but hosts nothing. -->
+                  <TextBlock TextWrapping="Wrap" Foreground="{StaticResource GoletherWarn}" IsVisible="{Binding !CanHost}"
+                             Text="{loc:Loc Browser.Host.NoServer}" />
                   <TextBlock Classes="label" Text="{loc:Loc Main.Host.SessionName}" />
                   <TextBox Text="{Binding NewSessionName}" MaxLength="64" AutomationProperties.Name="{loc:Loc Main.Host.SessionName}" />
                   <Button Classes="accent" Content="{loc:Loc Main.Host.Start}" Command="{Binding StartHostingCommand}" />

@@ -1,3 +1,5 @@
+using System.Net;
+using Golether.Core.Networking;
 using Golether.Localization;
 
 namespace Golether.Web.Server.Options;
@@ -18,7 +20,7 @@ public sealed record SignalServerOptions
     /// <summary>
     /// The path of the WebSocket.
     /// </summary>
-    public const string PATH = "/signal";
+    public const string PATH = SignalAddress.PATH;
 
     /// <summary>
     /// Gets a value indicating whether the server takes browsers (default off).
@@ -36,6 +38,14 @@ public sealed record SignalServerOptions
     /// another page is refused; a request without an origin comes from a program, not from a page, and is served.
     /// </summary>
     public string[] AllowedOrigins { get; init; } = ["http://localhost:47950", "http://127.0.0.1:47950"];
+
+    /// <summary>
+    /// Gets the networks of the proxies in front of the server (<c>173.245.48.0/20</c>), for example of Cloudflare.
+    /// A browser behind such a proxy is counted by the address the proxy names in <c>X-Forwarded-For</c>, not by the
+    /// address of the proxy, so the limit of connections per address holds for each browser. A request from any
+    /// other address keeps its own address whatever it claims; empty (the default) trusts nobody.
+    /// </summary>
+    public string[] TrustedProxies { get; init; } = [];
 
     /// <summary>
     /// Gets the number of open WebSockets served at once (default 1024).
@@ -75,6 +85,13 @@ public sealed record SignalServerOptions
     public int? Port => Uri.TryCreate(Url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https" ? uri.Port : null;
 
     /// <summary>
+    /// Gets the networks of <see cref="TrustedProxies"/> that are valid; <see cref="Validate"/> names the others.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public IReadOnlyList<IPNetwork> ProxyNetworks
+        => [.. TrustedProxies.Where(text => IPNetwork.TryParse(text, out _)).Select(text => IPNetwork.Parse(text))];
+
+    /// <summary>
     /// Checks whether a page may use the server.
     /// </summary>
     /// <param name="origin">The origin the browser sent, or <see langword="null"/> when there was none.</param>
@@ -97,6 +114,11 @@ public sealed record SignalServerOptions
         if (Port is null)
         {
             problems.Add(Texts.Format("Server.Error.BadAddress", Key(nameof(Url)), Url));
+        }
+
+        foreach (var proxy in TrustedProxies.Where(text => !IPNetwork.TryParse(text, out _)))
+        {
+            problems.Add(Texts.Format("Server.Error.BadNetwork", Key(nameof(TrustedProxies)), proxy));
         }
 
         OptionChecks.Range(problems, Key(nameof(MaxConnections)), MaxConnections, 1, 1_000_000);

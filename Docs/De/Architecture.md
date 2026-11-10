@@ -531,7 +531,7 @@ WebAssembly übersetzt, mit den Teilen des Browsers darunter. Nichts wird instal
   und öffnet keinen Kanal, bevor das DTLS-Zertifikat der Gegenseite zum Fingerabdruck ihrer Beschreibung passt. So
   nimmt ein Gastgeber auf dem Computer oder Telefon Gäste aus dem Browser an, eine Anwendung tritt einem
   Browser-Gastgeber bei, und zwei Anwendungen, die kein anderer Weg verbunden hat, versuchen zuletzt diesen. Die Adresse
-  der Signalisierung kommt aus `config.json` der Projektseite (`signal`), nur im Modus „Automatisch“: Mit einem
+  der Signalisierung kommt aus `config.json` der Projektseite (`signal`, ein verschlüsseltes `host:port`), nur im Modus „Automatisch“: Mit einem
   privaten Treffpunkt-Server hat die Einladung keinen Browser-Weg, und die Seite sagt das.
 - **Grenzen des Prototyps.** Zeichnen, ein eigener Avatar und Untertitel sind Funktionen der Anwendung: Der Stift bleibt
   gesperrt auf der Player-Leiste, mit dem Hinweis „Nutzen Sie für diese Funktion die Anwendung“, die Tonspuren sagen,
@@ -546,7 +546,8 @@ Zum Bauen der Seite braucht .NET den Workload `wasm-tools` (`dotnet workload ins
 in das WebAssembly von .NET ein.
 
 Ein Versuch auf einem Computer: der Server mit eingeschalteter Signalisierung, die veröffentlichte Seite auf
-`http://localhost:47950` (die Adressen der Server stehen in `wwwroot/config.json`):
+`http://localhost:47950` (die Adressen der Server stehen offen in `wwwroot/config.json`; die veröffentlichte Seite trägt `config.json` der
+Projektseite und öffnet dessen Verschlüsselung mit WebCrypto):
 
 ```bash
 dotnet run --project Sources/Apps/Golether.Web.Server -- --Signal:Enabled=true

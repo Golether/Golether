@@ -194,7 +194,7 @@ esses mesmos valores predefinidos. Uma chave que falte no ficheiro também fica 
 
 A versão para navegador do Golether chega ao servidor por um WebSocket. Por omissão está desligada:
 
-Também as aplicações a usam: uma sessão da aplicação só aceita convidados de um navegador através dela. Para esses encontros mistos ligue-a, dê ao servidor um domínio com um certificado TLS (`wss://`) e publique o endereço como `signal` no `config.json` da página do projeto.
+Também as aplicações a usam: uma sessão da aplicação só aceita convidados de um navegador através dela. Para esses encontros mistos ligue-a, dê ao servidor um domínio com um certificado TLS (`wss://`) e dê o seu `anfitrião:porta` ao dono da página do projeto: vai para o `config.json`, cifrado, como `signal`.
 
 ```json
 "Signal": {
@@ -202,7 +202,7 @@ Também as aplicações a usam: uma sessão da aplicação só aceita convidados
   "Url": "https://0.0.0.0:47943",
   "AllowedOrigins": [ "https://golether.github.io" ]
 },
-"Kestrel": { "Certificates": { "Default": { "Path": "config/signal.pfx", "Password": "…" } } }
+"Kestrel": { "Certificates": { "Default": { "Path": "signal.pfx", "Password": "…" } } }
 ```
 
 | Parâmetro `Signal:…` | Por omissão | O que define |
@@ -210,10 +210,33 @@ Também as aplicações a usam: uma sessão da aplicação só aceita convidados
 | `Enabled` | `false` | se os navegadores são aceites |
 | `Url` | `http://0.0.0.0:47943` | o endereço do WebSocket; uma página servida por HTTPS só abre `wss://`, por isso na internet é `https://` com o certificado de `Kestrel:Certificates:Default` (um nome de domínio e, por exemplo, Let's Encrypt) |
 | `AllowedOrigins` | `http://localhost:47950`, `http://127.0.0.1:47950` | as páginas que podem usar o servidor |
+| `TrustedProxies` | vazio | as redes dos proxies à frente do servidor (a Cloudflare, por exemplo): um navegador atrás deles conta pelo endereço que o proxy indica em `X-Forwarded-For`, por isso o limite de ligações por endereço vale para cada navegador; um pedido de outro lado mantém o seu próprio endereço, diga o que disser |
 | `MaxConnections`, `MaxRooms`, `MaxMeetingsPerRoom`, `MaxConnectionsPerMinute` | `1024`, `1024`, `16`, `120` | os mesmos limites que para as aplicações |
 | `FirstMessageTimeout`, `MeetingTimeout` | `00:00:10`, `00:01:00` | quanto esperar pela primeira mensagem e quanto dura um encontro |
 
-Abra também no router a porta TCP de `Url`.
+Abra também no router a porta TCP de `Url`. Um caminho relativo de um certificado conta a partir da pasta do `appsettings.json` (`config` do pacote).
+
+**Atrás da Cloudflare.** Um certificado sem as portas 80 e 443 e sem renovações: um domínio servido pela Cloudflare
+(o plano gratuito), um registo `A` da sinalização (`signal.example.org`) com o proxy ligado (a nuvem laranja), o modo
+SSL/TLS **Full (strict)** e um certificado de origem (SSL/TLS → Origin Server → Create Certificate, PEM, até 15 anos):
+os seus dois ficheiros ficam junto ao `appsettings.json`. A Cloudflare só deixa passar algumas portas; a 8443 é uma
+delas e não precisa de direitos de administrador, e o serviço de Linux corre sem eles:
+
+```json
+"Signal": {
+  "Enabled": true,
+  "Url": "https://0.0.0.0:8443",
+  "AllowedOrigins": [ "https://golether.github.io" ],
+  "TrustedProxies": [ "173.245.48.0/20", "103.21.244.0/22", "…", "2400:cb00::/32", "…" ]
+},
+"Kestrel": { "Certificates": { "Default": { "Path": "origin.pem", "KeyPath": "origin.key" } } }
+```
+
+`TrustedProxies` é a lista de <https://www.cloudflare.com/ips/>, IPv4 e IPv6. Abra a TCP 8443 só a essas mesmas
+redes. O serviço tem de conseguir ler os dois ficheiros: dê-lhes as permissões do `appsettings.json`. Não crie nenhum
+registo sem proxy que aponte para este servidor: qualquer um saberia o seu endereço por ele. As aplicações e o STUN
+continuam a chegar à porta 47900 no endereço do servidor; a Cloudflare não lhes toca. A sinalização do `config.json`
+é então `signal.example.org:8443`.
 
 Qualquer parâmetro também pode ser definido sem editar o ficheiro, com uma variável de ambiente (um duplo sublinhado em
 vez dos dois pontos) ou um argumento da linha de comandos; estes têm prioridade sobre o ficheiro:

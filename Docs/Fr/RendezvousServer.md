@@ -262,6 +262,9 @@ elles aussi.
 Les applications utilisent la même signalisation : un hôte applicatif y garde sa salle à côté de la salle du
 protocole de rencontre, et une application y rejoint un hôte dans un navigateur. C'est la seule partie du serveur dont
 une rencontre mixte a besoin, donc pour elle le serveur doit avoir un domaine avec un certificat TLS (`wss://`).
+Derrière un proxy comme Cloudflare, le serveur compte un navigateur avec l'adresse que le proxy nomme dans
+`X-Forwarded-For`, mais seulement pour une requête venue des réseaux de `Signal:TrustedProxies` ; la page du projet
+nomme la signalisation comme un `hôte:port` scellé, comme le serveur lui-même.
 
 ## Limitations
 

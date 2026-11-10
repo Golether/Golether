@@ -531,7 +531,7 @@ ouvre la page, on choisit un fichier et on envoie le lien.
   seulement et n'ouvre aucun canal avant que le certificat DTLS de l'autre côté corresponde à l'empreinte de sa
   description. Ainsi un hôte sur ordinateur ou téléphone accepte des invités d'un navigateur, une application rejoint un
   hôte dans un navigateur, et deux applications qu'aucun autre chemin n'a reliées essaient celui-ci en dernier.
-  L'adresse de la signalisation vient de `config.json` de la page du projet (`signal`), en mode « Automatiquement »
+  L'adresse de la signalisation vient de `config.json` de la page du projet (`signal`, un `hôte:port` scellé), en mode « Automatiquement »
   seulement : avec un serveur de rencontre privé, l'invitation n'a pas de chemin pour navigateurs, et la page le dit.
 - **Limites du prototype.** Dessiner, un avatar à soi et les sous-titres sont des fonctions de l'application : le stylo
   reste sur la barre du lecteur, verrouillé, avec l'indication « Utilisez l'application pour cette fonction », les
@@ -546,7 +546,8 @@ Compiler la page demande la charge de travail `wasm-tools` de .NET (`dotnet work
 Skia au WebAssembly de .NET.
 
 Un essai sur un ordinateur : le serveur avec la signalisation activée, la page publiée sur `http://localhost:47950`
-(les adresses des serveurs sont dans `wwwroot/config.json`) :
+(les adresses des serveurs sont en clair dans `wwwroot/config.json` ; la page publiée porte `config.json` de la page
+du projet et ouvre ses sceaux avec WebCrypto) :
 
 ```bash
 dotnet run --project Sources/Apps/Golether.Web.Server -- --Signal:Enabled=true

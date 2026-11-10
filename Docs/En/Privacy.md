@@ -39,6 +39,7 @@ Videos of the folder are served like a film.
 | What | When | What the other side learns |
 |---|---|---|
 | The rendezvous server of the project (its address comes from `config.json` of the project page) | when a host opens a session through the server, and when a participant joins such a session | the network addresses of the host and of the participant, the fingerprint of the host's key, the random tag of the room; never the content of the session |
+| Cloudflare, in front of the signalling of the rendezvous server of the project | when a browser opens or joins a session, and when an application host takes guests from browsers | the network addresses of the sides, the fingerprints of their keys, the random tag of the room; never the content of the session; Cloudflare's privacy policy applies |
 | The project page `golether.github.io` (GitHub Pages) | `updates.json` at start (the newest version; the check can be switched off in the settings); `config.json` when a host opens a session with the rendezvous server chosen automatically | your IP address, as for any web page; GitHub's privacy statement applies |
 | GitHub and `gstreamer.freedesktop.org` | on Windows, only when you install a missing component with the **Install** button | your IP address |
 | The public STUN servers of Google (`stun.l.google.com`) and Cloudflare (`stun.cloudflare.com`) | only when you set up an AmneziaWG tunnel: they tell the computer its outside address | your IP address and port; their own privacy policies apply |

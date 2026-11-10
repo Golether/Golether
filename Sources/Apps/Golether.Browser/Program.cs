@@ -34,7 +34,7 @@ public static class Program
         BrowserConfig config;
         try
         {
-            config = BrowserConfig.FromJson(PageInterop.Config());
+            config = await BrowserConfig.ReadAsync(PageInterop.Config(), PageInterop.OpenSealAsync).ConfigureAwait(true);
         }
         catch (FormatException ex)
         {

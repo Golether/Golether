@@ -38,8 +38,8 @@ public sealed class RendezvousDirectoryTests
     }
 
     /// <summary>
-    /// The signalling the page names is remembered with the server; an address that is not secure is ignored, and a
-    /// page that names none clears the one remembered.
+    /// The signalling the page names is remembered with the server as <c>wss://host:port/signal</c>; an address
+    /// written in the open is ignored, and a page that names none clears the one remembered.
     /// </summary>
     /// <returns>A task that completes when the test is done.</returns>
     [Fact]
@@ -47,14 +47,15 @@ public sealed class RendezvousDirectoryTests
     {
         var token = TestContext.Current.CancellationToken;
         var published = EndpointSeal.Seal(_server);
+        var signal = EndpointSeal.Seal(PeerEndpoint.Parse("signal.example.org:8443"));
 
-        await Create(new StubHandler(HttpStatusCode.OK, $$"""{ "rendezvous": "{{published}}", "signal": "wss://meet.example.org/signal" }""")).FindAsync(token);
-        Assert.Equal(new Uri("wss://meet.example.org/signal"), await Create(new StubHandler(HttpStatusCode.NotFound, "")).FindSignalAsync(token));
+        await Create(new StubHandler(HttpStatusCode.OK, $$"""{ "rendezvous": "{{published}}", "signal": "{{signal}}" }""")).FindAsync(token);
+        Assert.Equal(new Uri("wss://signal.example.org:8443/signal"), await Create(new StubHandler(HttpStatusCode.NotFound, "")).FindSignalAsync(token));
 
-        await Create(new StubHandler(HttpStatusCode.OK, $$"""{ "rendezvous": "{{published}}", "signal": "ws://meet.example.org/signal" }""")).FindAsync(token);
+        await Create(new StubHandler(HttpStatusCode.OK, $$"""{ "rendezvous": "{{published}}", "signal": "wss://signal.example.org/signal" }""")).FindAsync(token);
         Assert.Null(await Create(new StubHandler(HttpStatusCode.NotFound, "")).FindSignalAsync(token));
 
-        await Create(new StubHandler(HttpStatusCode.OK, $$"""{ "rendezvous": "{{published}}", "signal": "wss://meet.example.org/signal" }""")).FindAsync(token);
+        await Create(new StubHandler(HttpStatusCode.OK, $$"""{ "rendezvous": "{{published}}", "signal": "{{signal}}" }""")).FindAsync(token);
         await Create(new StubHandler(HttpStatusCode.OK, $$"""{ "rendezvous": "{{published}}" }""")).FindAsync(token);
         Assert.Null(await Create(new StubHandler(HttpStatusCode.NotFound, "")).FindSignalAsync(token));
     }

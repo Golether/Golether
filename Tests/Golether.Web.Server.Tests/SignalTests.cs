@@ -1,4 +1,8 @@
+using System.Net;
 using System.Security.Cryptography;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Logging.Abstractions;
 using Golether.Core.Identity;
 using Golether.Core.Networking;
 using Golether.Transports.WebRtc;
@@ -119,6 +123,57 @@ public sealed class SignalTests
         Assert.True(options.IsAllowedOrigin("HTTPS://GOLETHER.GITHUB.IO"));
         Assert.False(options.IsAllowedOrigin("https://evil.example"));
         Assert.True(options.IsAllowedOrigin(null));
+    }
+
+    /// <summary>
+    /// The networks of the trusted proxies are checked like the other settings, and only the valid ones are used.
+    /// </summary>
+    [Fact]
+    public void Options_CheckTheTrustedProxies()
+    {
+        var options = new SignalServerOptions { Enabled = true, TrustedProxies = ["173.245.48.0/20", "2400:cb00::/32"] };
+        Assert.Empty(options.Validate());
+        Assert.Equal(2, options.ProxyNetworks.Count);
+
+        var broken = options with { TrustedProxies = ["173.245.48.0/20", "cloudflare", "10.0.0.1/40"] };
+        Assert.Equal(2, broken.Validate().Count);
+        Assert.Single(broken.ProxyNetworks);
+        Assert.Empty(new SignalServerOptions().ProxyNetworks);
+    }
+
+    /// <summary>
+    /// A request from a trusted proxy is counted by the last address of <c>X-Forwarded-For</c>, the one the proxy
+    /// wrote, not by what the browser put before it; a request from anywhere else keeps its own address whatever it
+    /// claims, the loopback included.
+    /// </summary>
+    /// <param name="remote">The address the request came from.</param>
+    /// <param name="forwarded">The header <c>X-Forwarded-For</c>.</param>
+    /// <param name="expected">The address the server counts.</param>
+    /// <returns>A task that completes when the test is done.</returns>
+    [Theory]
+    [InlineData("173.245.48.7", "198.51.100.20", "198.51.100.20")]
+    [InlineData("173.245.48.7", "192.0.2.66, 198.51.100.20", "198.51.100.20")]
+    [InlineData("203.0.113.9", "198.51.100.20", "203.0.113.9")]
+    [InlineData("127.0.0.1", "198.51.100.20", "127.0.0.1")]
+    public async Task Proxies_NameTheBrowserBehindThem(string remote, string forwarded, string expected)
+    {
+        var options = SignalProxies.CreateOptions(new SignalServerOptions { Enabled = true, TrustedProxies = ["173.245.48.0/20"] });
+        IPAddress? seen = null;
+        var middleware = new ForwardedHeadersMiddleware(
+            context =>
+            {
+                seen = context.Connection.RemoteIpAddress;
+                return Task.CompletedTask;
+            },
+            NullLoggerFactory.Instance,
+            Microsoft.Extensions.Options.Options.Create(options));
+        var request = new DefaultHttpContext();
+        request.Connection.RemoteIpAddress = IPAddress.Parse(remote);
+        request.Request.Headers["X-Forwarded-For"] = forwarded;
+
+        await middleware.Invoke(request);
+
+        Assert.Equal(IPAddress.Parse(expected), seen);
     }
 
     /// <summary>

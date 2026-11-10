@@ -77,6 +77,12 @@ public static class Program
         }
 
         var app = builder.Build();
+        if (signal.Enabled && signal.ProxyNetworks.Count > 0)
+        {
+            // Behind a proxy every browser comes from the address of the proxy; the proxy names the real one.
+            app.UseForwardedHeaders(SignalProxies.CreateOptions(signal));
+        }
+
         var startLog = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(Program));
         var settingsPath = Path.Combine(configDirectory, DefaultSettings.FILE_NAME);
         if (settingsFile == SettingsFileState.Created)

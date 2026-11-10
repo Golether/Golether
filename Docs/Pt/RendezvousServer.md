@@ -253,7 +253,10 @@ que já via (endereços, salas, chaves públicas) e as impressões DTLS, que tam
 
 As aplicações usam a mesma sinalização: um anfitrião de aplicação mantém aqui a sua sala ao lado da sala do protocolo
 de encontro, e uma aplicação encontra aqui um anfitrião de navegador. É a única parte do servidor de que um encontro
-misto precisa, por isso para ele o servidor precisa de um domínio com um certificado TLS (`wss://`).
+misto precisa, por isso para ele o servidor precisa de um domínio com um certificado TLS (`wss://`). Atrás de um proxy
+como a Cloudflare o servidor conta um navegador pelo endereço que o proxy indica em `X-Forwarded-For`, mas só num
+pedido das redes de `Signal:TrustedProxies`; a página do projeto indica a sinalização como um `anfitrião:porta`
+cifrado, como o próprio servidor.
 
 ## Limitações
 

@@ -28,6 +28,12 @@ public static class EndpointSeal
     public const int MAX_LENGTH = 512;
 
     /// <summary>
+    /// The phrase the key is derived from (SHA-256 of its UTF-8 bytes). The utility that seals addresses and the page
+    /// of the browser version (<c>page.js</c>), which opens them with WebCrypto, derive the same key from it.
+    /// </summary>
+    public const string KEY_PHRASE = "Golether server directory, seal 1";
+
+    /// <summary>
     /// The size of the nonce of AES-GCM in bytes.
     /// </summary>
     private const int NONCE_BYTES = 12;
@@ -38,9 +44,9 @@ public static class EndpointSeal
     private const int TAG_BYTES = 16;
 
     /// <summary>
-    /// The key: SHA-256 of a fixed phrase. The utility that seals addresses derives the same one.
+    /// The key: SHA-256 of <see cref="KEY_PHRASE"/>.
     /// </summary>
-    private static readonly byte[] _key = SHA256.HashData(Encoding.UTF8.GetBytes("Golether server directory, seal 1"));
+    private static readonly byte[] _key = SHA256.HashData(Encoding.UTF8.GetBytes(KEY_PHRASE));
 
     /// <summary>
     /// Seals an address. Every call gives a different text: the nonce is random.

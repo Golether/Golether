@@ -523,7 +523,7 @@ página, elige un archivo y envía el enlace.
   abre ningún canal antes de que el certificado DTLS del otro lado coincida con la huella de su descripción. Así un
   anfitrión de escritorio o de teléfono acepta invitados desde un navegador, una aplicación se une a un anfitrión de
   navegador y dos aplicaciones que ningún otro camino conectó prueban este al final. La dirección de la señalización
-  viene de `config.json` de la página del proyecto (`signal`), solo en el modo «Automáticamente»: con un servidor de
+  viene de `config.json` de la página del proyecto (`signal`, un `host:puerto` cifrado), solo en el modo «Automáticamente»: con un servidor de
   encuentro privado la invitación no tiene camino para navegadores, y la página lo dice.
 - **Límites del prototipo.** Dibujar, un avatar propio y los subtítulos son funciones de la aplicación: el lápiz sigue
   en la barra del reproductor, bloqueado, con el aviso «Usa la aplicación para esta función», las pistas dicen que los
@@ -537,7 +537,8 @@ Para compilar la página .NET necesita la carga de trabajo `wasm-tools` (`dotnet
 enlaza Skia en el WebAssembly de .NET.
 
 Una prueba en un equipo: el servidor con la señalización activada, la página publicada en `http://localhost:47950`
-(las direcciones de los servidores están en `wwwroot/config.json`):
+(las direcciones de los servidores están a la vista en `wwwroot/config.json`; la página publicada lleva `config.json`
+de la página del proyecto y abre su cifrado con WebCrypto):
 
 ```bash
 dotnet run --project Sources/Apps/Golether.Web.Server -- --Signal:Enabled=true
