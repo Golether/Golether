@@ -90,7 +90,8 @@ administrator's guide of the server, "Browsers (prototype)").
   the download links (`data-umami-event-package`: `windows`, `windows-zip`, `linux-deb`, `linux-archive`, `macos`,
   `macos-intel`;
   `data-umami-event-place`: `card` or `hero`, the button at the top, which `site.js` marks for the system of the
-  visitor). It counts only on `golether.github.io`, keeps
+  visitor), and the `try-online` event of the links to the browser version (`data-umami-event-place`: `header` or
+  `hero`). It counts only on `golether.github.io`, keeps
   the part of the address after `#` and `?` out of its reports and skips browsers that ask not to be tracked. The
   invitation page has no counter: a script of another server would see the invitation in its address. Both pages
   pin what they may load with a `Content-Security-Policy` header; there are no inline scripts or styles either.

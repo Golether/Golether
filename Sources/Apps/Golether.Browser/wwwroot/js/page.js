@@ -3,6 +3,8 @@
 // for. .NET decides; this module only holds the objects of the browser.
 
 const PREFIX_KEYS = /^golether\./;
+// The project page the logo of the top bar leads to.
+const HOME = 'https://golether.github.io/';
 
 let configText = '{}';
 let streams = null;
@@ -127,6 +129,15 @@ export function toggleFullScreen() {
     document.exitFullscreen().catch(() => {});
   } else {
     document.documentElement.requestFullscreen?.().catch(() => {});
+  }
+}
+
+/** Opens the project page: in a new tab during a session, which leaving the page would end, otherwise in this one. */
+export function openHome(newTab) {
+  if (newTab) {
+    window.open(HOME, '_blank', 'noopener');
+  } else {
+    location.href = HOME;
   }
 }
 

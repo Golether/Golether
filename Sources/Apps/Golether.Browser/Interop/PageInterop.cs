@@ -71,6 +71,13 @@ internal static partial class PageInterop
     public static partial void ToggleFullScreen();
 
     /// <summary>
+    /// Opens the project page.
+    /// </summary>
+    /// <param name="newTab">Whether to open it in a new tab, keeping this page and its session.</param>
+    [JSImport("page.openHome", JsModule.NAME)]
+    public static partial void OpenHome(bool newTab);
+
+    /// <summary>
     /// Keeps the display on during a session, or lets it sleep again.
     /// </summary>
     /// <param name="awake">Whether to keep the display on.</param>

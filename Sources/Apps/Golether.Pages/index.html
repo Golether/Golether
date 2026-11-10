@@ -29,6 +29,11 @@
         <a class="hide-small" href="#join" data-t="nav.join">How to join</a>
         <a class="hide-small" href="#host" data-t="nav.host">How to invite</a>
         <a href="#download" data-t="nav.download">Download</a>
+        <!--
+          The browser version, in the colour of the brand. A narrow header has room for the download alone, so there
+          it leaves the header; the hero always offers it, under the download on a phone.
+        -->
+        <a class="try hide-small" href="watch/" data-t="nav.try" data-umami-event="try-online" data-umami-event-place="header">Try online</a>
         <!-- The language picker: languages.js fills it in; without scripts the page simply stays in English. -->
         <div class="lang" data-root="" aria-label="Language"></div>
       </nav>
@@ -42,6 +47,7 @@
         <p class="lead" data-t="hero.lead">The same frame for everyone, even a thousand miles apart.<br>The laughter and voices of your people, right beside you.</p>
         <div class="actions">
           <a class="btn accent" id="hero-download" href="#download"><span data-t="hero.download">Download Golether</span></a>
+          <a class="btn try" href="watch/" data-t="nav.try" data-umami-event="try-online" data-umami-event-place="hero">Try online</a>
           <a class="btn" href="#join" data-t="hero.how">I have an invitation</a>
         </div>
         <div class="version"><span data-t="hero.free">Free and open source · Windows, Linux, macOS</span></div>

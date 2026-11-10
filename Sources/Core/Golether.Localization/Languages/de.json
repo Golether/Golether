@@ -35,6 +35,7 @@
   "Browser.Error.ForeignKey": "die Gegenseite hat einen anderen Schlüssel nachgewiesen als in der Einladung steht",
   "Browser.Error.Format": "Der Browser kann das Video dieser Datei nicht zeigen: Er kennt den Videocodec nicht. Öffnen Sie die Datei in der Golether-Anwendung.",
   "Browser.Hero.Text": "Direkt im Browser, ohne Installation: Eine Person zeigt eine Datei von ihrem Computer, die anderen sehen sie synchron. Der Film geht verschlüsselt direkt zwischen den Browsern; der Server stellt Sie nur einander vor.",
+  "Browser.Home": "Startseite von Golether",
   "Browser.Host.Text": "Die Datei bleibt auf Ihrem Computer: Der Browser liest sie und schickt sie den Gästen direkt. Lassen Sie diesen Tab geöffnet, solange Sie schauen.",
   "Browser.Invite.Note": "Schicken Sie den Link Ihren Gästen: Er öffnet diese Seite in ihrem Browser. 15 Minuten lang können sie damit um Beitritt bitten; jeden lassen Sie nach dem Vergleich des Codes selbst herein.",
   "Browser.Join.DirectOnly": "Diese Sitzung ist nur über die direkte Adresse des Gastgebers erreichbar, und das kann ein Browser nicht. Öffnen Sie den Link in der Anwendung Golether.",

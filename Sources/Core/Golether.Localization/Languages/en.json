@@ -35,6 +35,7 @@
   "Browser.Error.ForeignKey": "the other side proved a different key than the invitation names",
   "Browser.Error.Format": "The browser cannot show the video of this file: it does not know the video codec. Open the file in the Golether application.",
   "Browser.Hero.Text": "Right in the browser, with nothing to install: one person shows a file from their computer, the others watch it in sync. The film goes directly between the browsers, encrypted; the server only introduces you.",
+  "Browser.Home": "Golether home page",
   "Browser.Host.Text": "The file stays on your computer: the browser reads it and sends it to the guests directly. Keep this tab open while you watch.",
   "Browser.Invite.Note": "Send the link to your guests: it opens this page in their browser. For 15 minutes it lets them ask to join; you let each one in after comparing the code.",
   "Browser.Join.DirectOnly": "This session is reached only at the direct address of the host, which a browser cannot do. Open the link in the Golether application.",

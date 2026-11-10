@@ -25,6 +25,67 @@ public sealed partial class MainView : UserControl
     private const double REVEAL_EDGE = 24;
 
     /// <summary>
+    /// The page is "compact" below this width: a phone held upright gets one column and thinner bars.
+    /// </summary>
+    private const double COMPACT_WIDTH = 640;
+
+    /// <summary>
+    /// The page is "short" below this height: a phone on its side gets thinner bars and a scrolling column.
+    /// </summary>
+    private const double SHORT_HEIGHT = 540;
+
+    /// <summary>
+    /// An upright page narrower than this lays the participants under the film instead of beside it.
+    /// </summary>
+    private const double STACKED_MAX_WIDTH = 900;
+
+    /// <summary>
+    /// The width of the participants column beside the film, as on the desktop.
+    /// </summary>
+    private const double SIDE_WIDTH = 300;
+
+    /// <summary>
+    /// The height of the film per its width while the participants lie under it.
+    /// </summary>
+    private const double FILM_HEIGHT_PER_WIDTH = 9.0 / 16;
+
+    /// <summary>
+    /// The most of the height of the page the film takes while the participants lie under it.
+    /// </summary>
+    private const double FILM_MAX_SHARE = 0.5;
+
+    /// <summary>
+    /// The height the floating reactions rise in over a film that is high enough.
+    /// </summary>
+    private const double REACTIONS_HEIGHT = 360;
+
+    /// <summary>
+    /// The room the reactions keep from the top of the film, the same as their margin at its bottom.
+    /// </summary>
+    private const double REACTIONS_MARGIN = 18;
+
+    /// <summary>
+    /// The highest the list of tracks grows on a page that is high enough.
+    /// </summary>
+    private const double TRACKS_MAX_HEIGHT = 420;
+
+    /// <summary>
+    /// The height of the page the list of tracks leaves to the bars and the button it opens from.
+    /// </summary>
+    private const double TRACKS_ROOM = 140;
+
+    /// <summary>
+    /// The layout the session has now; <see langword="null"/> until the page is first measured.
+    /// </summary>
+    private (bool Stacked, bool Short, bool FullScreen)? _layout;
+
+    /// <summary>
+    /// Whether the touch that has just come down only brings the hidden bars of the full screen back, so the tap that
+    /// follows must not also play or pause the film.
+    /// </summary>
+    private bool _tapRevealsBars;
+
+    /// <summary>
     /// How long the bars and the cursor stay after the pointer stopped, as on the desktop.
     /// </summary>
     private static readonly TimeSpan _chromeDelay = TimeSpan.FromSeconds(3);
@@ -109,6 +170,7 @@ public sealed partial class MainView : UserControl
             if (TopLevel.GetTopLevel(this) is { } top)
             {
                 top.AddHandler(PointerMovedEvent, OnPointerMovedAnywhere, RoutingStrategies.Tunnel, handledEventsToo: true);
+                top.AddHandler(PointerPressedEvent, OnPointerPressedAnywhere, RoutingStrategies.Tunnel, handledEventsToo: true);
                 top.AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
                 top.AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel);
             }
@@ -122,12 +184,22 @@ public sealed partial class MainView : UserControl
         PageCallbacks.FullScreenChanged += (_, _) => Dispatcher.UIThread.Post(() =>
         {
             _fullScreen = PageInterop.IsFullScreen();
+            ApplyLayout(Bounds.Size);
             UpdateChrome();
         });
 
         var clickLayer = this.FindControl<Panel>("ClickLayer")!;
         clickLayer.Tapped += OnFilmTapped;
         clickLayer.DoubleTapped += OnFilmDoubleTapped;
+
+        this.FindControl<Panel>("VideoArea")!.SizeChanged += (_, e) => FitReactions(e.NewSize.Height);
+    }
+
+    /// <inheritdoc />
+    protected override void OnSizeChanged(SizeChangedEventArgs e)
+    {
+        base.OnSizeChanged(e);
+        ApplyLayout(e.NewSize);
     }
 
     /// <summary>
@@ -171,6 +243,12 @@ public sealed partial class MainView : UserControl
     /// <param name="e">The event data.</param>
     private void OnFilmTapped(object? sender, TappedEventArgs e)
     {
+        if (_tapRevealsBars)
+        {
+            _tapRevealsBars = false;
+            return;
+        }
+
         _clickTimer.Stop();
         _clickTimer.Start();
     }
@@ -244,6 +322,28 @@ public sealed partial class MainView : UserControl
         else if (!_volumeCloseTimer.IsEnabled)
         {
             _volumeCloseTimer.Start();
+        }
+    }
+
+    /// <summary>
+    /// Lets a touch bring the bars back: a finger moves nothing until it comes down. In the full screen a tap on the
+    /// film with the bars hidden only shows them, as a phone player does; the next tap plays or pauses. A press away
+    /// from the speaker closes its volume scale.
+    /// </summary>
+    /// <param name="sender">The top level.</param>
+    /// <param name="e">The event data.</param>
+    private void OnPointerPressedAnywhere(object? sender, PointerPressedEventArgs e)
+    {
+        _tapRevealsBars = e.Pointer.Type == PointerType.Touch && _barsOverlaid && !_chrome.BarsVisible;
+        ReportZone(ZoneAt(e.GetPosition(this)));
+
+        // A finger does not leave the speaker the way a mouse does: a touch anywhere else closes its scale.
+        if (this.FindControl<Popup>("VolumePopup") is { IsOpen: true } volume &&
+            !IsOver(this.FindControl<Control>("VolumeButton"), e) &&
+            !IsOver(this.FindControl<Control>("VolumePanel"), e))
+        {
+            _volumeCloseTimer.Stop();
+            volume.IsOpen = false;
         }
     }
 
@@ -323,6 +423,84 @@ public sealed partial class MainView : UserControl
     /// <returns><see langword="true"/> while a dialog is open.</returns>
     private static bool HasDialog(MainViewModel viewModel)
         => viewModel.IsSettingsOpen || viewModel.IsInviteOpen || viewModel.HasQuestion || viewModel.IsLeaveConfirmOpen || viewModel.HasError;
+
+    /// <summary>
+    /// Fits the screens to the size of the page: marks the page for the styles (compact, short, stacked) and lays the
+    /// participants beside the film or, on a page held upright, under it. Under the film the column gives way to the
+    /// film in the full screen.
+    /// </summary>
+    /// <param name="size">The size of the page.</param>
+    private void ApplyLayout(Size size)
+    {
+        if (size.Width <= 0 || size.Height <= 0)
+        {
+            return;
+        }
+
+        var stacked = size.Height > size.Width && size.Width < STACKED_MAX_WIDTH;
+        var low = size.Height < SHORT_HEIGHT;
+        Classes.Set("compact", size.Width < COMPACT_WIDTH);
+        Classes.Set("short", low);
+        Classes.Set("stacked", stacked);
+
+        var videoArea = this.FindControl<Panel>("VideoArea")!;
+        videoArea.Height = stacked && !_fullScreen
+            ? Math.Round(Math.Min(size.Width * FILM_HEIGHT_PER_WIDTH, size.Height * FILM_MAX_SHARE))
+            : double.NaN;
+        if (this.FindControl<ScrollViewer>("TracksScroll") is { } tracks)
+        {
+            tracks.MaxHeight = Math.Clamp(size.Height - TRACKS_ROOM, 0, TRACKS_MAX_HEIGHT);
+        }
+
+        if (_layout == (stacked, low, _fullScreen))
+        {
+            return;
+        }
+
+        _layout = (stacked, low, _fullScreen);
+        ArrangeSession(stacked, low);
+    }
+
+    /// <summary>
+    /// Puts the participants beside the film or under it.
+    /// </summary>
+    /// <param name="stacked">Whether the participants lie under the film.</param>
+    /// <param name="low">Whether the page is low, where the column beside the film scrolls as one.</param>
+    private void ArrangeSession(bool stacked, bool low)
+    {
+        var grid = this.FindControl<Grid>("SessionGrid")!;
+        var side = this.FindControl<Border>("SidePanel")!;
+
+        if (stacked)
+        {
+            grid.ColumnDefinitions = new ColumnDefinitions("*");
+            grid.RowDefinitions = new RowDefinitions(_fullScreen ? "*" : "Auto,*");
+            Grid.SetColumn(side, 0);
+            Grid.SetRow(side, 1);
+            side.BorderThickness = new Thickness(0, 1, 0, 0);
+        }
+        else
+        {
+            grid.ColumnDefinitions = [new ColumnDefinition(GridLength.Star), new ColumnDefinition(SIDE_WIDTH, GridUnitType.Pixel)];
+            grid.RowDefinitions = new RowDefinitions("*");
+            Grid.SetColumn(side, 1);
+            Grid.SetRow(side, 0);
+            side.BorderThickness = new Thickness(1, 0, 0, 0);
+        }
+
+        // Under the film, or on a low page, the column scrolls as one; otherwise only its tiles scroll.
+        side.IsVisible = !(stacked && _fullScreen);
+        this.FindControl<ScrollViewer>("SideScroll")!.VerticalScrollBarVisibility = stacked || low
+            ? ScrollBarVisibility.Auto
+            : ScrollBarVisibility.Disabled;
+    }
+
+    /// <summary>
+    /// Lets the reactions rise only as high as the film is, so over a small film they fade at its top edge.
+    /// </summary>
+    /// <param name="filmHeight">The height of the film area.</param>
+    private void FitReactions(double filmHeight)
+        => this.FindControl<Border>("ReactionsLane")!.Height = Math.Clamp(filmHeight - (2 * REACTIONS_MARGIN), 0, REACTIONS_HEIGHT);
 
     /// <summary>
     /// Tells the hiding logic what the page is doing and lets its time pass.

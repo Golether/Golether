@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    The keyboard of a phone shrinks the page instead of covering it, so Avalonia lays the screens out anew and the
+    field being typed in (the chat at the bottom) stays above the keyboard.
+  -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
   <!--
     Nothing inline runs and nothing is loaded from other servers. 'wasm-unsafe-eval' lets the browser compile the
     WebAssembly of .NET, of Avalonia and of the film decoders; connect-src allows the WebSocket of the rendezvous server

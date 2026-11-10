@@ -757,6 +757,12 @@ internal sealed partial class MainViewModel : ObservableObject
     private Task StartNowAsync() => SendAsync(new PlaybackRequest(PlaybackRequestKind.PlayNow, null));
 
     /// <summary>
+    /// Opens the project page from the logo; during a session in a new tab, so that the session goes on.
+    /// </summary>
+    [RelayCommand]
+    private void OpenHome() => PageInterop.OpenHome(IsInSession);
+
+    /// <summary>
     /// Seeks back by ten seconds.
     /// </summary>
     /// <returns>A task that completes when the intent was sent.</returns>

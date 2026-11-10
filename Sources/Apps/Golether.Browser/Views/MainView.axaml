@@ -20,23 +20,27 @@
       <!-- Top bar -->
       <Decorator x:Name="TopBarSlot" DockPanel.Dock="Top">
       <desktop:SlideReveal x:Name="TopBar" SlideUp="True">
-      <Border Classes="panel" BorderBrush="{StaticResource GoletherLine}" BorderThickness="0,0,0,1" Padding="16,10">
+      <Border Classes="panel topBar" BorderBrush="{StaticResource GoletherLine}" BorderThickness="0,0,0,1">
         <Grid ColumnDefinitions="Auto,*">
-          <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,18,0">
-            <Image Source="/Assets/golether-256.png" Width="22" Height="22" Margin="0,0,8,0" />
-            <TextBlock Classes="logo" Text="gole" />
-            <TextBlock Classes="logo" Text="ther" Foreground="{StaticResource GoletherAccent}" />
-          </StackPanel>
+          <!-- The logo of the project page, of its size, and a link to that page. -->
+          <Button Classes="brand" VerticalAlignment="Center" Margin="0,0,18,0" Command="{Binding OpenHomeCommand}"
+                  AutomationProperties.Name="{loc:Loc Browser.Home}" ToolTip.Tip="{loc:Loc Browser.Home}">
+            <StackPanel Orientation="Horizontal">
+              <Image Source="/Assets/golether-256.png" />
+              <TextBlock Classes="logo" Text="gole" VerticalAlignment="Center" />
+              <TextBlock Classes="logo" Text="ther" VerticalAlignment="Center" Foreground="{StaticResource GoletherAccent}" />
+            </StackPanel>
+          </Button>
           <DockPanel Grid.Column="1">
             <!-- When the page is narrow the actions fold into the "more" button. -->
-            <desktop:OverflowPanel DockPanel.Dock="Right" Spacing="8" ReservedWidth="160" VerticalAlignment="Center">
+            <desktop:OverflowPanel Classes="actions" DockPanel.Dock="Right" Spacing="8" VerticalAlignment="Center">
               <Border Classes="chip" IsVisible="{Binding IsInSession}">
                 <TextBlock Text="{Binding SyncText}" Foreground="{Binding SyncLevel, Converter={x:Static desktop:IndicatorLevelBrushConverter.Instance}}" />
               </Border>
-              <Border Classes="chip secure" IsVisible="{Binding IsInSession}">
+              <Border Classes="chip secure" IsVisible="{Binding IsInSession}" ToolTip.Tip="{Binding SecurityText}">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                   <PathIcon Data="{StaticResource IconLock}" Width="11" Height="11" Foreground="{StaticResource GoletherSecure}" />
-                  <TextBlock Text="{Binding SecurityText}" Foreground="{StaticResource GoletherSecure}" FontFamily="{StaticResource GoletherMono}" FontSize="11" FontWeight="SemiBold" />
+                  <TextBlock Classes="secureText" Text="{Binding SecurityText}" Foreground="{StaticResource GoletherSecure}" FontFamily="{StaticResource GoletherMono}" FontSize="11" FontWeight="SemiBold" />
                 </StackPanel>
               </Border>
               <Border Classes="chip" IsVisible="{Binding IsHost}" desktop:OverflowPanel.CanOverflow="True" desktop:OverflowPanel.OverflowOrder="1">
@@ -81,10 +85,12 @@
                 </Button.Flyout>
               </Button>
             </desktop:OverflowPanel>
-            <StackPanel VerticalAlignment="Center" IsVisible="{Binding IsInSession}" Margin="0,0,12,0">
-              <TextBlock Text="{Binding SessionTitle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-              <TextBlock Classes="mono muted" FontSize="11" Text="{Binding MediaCaption}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding MediaCaption}" />
-            </StackPanel>
+            <Decorator Classes="sessionCaption">
+              <StackPanel VerticalAlignment="Center" IsVisible="{Binding IsInSession}" Margin="0,0,12,0">
+                <TextBlock Text="{Binding SessionTitle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock Classes="mono muted" FontSize="11" Text="{Binding MediaCaption}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding MediaCaption}" />
+              </StackPanel>
+            </Decorator>
           </DockPanel>
         </Grid>
       </Border>
@@ -94,20 +100,20 @@
       <Panel>
         <!-- Start screen -->
         <ScrollViewer IsVisible="{Binding !IsInSession}">
-          <StackPanel MaxWidth="980" Margin="24,36" Spacing="22">
+          <StackPanel Classes="start" MaxWidth="980" Spacing="22">
             <StackPanel Spacing="6">
-              <TextBlock FontSize="28" FontWeight="Bold" Text="{loc:Loc Main.Hero.Title}" />
+              <TextBlock Classes="hero" Text="{loc:Loc Main.Hero.Title}" />
               <TextBlock Classes="muted" TextWrapping="Wrap" MaxWidth="720" HorizontalAlignment="Left" Text="{loc:Loc Browser.Hero.Text}" />
             </StackPanel>
-            <StackPanel Orientation="Horizontal" Spacing="10">
+            <StackPanel Classes="nameRow">
               <TextBlock Classes="label" Text="{loc:Loc Main.YourName}" VerticalAlignment="Center" />
-              <TextBox Width="260" Text="{Binding DisplayName}" MaxLength="64" AutomationProperties.Name="{loc:Loc Main.YourName}" />
+              <TextBox Text="{Binding DisplayName}" MaxLength="64" AutomationProperties.Name="{loc:Loc Main.YourName}" />
             </StackPanel>
             <Border Classes="notice" BorderBrush="{StaticResource GoletherBad}" IsVisible="{Binding HasHomeError}" HorizontalAlignment="Left" MaxWidth="940">
               <TextBlock TextWrapping="Wrap" Foreground="{StaticResource GoletherBad}" Text="{Binding HomeError}" />
             </Border>
             <WrapPanel Orientation="Horizontal">
-              <Border Classes="card" Width="460" Margin="0,0,20,20">
+              <Border Classes="card startCard">
                 <StackPanel Spacing="12">
                   <TextBlock Classes="title" Text="{loc:Loc Main.Host.Title}" />
                   <TextBlock Classes="muted" TextWrapping="Wrap" Text="{loc:Loc Browser.Host.Text}" />
@@ -116,7 +122,7 @@
                   <Button Classes="accent" Content="{loc:Loc Main.Host.Start}" Command="{Binding StartHostingCommand}" />
                 </StackPanel>
               </Border>
-              <Border Classes="card" Width="460" Margin="0,0,20,20">
+              <Border Classes="card startCard">
                 <StackPanel Spacing="12">
                   <TextBlock Classes="title" Text="{loc:Loc Main.Join.Title}" />
                   <TextBlock Classes="muted" TextWrapping="Wrap" Text="{loc:Loc Main.Join.Text}" />
@@ -136,13 +142,13 @@
           </StackPanel>
         </ScrollViewer>
 
-        <!-- Session -->
-        <Grid IsVisible="{Binding IsInSession}" ColumnDefinitions="*,300">
-          <DockPanel Grid.Column="0">
+        <!-- Session: the film and the participants beside it, or under it on a phone held upright (see MainView). -->
+        <Grid x:Name="SessionGrid" IsVisible="{Binding IsInSession}" ColumnDefinitions="*,300">
+          <DockPanel x:Name="FilmColumn" Grid.Column="0">
             <!-- Player bar -->
             <Decorator x:Name="PlayerBarSlot" DockPanel.Dock="Bottom">
             <desktop:SlideReveal x:Name="PlayerBar">
-            <Border Classes="panel" BorderBrush="{StaticResource GoletherLine}" BorderThickness="0,1,1,0" Padding="16,10,16,12">
+            <Border Classes="panel playerBar" BorderBrush="{StaticResource GoletherLine}">
               <StackPanel Spacing="8">
                 <Panel Height="34" IsVisible="{Binding IsFilmOnScreen}">
                   <desktop:TimelineSlider x:Name="Timeline" Classes="timeline" VerticalAlignment="Bottom" Margin="0,0,0,-8"
@@ -154,14 +160,14 @@
                   <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <!-- The host shows a file; the browser reads it in place and sends it to the guests. -->
                     <Button Focusable="False" Classes="ghost" Margin="0,0,8,0" IsVisible="{Binding IsHost}" Command="{Binding PickFileCommand}"
-                            ToolTip.Tip="{loc:Loc Main.File.Tip}">
+                            ToolTip.Tip="{loc:Loc Main.File.Tip}" AutomationProperties.Name="{loc:Loc Gallery.ShowMenu.File}">
                       <StackPanel Orientation="Horizontal" Spacing="6">
                         <PathIcon Data="{StaticResource IconFolder}" Width="14" Height="14" />
-                        <TextBlock Text="{loc:Loc Gallery.ShowMenu.File}" />
+                        <TextBlock Classes="fileText" Text="{loc:Loc Gallery.ShowMenu.File}" />
                       </StackPanel>
                     </Button>
                     <!-- The pen belongs to the applications: the button stays, and its hint says where to find it. -->
-                    <ToggleButton Focusable="False" Classes="ghost square" Margin="0,0,4,0" IsEnabled="{Binding Drawing.CanDraw}"
+                    <ToggleButton Focusable="False" Classes="ghost square appOnly" Margin="0,0,4,0" IsEnabled="{Binding Drawing.CanDraw}"
                                   IsChecked="{Binding Drawing.IsPenActive, Mode=TwoWay}"
                                   AutomationProperties.Name="{loc:Loc Main.Pen.Name}" ToolTip.Tip="{loc:Loc Browser.AppOnly}"
                                   ToolTip.ShowOnDisabled="True">
@@ -199,7 +205,7 @@
                       <PathIcon Data="{StaticResource IconSubtitles}" />
                       <Button.Flyout>
                         <Flyout Placement="TopEdgeAlignedRight">
-                          <ScrollViewer MaxHeight="420" MaxWidth="380">
+                          <ScrollViewer x:Name="TracksScroll" MaxHeight="420" MaxWidth="380">
                             <StackPanel Spacing="4" Margin="2">
                               <TextBlock Classes="muted" FontSize="11" Text="{loc:Loc Main.Tracks.Audio}" Margin="6,0,0,2" />
                               <ItemsControl ItemsSource="{Binding Tracks.AudioTracks}">
@@ -307,7 +313,8 @@
               <Panel x:Name="ClickLayer" Background="#00000000" IsVisible="{Binding IsFilmOnScreen}" />
               <!-- The strokes of the others and the floating reactions, over the picture. -->
               <clientControls:StrokeCanvas Source="{Binding Drawing}" Aspect="{Binding VideoAspect}" IsHitTestVisible="False" />
-              <Border Width="280" Height="360" Background="#00000000" IsHitTestVisible="False"
+              <!-- As high as the film allows: over a small film the reactions fade at its top edge, not over the bars. -->
+              <Border x:Name="ReactionsLane" Width="280" Height="360" Background="#00000000" IsHitTestVisible="False" ClipToBounds="True"
                       HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,18,18">
                 <ItemsControl ItemsSource="{Binding Chat.Reactions}">
                   <ItemsControl.ItemsPanel>
@@ -346,8 +353,12 @@
             </Panel>
           </DockPanel>
 
-          <!-- Participants -->
-          <Border Grid.Column="1" Classes="panel" BorderBrush="{StaticResource GoletherLine}" BorderThickness="1,0,0,0">
+          <!--
+            Participants. Where the column is high enough the tiles scroll between the header and the controls; on
+            a phone the whole column scrolls as one (see MainView), so the controls are never squeezed out.
+          -->
+          <Border x:Name="SidePanel" Grid.Column="1" Classes="panel" BorderBrush="{StaticResource GoletherLine}" BorderThickness="1,0,0,0">
+            <ScrollViewer x:Name="SideScroll" VerticalScrollBarVisibility="Disabled">
             <DockPanel>
               <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="14,12,14,8">
                 <TextBlock Classes="label" Text="{loc:Loc Key=Main.Participants.Header, Arg={Binding Participants.Count}}" />
@@ -438,12 +449,7 @@
                 </StackPanel>
               </StackPanel>
               <ScrollViewer>
-                <ItemsControl ItemsSource="{Binding Participants}" Margin="12,0" VerticalAlignment="Top">
-                  <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                      <StackPanel Spacing="10" />
-                    </ItemsPanelTemplate>
-                  </ItemsControl.ItemsPanel>
+                <ItemsControl Classes="people" ItemsSource="{Binding Participants}" Margin="12,0" VerticalAlignment="Top">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="client:ParticipantItemViewModel">
                       <Panel>
@@ -491,13 +497,11 @@
                           </Border.ContextMenu>
                           <StackPanel>
                             <desktop:AspectPanel HeightPerWidth="0.5625" Background="#0E1518">
-                              <Border Width="64" Height="64" CornerRadius="32" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                      Background="{Binding AvatarColor, Converter={x:Static clientControls:ColorTextBrushConverter.Instance}}">
-                                <TextBlock Text="{Binding Initial}" FontSize="28" FontWeight="Bold" Foreground="#0A0F11"
+                              <Border Classes="avatar" Background="{Binding AvatarColor, Converter={x:Static clientControls:ColorTextBrushConverter.Instance}}">
+                                <TextBlock Classes="initial" Text="{Binding Initial}" FontWeight="Bold" Foreground="#0A0F11"
                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                               </Border>
-                              <Border Width="64" Height="64" CornerRadius="32" ClipToBounds="True" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                      IsVisible="{Binding ShowAvatarImage}">
+                              <Border Classes="avatar" ClipToBounds="True" IsVisible="{Binding ShowAvatarImage}">
                                 <Image Source="{Binding AvatarImage}" Stretch="UniformToFill" />
                               </Border>
                               <Panel Background="Black" IsVisible="{Binding HasCamera}">
@@ -556,6 +560,7 @@
                 </ItemsControl>
               </ScrollViewer>
             </DockPanel>
+            </ScrollViewer>
           </Border>
         </Grid>
 
@@ -571,8 +576,9 @@
 
     <!-- Joining a session: over everything from the click until the host let this page in. -->
     <Border Background="{StaticResource GoletherBackground}" IsVisible="{Binding ShowJoinScreen}">
+      <ScrollViewer>
       <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16" MaxWidth="520" Margin="24">
-        <Image Source="/Assets/golether-512.png" Width="128" Height="128" HorizontalAlignment="Center" />
+        <Image Classes="joinLogo" Source="/Assets/golether-512.png" HorizontalAlignment="Center" />
         <TextBlock Classes="title" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Text="{Binding JoinTitle}" />
         <ProgressBar IsIndeterminate="True" Width="260" HorizontalAlignment="Center" />
         <TextBlock Classes="muted" TextWrapping="Wrap" TextAlignment="Center" Text="{Binding JoinText}" />
@@ -581,11 +587,13 @@
         </Border>
         <Button Classes="ghost" HorizontalAlignment="Center" Content="{loc:Loc Main.Approval.Cancel}" Command="{Binding CancelJoinCommand}" />
       </StackPanel>
+      </ScrollViewer>
     </Border>
 
     <!-- Settings: the language with its flag, the camera and the microphone. -->
     <Border Classes="dialogVeil" IsVisible="{Binding IsSettingsOpen}">
-      <Border Classes="dialog" Width="460">
+      <ScrollViewer>
+      <Border Classes="dialog">
         <StackPanel Spacing="12">
           <TextBlock Classes="title" Text="{loc:Loc Settings.General}" />
           <TextBlock Classes="label" Text="{loc:Loc Settings.Language}" />
@@ -616,26 +624,29 @@
           <Button Classes="accent" HorizontalAlignment="Right" Content="{loc:Loc Common.Close}" Command="{Binding CloseSettingsCommand}" />
         </StackPanel>
       </Border>
+      </ScrollViewer>
     </Border>
 
     <!-- The invitation: the link, a button that copies it and one that makes a new one. -->
     <Border Classes="dialogVeil" IsVisible="{Binding IsInviteOpen}">
-      <Border Classes="dialog" Width="560">
+      <ScrollViewer>
+      <Border Classes="dialog wide">
         <StackPanel Spacing="12">
           <TextBlock Classes="title" Text="{loc:Loc Invite.WindowTitle}" />
           <TextBlock Classes="muted" TextWrapping="Wrap" Text="{loc:Loc Invite.Dialog.Explanation}" />
           <TextBlock Classes="label" Text="{loc:Loc Invite.Dialog.LinkLabel}" />
           <TextBox Classes="package invite" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="120" Text="{Binding InviteText}"
                    AutomationProperties.Name="{loc:Loc Invite.Dialog.LinkLabel}" />
-          <Grid ColumnDefinitions="*,12,Auto">
-            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" Text="{loc:Loc Browser.Invite.Note}" />
-            <Button Grid.Column="2" Classes="accent" VerticalAlignment="Top" Command="{Binding CopyInviteCommand}">
+          <!-- The copy button stands beside the note, or on a phone across the dialog right under the link. -->
+          <DockPanel Classes="inviteCopy">
+            <Button Classes="accent" Command="{Binding CopyInviteCommand}">
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <PathIcon Data="{StaticResource IconCopy}" Width="14" Height="14" Foreground="{StaticResource GoletherAccentInk}" />
                 <TextBlock Text="{loc:Loc Invite.Dialog.CopyLink}" />
               </StackPanel>
             </Button>
-          </Grid>
+            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" Text="{loc:Loc Browser.Invite.Note}" />
+          </DockPanel>
           <TextBlock Foreground="{StaticResource GoletherSecure}" TextWrapping="Wrap" Text="{Binding InviteNote}"
                      IsVisible="{Binding InviteNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,4,0,0">
@@ -644,11 +655,13 @@
           </StackPanel>
         </StackPanel>
       </Border>
+      </ScrollViewer>
     </Border>
 
     <!-- The host is asked about a guest, with the code to compare. -->
     <Border Classes="dialogVeil" IsVisible="{Binding HasQuestion}">
-      <Border Classes="dialog" Width="460">
+      <ScrollViewer>
+      <Border Classes="dialog">
         <StackPanel Spacing="12">
           <TextBlock Classes="title" TextWrapping="Wrap" Text="{Binding QuestionTitle}" />
           <TextBlock Classes="muted" TextWrapping="Wrap" Text="{loc:Loc Admission.NewDevice}" />
@@ -661,11 +674,13 @@
           </StackPanel>
         </StackPanel>
       </Border>
+      </ScrollViewer>
     </Border>
 
     <!-- The host ends the session for everybody only after a confirmation. -->
     <Border Classes="dialogVeil" IsVisible="{Binding IsLeaveConfirmOpen}">
-      <Border Classes="dialog" Width="460">
+      <ScrollViewer>
+      <Border Classes="dialog">
         <StackPanel Spacing="12">
           <TextBlock Classes="title" TextWrapping="Wrap" Text="{loc:Loc Main.Leave}" />
           <TextBlock TextWrapping="Wrap" Text="{loc:Loc Mobile.Leave.Host.Text}" />
@@ -675,17 +690,20 @@
           </StackPanel>
         </StackPanel>
       </Border>
+      </ScrollViewer>
     </Border>
 
     <!-- An error the shared parts reported. -->
     <Border Classes="dialogVeil" IsVisible="{Binding HasError}">
-      <Border Classes="dialog" Width="460">
+      <ScrollViewer>
+      <Border Classes="dialog">
         <StackPanel Spacing="12">
           <TextBlock Classes="title" TextWrapping="Wrap" Text="{Binding ErrorTitle}" />
           <TextBlock TextWrapping="Wrap" Text="{Binding ErrorText}" />
           <Button Classes="accent" HorizontalAlignment="Right" Content="{loc:Loc Common.Close}" Command="{Binding CloseErrorCommand}" />
         </StackPanel>
       </Border>
+      </ScrollViewer>
     </Border>
   </Panel>
 </UserControl>
