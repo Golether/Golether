@@ -116,6 +116,22 @@ export function bind(softKeyboardCallbacks) {
       onSelectionChange(input);
     }
   });
+
+  // The page never scrolls: Avalonia fills it and scrolls inside. When the keyboard opens, the browser may scroll the
+  // page to show the hidden input, which leaves an empty strip over the field; the page is put back at once, and the
+  // field itself is scrolled into sight by .NET.
+  window.addEventListener('scroll', keepPagePut, { passive: true });
+  window.visualViewport?.addEventListener('resize', keepPagePut);
+  window.visualViewport?.addEventListener('scroll', keepPagePut);
+}
+
+/** Puts the page back at its top after the browser scrolled it. */
+function keepPagePut() {
+  const viewport = window.visualViewport;
+  log(`viewport ${window.innerWidth}x${window.innerHeight} visual ${Math.round(viewport?.height ?? 0)} at ${Math.round(viewport?.offsetTop ?? 0)} scroll ${window.scrollY}`);
+  if (window.scrollX !== 0 || window.scrollY !== 0) {
+    window.scrollTo(0, 0);
+  }
 }
 
 /** Hands .NET the change the keyboard made to the input, so the field makes the same one. */
