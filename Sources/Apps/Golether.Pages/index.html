@@ -44,7 +44,7 @@
     <div class="hero">
       <div class="wrap">
         <h1 data-t="hero.title">Share the moment <em>together</em><br>wherever you are</h1>
-        <p class="lead" data-t="hero.lead">Movies and photos: the same frame for everyone at the same moment, even a thousand miles apart.<br>Webcams, voice, reactions and drawing over the picture, all in one window.</p>
+        <p class="lead" data-t="hero.lead"><span>Movies and photos: one frame for everyone at once, even a thousand miles apart.</span> <span>Webcams, voice, reactions and drawing over the picture, all in one window.</span></p>
         <div class="actions">
           <a class="btn accent" id="hero-download" href="#download"><span data-t="hero.download">Download Golether</span></a>
           <a class="btn try" href="watch/" data-t="nav.try" data-umami-event="try-online" data-umami-event-place="hero">Try online</a>
@@ -173,14 +173,14 @@
             <div class="meta"></div>
             <p class="hint" data-t="dl.linux">A package for Ubuntu, Debian and their relatives: the system installs the video and camera components with it.</p>
             <a class="btn accent" href="https://github.com/Golether/Golether/releases/latest" data-field="deb" data-umami-event="download" data-umami-event-package="linux-deb" data-umami-event-place="card" data-t="dl.button">Download</a>
-            <a class="other" href="https://github.com/Golether/Golether/releases/latest" data-field="url" data-umami-event="download" data-umami-event-package="linux-archive" data-umami-event-place="card" data-t="dl.linux.other">or the .tar.gz archive for other distributions</a>
+            <a class="other" href="https://github.com/Golether/Golether/releases/latest" data-field="url" data-umami-event="download" data-umami-event-package="linux-archive" data-umami-event-place="card" data-t="dl.linux.other">or the .tar.gz archive</a>
           </div>
           <div class="download" data-os="macos">
             <h3>macOS</h3>
             <div class="meta"></div>
             <p class="hint" data-t="dl.macos">An archive for Macs with Apple silicon, macOS 14 and newer.</p>
             <a class="btn accent" href="https://github.com/Golether/Golether/releases/latest" data-field="url" data-umami-event="download" data-umami-event-package="macos" data-umami-event-place="card" data-t="dl.button">Download</a>
-            <a class="other" href="https://github.com/Golether/Golether/releases/latest" data-field="intel" data-umami-event="download" data-umami-event-package="macos-intel" data-umami-event-place="card" data-t="dl.macos.other">or for Macs with an Intel processor</a>
+            <a class="other" href="https://github.com/Golether/Golether/releases/latest" data-field="intel" data-umami-event="download" data-umami-event-package="macos-intel" data-umami-event-place="card" data-t="dl.macos.other">or for Intel Macs</a>
           </div>
           <!-- Not released yet: the card says so instead of offering a download. -->
           <div class="download soon" data-os="android">
@@ -188,6 +188,8 @@
             <div class="meta"></div>
             <p class="hint" data-t="dl.android">An app for phones: join a session from a computer or host your own for up to three people.</p>
             <span class="btn" data-t="dl.soon">Coming soon</span>
+            <!-- An empty line in place of the second way of the other cards, so the button stands level with theirs. -->
+            <span class="other" aria-hidden="true">&nbsp;</span>
           </div>
         </div>
         <p class="online" data-t="dl.online">Rather not install anything? <a href="watch/" data-umami-event="try-online" data-umami-event-place="downloads">Try Golether online</a>, right in the browser.</p>
