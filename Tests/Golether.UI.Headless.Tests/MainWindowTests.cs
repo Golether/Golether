@@ -2411,6 +2411,12 @@ public sealed class MainWindowTests
                 Player,
                 language: language);
             Window = new MainWindow { Width = 1280, Height = 780 };
+
+            // No tooltips here: a headless popup has only the window to fit in, so near the bottom edge the tooltip of
+            // a button slides up over the pointer and catches the next click. On a slow machine the tooltip of a
+            // button the pointer rested on opens, and a later click on that button never reaches it. A real tooltip
+            // lies in a window of its own and has the whole screen.
+            ToolTip.SetServiceEnabled(Window, false);
             Window.Initialize(ViewModel, new PlayerHost(NullLoggerFactory.Instance, Path.GetTempPath()), conference);
             Window.Show();
             ViewModel.Refresh();
