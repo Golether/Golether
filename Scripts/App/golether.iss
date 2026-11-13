@@ -93,17 +93,17 @@ Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"; LicenseFile: "{
 [Messages]
 ; The greeting of the first page; [name] and [name/ver] are filled in by Inno Setup.
 english.WelcomeLabel1=Welcome to the [name] setup
-english.WelcomeLabel2=Golether is for watching films together: everyone sees the same frame at the same moment, with the faces and voices of friends beside it.%n%nThis wizard installs [name/ver] on your computer.
+english.WelcomeLabel2=Golether is for watching films and photos together: everyone sees the same frame at the same moment, with the faces and voices of friends beside it.%n%nThis wizard installs [name/ver] on your computer.
 german.WelcomeLabel1=Willkommen bei der Installation von [name]
-german.WelcomeLabel2=Golether ist für gemeinsame Filmabende: Alle sehen im selben Moment dasselbe Bild, und die Gesichter und Stimmen der Freunde sind gleich daneben.%n%nDieser Assistent installiert [name/ver] auf Ihrem Computer.
+german.WelcomeLabel2=Golether ist für gemeinsame Film- und Fotoabende: Alle sehen im selben Moment dasselbe Bild, und die Gesichter und Stimmen der Freunde sind gleich daneben.%n%nDieser Assistent installiert [name/ver] auf Ihrem Computer.
 spanish.WelcomeLabel1=Te damos la bienvenida a la instalación de [name]
-spanish.WelcomeLabel2=Golether sirve para ver películas juntos: todos ven el mismo fotograma en el mismo momento, con las caras y las voces de los amigos al lado.%n%nEste asistente instalará [name/ver] en tu equipo.
+spanish.WelcomeLabel2=Golether sirve para ver películas y fotos juntos: todos ven el mismo fotograma en el mismo momento, con las caras y las voces de los amigos al lado.%n%nEste asistente instalará [name/ver] en tu equipo.
 french.WelcomeLabel1=Bienvenue dans l'installation de [name]
-french.WelcomeLabel2=Golether sert à regarder des films ensemble : tout le monde voit la même image au même moment, avec les visages et les voix des amis à côté.%n%nCet assistant va installer [name/ver] sur votre ordinateur.
+french.WelcomeLabel2=Golether sert à regarder des films et des photos ensemble : tout le monde voit la même image au même moment, avec les visages et les voix des amis à côté.%n%nCet assistant va installer [name/ver] sur votre ordinateur.
 portuguese.WelcomeLabel1=Bem-vindo à instalação do [name]
-portuguese.WelcomeLabel2=O Golether serve para ver filmes em conjunto: todos veem a mesma imagem no mesmo momento, com as caras e as vozes dos amigos ao lado.%n%nEste assistente vai instalar o [name/ver] no seu computador.
+portuguese.WelcomeLabel2=O Golether serve para ver filmes e fotografias em conjunto: todos veem a mesma imagem no mesmo momento, com as caras e as vozes dos amigos ao lado.%n%nEste assistente vai instalar o [name/ver] no seu computador.
 russian.WelcomeLabel1=Добро пожаловать в установку приложения [name]
-russian.WelcomeLabel2=Golether — это кино вместе: все видят один и тот же кадр в один и тот же момент, а лица и голоса друзей рядом.%n%nМастер установит [name/ver] на ваш компьютер.
+russian.WelcomeLabel2=Golether — это кино и фотографии вместе: все видят один и тот же кадр в один и тот же момент, а лица и голоса друзей — рядом.%n%nМастер установит [name/ver] на ваш компьютер.
 
 [CustomMessages]
 ; Everything the wizard says beyond the standard messages of Inno Setup. %n is a line break, %1 a value.

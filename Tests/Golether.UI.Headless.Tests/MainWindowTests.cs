@@ -453,6 +453,59 @@ public sealed class MainWindowTests
     }
 
     /// <summary>
+    /// The pointer over the own tile dims it and brings the switches of the microphone and the camera, crossed out
+    /// while off; leaving the tile takes them away, and they catch no clicks then. The tiles of the others have none,
+    /// and the panel under the tiles has no such buttons either.
+    /// </summary>
+    /// <returns>A task that completes when the test is done.</returns>
+    [Fact]
+    public Task OwnTile_SwitchesTheMicrophoneAndTheCameraUnderThePointer() => RunAsync(async fixture =>
+    {
+        fixture.Conference.IsAvailable.Returns(true);
+        fixture.Components.Installed += Raise.Event<EventHandler<ComponentId>>(fixture.Components, ComponentId.Conference);
+        await fixture.Settle();
+
+        StackPanel? Switches(string name) => fixture.Tile(name).GetVisualDescendants().OfType<StackPanel>()
+            .SingleOrDefault(panel => panel.Classes.Contains("switches") && panel.IsEffectivelyVisible);
+        var own = Switches("Вы")!;
+        Assert.Null(Switches("Марина"));
+        Assert.DoesNotContain(fixture.Window.GetVisualDescendants().OfType<ToggleButton>(),
+            toggle => AutomationProperties.GetName(toggle) == Golether.Localization.Texts.Get("Main.Microphone.Name"));
+        Assert.Equal(0, own.Opacity);
+        Assert.False(own.IsHitTestVisible);
+
+        var buttons = own.GetVisualDescendants().OfType<Button>().ToArray();
+        var microphone = buttons.Single(button => AutomationProperties.GetName(button) == Golether.Localization.Texts.Get("Main.Microphone.Name"));
+        var camera = buttons.Single(button => AutomationProperties.GetName(button) == Golether.Localization.Texts.Get("Main.Camera.Name"));
+        fixture.Move(fixture.Tile("Вы"));
+        await fixture.SettleFor(TimeSpan.FromMilliseconds(400));
+        Assert.Equal(1, own.Opacity);
+        Assert.True(own.IsHitTestVisible);
+        Assert.All(buttons, button => Assert.False(button.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Line>().Single().IsEffectivelyVisible));
+
+        fixture.Click(microphone, MouseButton.Left);
+        await fixture.Settle();
+        Assert.True(fixture.ViewModel.MicrophoneMuted);
+        fixture.Conference.Received().SetMuted(true, false);
+        Assert.Contains("off", microphone.Classes);
+        Assert.True(microphone.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Line>().Single().IsEffectivelyVisible);
+        Assert.DoesNotContain("off", camera.Classes);
+
+        fixture.Click(camera, MouseButton.Left);
+        await fixture.SettleFor(TimeSpan.FromMilliseconds(300));
+        Assert.True(fixture.ViewModel.CameraOff);
+        fixture.Conference.Received().SetMuted(true, true);
+        Assert.Contains("off", camera.Classes);
+        SaveFrame(fixture.Window, "own-tile-switches");
+
+        fixture.Move(fixture.Tile("Марина"));
+        await fixture.SettleFor(TimeSpan.FromMilliseconds(400));
+        Assert.Equal(0, own.Opacity);
+        Assert.False(own.IsHitTestVisible);
+        SaveFrame(fixture.Window, "own-tile-left");
+    });
+
+    /// <summary>
     /// Up to three participants keep one column of tiles however wide the panel is; more of them go in two columns
     /// once the panel is more than three times as wide as designed.
     /// </summary>
@@ -1432,7 +1485,7 @@ public sealed class MainWindowTests
                     Assert.Equal(["Deutsch", "English", "Español", "Français", "Português", "Русский"], selector.Options.Select(o => o.Name));
                     Assert.All(selector.Options, o => Assert.NotNull(o.Flag));
                     Assert.Equal("Русский", selector.Selected!.Name);
-                    Assert.Contains(fixture.Window.GetVisualDescendants().OfType<TextBlock>(), t => ShownText(t) == "Смотрим вместе, где бы вы ни были");
+                    Assert.Contains(fixture.Window.GetVisualDescendants().OfType<TextBlock>(), t => ShownText(t) == "Смотрите вместе, где бы вы ни были");
 
                     // "Together" stands out in the accent colour, as on the project page.
                     var accent = fixture.Window.GetVisualDescendants().OfType<TextBlock>()
@@ -1448,7 +1501,7 @@ public sealed class MainWindowTests
                     Assert.Equal("en", localizer.Current.Code);
                     Assert.Contains(fixture.Window.GetVisualDescendants().OfType<TextBlock>(), t => ShownText(t) == "Watch together, wherever you are");
                     Assert.Contains(fixture.Window.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Device A249-B9CC");
-                    Assert.DoesNotContain(fixture.Window.GetVisualDescendants().OfType<TextBlock>(), t => ShownText(t) == "Смотрим вместе, где бы вы ни были");
+                    Assert.DoesNotContain(fixture.Window.GetVisualDescendants().OfType<TextBlock>(), t => ShownText(t) == "Смотрите вместе, где бы вы ни были");
                     await settings.Received().SetAsync(LanguageService.SETTING, "en", Arg.Any<CancellationToken>());
                 }
                 finally
@@ -2058,6 +2111,22 @@ public sealed class MainWindowTests
         Assert.False(fixture.Window.FindControl<Button>("ReactionsButton")!.IsEffectivelyEnabled);
         fixture.Sessions.Received().SetGalleryView(7);
         SaveFrame(fixture.Window, "gallery-alone");
+
+        // The note about looking alone folds into a pill by its cross, and a click on the pill opens it again.
+        var aloneCard = fixture.Window.FindControl<Border>("AloneCard")!;
+        var aloneChip = fixture.Window.FindControl<Button>("AloneChip")!;
+        Assert.True(aloneCard.IsEffectivelyVisible);
+        Assert.False(aloneChip.IsVisible);
+        fixture.Click(fixture.Window.FindControl<Button>("AloneFold")!, MouseButton.Left);
+        await fixture.Settle();
+        Assert.False(aloneCard.IsVisible);
+        Assert.True(aloneChip.IsEffectivelyVisible);
+        Assert.True(gallery.IsAlone);
+        SaveFrame(fixture.Window, "gallery-alone-folded");
+        fixture.Click(aloneChip, MouseButton.Left);
+        await fixture.Settle();
+        Assert.True(aloneCard.IsEffectivelyVisible);
+        Assert.False(aloneChip.IsVisible);
         gallery.ReturnToCommonCommand.Execute(null);
         await fixture.Settle();
         Assert.True(fixture.Window.FindControl<Button>("ReactionsButton")!.IsEffectivelyEnabled);
@@ -2098,6 +2167,13 @@ public sealed class MainWindowTests
         await fixture.Settle();
         Assert.False(gallery.IsActive);
         Assert.True(fixture.Window.FindControl<TimelineSlider>("Timeline")!.IsEffectivelyVisible);
+
+        // The way back to the film belongs to a shown folder: once the showing ended, neither its button nor its cross
+        // is left in the bar.
+        var backToFilm = Golether.Localization.Texts.Get("Gallery.BackToFilm");
+        Assert.False(gallery.IsHost);
+        Assert.DoesNotContain(fixture.Window.GetVisualDescendants().OfType<Button>(), button => button.IsEffectivelyVisible &&
+            (Equals(button.Content, backToFilm) || AutomationProperties.GetName(button) == backToFilm));
     });
 
     /// <summary>

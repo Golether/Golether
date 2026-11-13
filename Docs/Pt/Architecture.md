@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Ver um vídeo em conjunto, com as câmaras dos participantes:
+Ver filmes e fotografias em conjunto, com as câmaras dos participantes:
 
 - o vídeo ocupa a maior parte da janela, os quadros dos participantes ficam à direita (até 5 pessoas, incluindo o
   anfitrião);

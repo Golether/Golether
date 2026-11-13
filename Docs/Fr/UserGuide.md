@@ -1,5 +1,10 @@
 # Golether : guide d'utilisation
 
+Golether permet de regarder des films et des photos ensemble : tout le monde voit la même image au même moment, même à
+des milliers de kilomètres, avec caméras, voix, discussion, réactions et dessin sur l'image dans la même fenêtre. Il
+convient aussi bien à une soirée entre amis ou en famille qu'à un cours avec un professeur particulier, à l'analyse de
+l'enregistrement d'un match ou à une séance photo montrée à un client.
+
 ## Ce qu'il vous faut
 
 - Windows 10 ou plus récent, Linux ou macOS 14+.
@@ -29,7 +34,7 @@ Les mots du code de vérification s'affichent eux aussi dans votre langue. Chaqu
 l'hôte utilise une autre langue, ses mots sont des traductions des vôtres. *hibou · phare · vent · 47* sur un écran est
 *owl · lighthouse · wind · 47* sur l'autre. Comparez le sens des mots et le nombre.
 
-## Montrer un film (vous êtes l'hôte)
+## Montrer un film ou des photos (vous êtes l'hôte)
 
 1. Saisissez votre nom et celui de la séance, puis appuyez sur **Créer une séance**. Le port de votre ordinateur (47800
    par défaut) et la demande au routeur se trouvent sous **Avancé** : ne les changez que si le port est occupé ou a été
@@ -56,7 +61,9 @@ l'hôte utilise une autre langue, ses mots sont des traductions des vôtres. *hi
 6. Les caméras et la voix démarrent toutes seules quand vous entrez dans une séance : la vignette de chaque participant
    à droite montre sa caméra, et les voix des autres sont mixées en un seul flux. La caméra et le micro se choisissent
    dans **Réglages**, section **Caméra et micro** (sinon, les choix par défaut du système sont utilisés). Une caméra ou
-   un micro coupé est réellement libéré.
+   un micro coupé est réellement libéré. Pour couper ou rallumer votre micro et votre caméra, pointez votre
+   vignette : elle s'assombrit et montre deux grands interrupteurs. Un appareil coupé est signalé sur votre vignette comme
+   sur celles des autres.
 
 ## Rejoindre (vous êtes participant)
 
@@ -80,10 +87,10 @@ l'hôte utilise une autre langue, ses mots sont des traductions des vôtres. *hi
 | Lecture / pause d'un clic | un clic sur la vidéo | — |
 | Plein écran d'un clic | un double-clic sur la zone vidéo (fonctionne aussi avant le choix d'un film) | — |
 | Votre propre volume | l'icône du haut-parleur à droite : survolez pour une échelle 0–100 %, un clic coupe et rétablit, la molette le change | — |
-| Micro et caméra | « Micro activé » / « Caméra allumée » sous les vignettes des participants | — |
+| Micro et caméra | pointez votre vignette et cliquez sur l'interrupteur | — |
 | Son et sous-titres | l'icône « CC » de la barre du lecteur : chacun a ses propres pistes | — |
 | Réaction pour tout le monde | l'icône de smiley de la barre du lecteur | — |
-| Dessiner sur la vidéo | l'icône du stylo de la barre du lecteur | — |
+| Dessiner sur l'image | le bouton Dessin (l'icône du stylo) de la barre du lecteur | — |
 | Discussion et événements | les onglets **DISCUSSION** et **ÉVÉNEMENTS** en bas à droite ; un clic sur l'onglet ouvert ou sur la flèche masque le panneau | — |
 | Envoyer un message | le champ en bas du panneau de discussion | Entrée |
 | Volume d'un autre participant | clic droit sur sa vignette → curseur | — |
@@ -138,7 +145,8 @@ par exemple). Vous seul voyez et entendez l'un ou l'autre.
 
 ### Discussion et réactions
 
-Il y a deux onglets en bas à droite : **DISCUSSION** et **ÉVÉNEMENTS**. Un clic sur l'onglet ouvert (ou sur la flèche à
+Il y a deux onglets en bas à droite, sur une carte à part : **DISCUSSION** et **ÉVÉNEMENTS**.
+Un clic sur l'onglet ouvert (ou sur la flèche à
 droite) masque complètement le panneau et laisse la place aux vignettes des participants. Tant que la discussion est
 masquée, son onglet affiche un compteur de nouveaux messages. Les messages passent par le même canal protégé que le
 reste de la séance et ne sont enregistrés nulle part : à la fermeture de la séance, ils disparaissent.
@@ -154,9 +162,9 @@ vidéo chez tous les participants, avec le nom de l'expéditeur. Les réactions 
 une séance, avant même le choix d'un film. La couche des réactions laisse passer les clics : la pause d'un clic sur la
 vidéo continue de fonctionner.
 
-### Le stylo : entourer quelque chose directement sur la vidéo
+### Dessin sur l'image
 
-L'icône du **stylo** de la barre du lecteur active le dessin. Le bouton reste enfoncé et le curseur au-dessus de la
+L'icône du stylo (**Dessin**) de la barre du lecteur active le dessin, sur un film comme sur une photo. Le bouton reste enfoncé et le curseur au-dessus de la
 vidéo devient un stylo. Maintenez le bouton gauche de la souris et déplacez-la : le trait suit exactement le curseur,
 et chaque participant le voit au même moment. Quand vous relâchez le bouton, le trait reste deux secondes puis
 s'estompe. Chaque participant a sa propre couleur, la même que sa vignette, pour qu'on sache qui dessine. Un nouveau
@@ -198,13 +206,14 @@ fait défiler le bandeau sur le côté.
   l'ordinateur de l'hôte par le composant vidéo, les participants n'ont besoin de rien pour elles.
 - **Ouvrir pour moi seul** (clic droit sur un élément) montre une image sur votre écran seulement. Une ligne en haut
   dit ce que voient les autres et propose **Revenir avec tous** et **Montrer à tous** ; les autres voient la marque
-  « À PART » sur votre tuile. Le stylo est désactivé pendant ce temps.
+  « À PART » sur votre tuile. Le dessin est désactivé pendant ce temps. La croix de la ligne, ou quelques secondes, la
+  replient en un petit message « Vous regardez seul » ; un clic dessus fait revenir la ligne.
 - **Les vidéos** du dossier se lisent comme un film : mise à l'écran, une vidéo devient le film de tous, avec sa
   frise, son son et ses sous-titres, et le bandeau reste. Sa miniature est une image tirée de la vidéo.
 
 Le film se met en pause quand une image arrive à l'écran et attend sous les images ; les boutons du son et des
 sous-titres sont inactifs tant qu'une image est montrée. Une vidéo du dossier mise à l'écran remplace le film.
-**Fermer les images** (hôte) termine la présentation pour tous, et le film reprend là où il a été interrompu. Choisir
+**Fermer les photos** (hôte) termine la présentation pour tous, et le film reprend là où il a été interrompu. Choisir
 un film avec **Montrer** → **Film ou photo** la termine aussi.
 
 ### Attendre que tout le monde soit prêt
@@ -241,7 +250,8 @@ en haut affiche le numéro de la tentative et le bouton **Quitter**.
 
 Clic droit sur la vignette d'un participant, puis **Couper le micro** ou **Couper la caméra**. L'hôte ne peut que
 couper : seul le participant peut rallumer l'appareil, et Golether le lui dit. Les vignettes montrent qui a le micro ou
-la caméra coupé. Votre propre vignette n'a pas de menu : pour vous-même, utilisez les boutons sous les vignettes.
+la caméra coupé. Votre propre vignette n'a pas de menu : pointez-la pour couper votre
+micro et votre caméra.
 
 ### Hôte : retirer un participant
 

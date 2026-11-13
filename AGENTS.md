@@ -1,7 +1,7 @@
 # Golether: development rules
 
-Golether is a free (GPL-3.0-or-later) cross-platform desktop application for watching a video together, in sync, with
-webcams and voice. Design documentation: [Docs/En/Architecture.md](Docs/En/Architecture.md).
+Golether is a free (GPL-3.0-or-later) cross-platform desktop application for watching films and photos together, in sync,
+with webcams and voice. Design documentation: [Docs/En/Architecture.md](Docs/En/Architecture.md).
 
 ## General rules
 

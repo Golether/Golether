@@ -141,8 +141,23 @@
   </Style>
 
   <!-- Chat -->
-  <Style Selector="Button.tab.selected">
+  <!--
+    The chat and the event feed: a card of the panel, lighter than it, as the cards of the start screen are lighter than
+    the window. The line under the tabs shows only with the open area.
+  -->
+  <Style Selector="Border.sideCard">
     <Setter Property="Background" Value="{StaticResource GoletherPanel2}" />
+    <Setter Property="BorderBrush" Value="{StaticResource GoletherLine}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+  </Style>
+  <Style Selector="Border.sideCardLine">
+    <Setter Property="Height" Value="1" />
+    <Setter Property="Background" Value="{StaticResource GoletherLine}" />
+  </Style>
+  <!-- The size, frame and fill of the tabs follow the ordinary and ghost buttons further down, which they override. -->
+  <Style Selector="Button.tab TextBlock.label">
+    <Setter Property="FontSize" Value="12" />
   </Style>
   <Style Selector="Button.tab.selected TextBlock.label">
     <Setter Property="Foreground" Value="{StaticResource GoletherText}" />
@@ -339,6 +354,18 @@
     <Setter Property="BorderBrush" Value="{StaticResource GoletherLine}" />
     <Setter Property="BorderThickness" Value="1" />
   </Style>
+  <!--
+    The tabs of the chat and the events and their arrow: a frame a step lighter than the card, so they read as buttons
+    without standing out, and a fill for the chosen one. Avalonia lets the later style win, not the narrower selector,
+    so these come after the ordinary and ghost buttons.
+  -->
+  <Style Selector="Button.tab">
+    <Setter Property="Padding" Value="12,7" />
+    <Setter Property="BorderBrush" Value="#3A4F56" />
+  </Style>
+  <Style Selector="Button.tab.selected">
+    <Setter Property="Background" Value="{StaticResource GoletherLine}" />
+  </Style>
   <Style Selector="Button.danger">
     <Setter Property="Background" Value="{StaticResource GoletherBadTint}" />
     <Setter Property="Foreground" Value="{StaticResource GoletherBad}" />
@@ -441,6 +468,126 @@
   </Style>
   <Style Selector="Button.mute">
     <Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <!--
+    The own microphone and camera, over the own tile while the pointer is on it: the tile dims, two large round switches
+    come up and grow a little, and the one under the pointer grows a little more. Everything fades away when the pointer
+    leaves. A switched-off device is crossed out and dimmer. The layer catches no clicks while it is hidden.
+  -->
+  <Style Selector="Panel.ownSwitches > Border.shade">
+    <Setter Property="Background" Value="#BF0A0F11" />
+    <Setter Property="Opacity" Value="0" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition Property="Opacity" Duration="0:0:0.18" Easing="CubicEaseOut" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Panel.ownSwitches > StackPanel.switches">
+    <Setter Property="Opacity" Value="0" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+    <Setter Property="RenderTransform" Value="scale(0.85)" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition Property="Opacity" Duration="0:0:0.18" Easing="CubicEaseOut" />
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.18" Easing="CubicEaseOut" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Panel.ownSwitches:pointerover > Border.shade">
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+  <Style Selector="Panel.ownSwitches:pointerover > StackPanel.switches">
+    <Setter Property="Opacity" Value="1" />
+    <Setter Property="IsHitTestVisible" Value="True" />
+    <Setter Property="RenderTransform" Value="scale(1)" />
+  </Style>
+  <Style Selector="Button.ownSwitch">
+    <Setter Property="Width" Value="52" />
+    <Setter Property="Height" Value="52" />
+    <Setter Property="CornerRadius" Value="26" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Background" Value="#F2162226" />
+    <Setter Property="BorderBrush" Value="#4DDDE7E5" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Foreground" Value="{StaticResource GoletherText}" />
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="RenderTransform" Value="scale(1)" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12" Easing="CubicEaseOut" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.ownSwitch /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#F2162226" />
+    <Setter Property="BorderBrush" Value="#4DDDE7E5" />
+    <Setter Property="Foreground" Value="{StaticResource GoletherText}" />
+  </Style>
+  <Style Selector="Button.ownSwitch:pointerover">
+    <Setter Property="RenderTransform" Value="scale(1.12)" />
+  </Style>
+  <Style Selector="Button.ownSwitch:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#FF223036" />
+    <Setter Property="BorderBrush" Value="#99DDE7E5" />
+    <Setter Property="Foreground" Value="{StaticResource GoletherText}" />
+  </Style>
+  <Style Selector="Button.ownSwitch:pressed">
+    <Setter Property="RenderTransform" Value="scale(1.04)" />
+  </Style>
+  <Style Selector="Button.ownSwitch Panel.glyph">
+    <Setter Property="Width" Value="24" />
+    <Setter Property="Height" Value="24" />
+  </Style>
+  <Style Selector="Button.ownSwitch Panel.glyph PathIcon">
+    <Setter Property="Width" Value="22" />
+    <Setter Property="Height" Value="22" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.ownSwitch Line.strike">
+    <Setter Property="Stroke" Value="{StaticResource GoletherText}" />
+    <Setter Property="StrokeThickness" Value="2" />
+    <Setter Property="StrokeLineCap" Value="Round" />
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="Button.ownSwitch.off Line.strike">
+    <Setter Property="IsVisible" Value="True" />
+  </Style>
+  <Style Selector="Button.ownSwitch.off Panel.glyph">
+    <Setter Property="Opacity" Value="0.6" />
+  </Style>
+  <!-- A folded note over the picture: the pill itself is the button, without a frame of its own. -->
+  <Style Selector="Button.pill">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.pill /template/ ContentPresenter#PART_ContentPresenter, Button.pill:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.pill:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.pill:pointerover Border.overFilm">
+    <Setter Property="Background" Value="#E60A0F11" />
+  </Style>
+  <!-- A second way beside an amber button: only its frame is amber. -->
+  <Style Selector="Button.outline">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{StaticResource GoletherAccent}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="Button.outline /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="{StaticResource GoletherAccent}" />
+  </Style>
+  <Style Selector="Button.outline:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="#F4BC84" />
+  </Style>
+  <Style Selector="Button.outline:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="#D98E45" />
   </Style>
 
   <Style Selector="PathIcon">

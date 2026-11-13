@@ -132,6 +132,21 @@ public sealed partial class MainWindow : Window
     private Border? _dropTile;
 
     /// <summary>
+    /// How long the note about looking at a picture alone stays open before it folds into its pill, as on the phone.
+    /// </summary>
+    private static readonly TimeSpan _aloneNoteLife = TimeSpan.FromSeconds(8);
+
+    /// <summary>
+    /// When the note about looking alone was last folded or opened.
+    /// </summary>
+    private long _aloneSince;
+
+    /// <summary>
+    /// Whether a picture was looked at alone at the last change, so only a new look alone opens the note again.
+    /// </summary>
+    private bool _wasAlone;
+
+    /// <summary>
     /// Gets or sets how long the bars and the cursor stay after the pointer left or stopped. Read when a window is
     /// created; tests shorten it.
     /// </summary>
@@ -187,6 +202,7 @@ public sealed partial class MainWindow : Window
         {
             ViewModel?.Refresh();
             UpdateChrome();
+            FoldOldAloneNote();
         };
         _clickTimer.Tick += (_, _) =>
         {
@@ -269,6 +285,17 @@ public sealed partial class MainWindow : Window
         };
         viewModel.Gallery.PropertyChanged += (_, e) =>
         {
+            // A new look at a picture alone opens the note with the ways back, whatever was folded before.
+            if (e.PropertyName is nameof(GalleryViewModel.IsAlone))
+            {
+                if (viewModel.Gallery.IsAlone && !_wasAlone)
+                {
+                    FoldAloneNote(false);
+                }
+
+                _wasAlone = viewModel.Gallery.IsAlone;
+            }
+
             // The item on this screen stays in sight in the strip and in the grid, whoever chose it.
             if (e.PropertyName is nameof(Golether.Client.ViewModels.GalleryViewModel.CounterText) or nameof(Golether.Client.ViewModels.GalleryViewModel.IsGridOpen) &&
                 viewModel.Gallery.IsActive)
@@ -645,6 +672,43 @@ public sealed partial class MainWindow : Window
         var end = Math.Max(0, scroll.Extent.Width - scroll.Viewport.Width);
         scroll.Offset = scroll.Offset.WithX(Math.Clamp(scroll.Offset.X - (e.Delta.Y * STEP), 0, end));
         e.Handled = true;
+    }
+
+    /// <summary>
+    /// Folds the note about looking at a picture alone into its pill: the cross of the note.
+    /// </summary>
+    /// <param name="sender">The cross.</param>
+    /// <param name="e">The event.</param>
+    private void OnAloneFolded(object? sender, RoutedEventArgs e) => FoldAloneNote(true);
+
+    /// <summary>
+    /// Opens the note about looking at a picture alone again, with its ways back to everybody.
+    /// </summary>
+    /// <param name="sender">The pill.</param>
+    /// <param name="e">The event.</param>
+    private void OnAloneUnfolded(object? sender, RoutedEventArgs e) => FoldAloneNote(false);
+
+    /// <summary>
+    /// Folds or opens the note about looking at a picture alone; an open note folds by itself after a while.
+    /// </summary>
+    /// <param name="folded">Whether to fold it.</param>
+    private void FoldAloneNote(bool folded)
+    {
+        AloneCard.IsVisible = !folded;
+        AloneChip.IsVisible = folded;
+        _aloneSince = TimeProvider.System.GetTimestamp();
+    }
+
+    /// <summary>
+    /// Folds the note about looking alone once it has been open long enough: it covers the picture.
+    /// </summary>
+    private void FoldOldAloneNote()
+    {
+        if (AloneCard.IsVisible && ViewModel is { Gallery.IsAlone: true } &&
+            TimeProvider.System.GetElapsedTime(_aloneSince) >= _aloneNoteLife)
+        {
+            FoldAloneNote(true);
+        }
     }
 
     /// <summary>

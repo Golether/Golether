@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  <b>Watch movies together, in perfect sync, face to face.</b><br>
-  One person plays the file. Everyone else sees the same frame at the same moment, with webcams and voice on the side.
+  <b>Share the moment together: movies and photos, in perfect sync, face to face.</b><br>
+  One person shows a film or a folder of photos. Everyone else sees the same frame at the same moment, with webcams and voice on the side.
 </p>
 
 <p align="center">
@@ -24,8 +24,18 @@
 press play once and everybody goes along.
 
 It is a free, open-source, **cross-platform** desktop app (Windows 10+, Linux on X11/Wayland, macOS 14+).
-The host shows a video file in its original quality, up to five people watch together, and nobody has to upload,
-transcode or install a server.
+The host shows a film in its original quality or a whole folder of photos, up to five people watch together, and
+nobody has to upload, transcode or install a server.
+
+## Who it is for
+
+- **Friends and family:** a movie in the evening or photos from a trip, with those who live in another city.
+- **Learning:** a tutor goes through a film with a student; each picks their own subtitles and audio track, and a key
+  moment can be circled right on the frame.
+- **Reviewing recordings:** a coach and the team watch a game; pause and seeking work for everyone at once, and a play
+  can be drawn over the frame.
+- **Working with photos:** a photographer shows a shoot to a client; browse it together or zoom into a detail on your
+  own, while the place and the camera stay out of the copies.
 
 An **Android** client for the participants is in development: it joins a session hosted on a computer. It is not
 released yet.
@@ -34,14 +44,14 @@ released yet.
 
 - **Truly synchronous playback.** Play, pause and seek work for everyone, in both directions. The protocol is
   designed for pings above 1000 ms, and "start" waits until every participant has the first seconds buffered.
-- **Your own audio track and subtitles.** Each participant picks their own: one watches the original, another the
-  dub, a third reads subtitles. You can also plug in your own `.srt`/`.ass` file or a separate audio track.
-- **Reactions.** Send an emoji that floats over the video for everyone, with your name on it.
-- **Draw on the screen.** Grab the pen and circle a detail: everyone sees the line as you draw it, in your colour.
-  It fades after two seconds and stays attached to the picture, not to the window.
 - **Photos and videos of a folder.** Show a whole folder, nested folders included: everyone sees a strip of small
   pictures and puts any photo or video on the screen, or looks at a photo alone and zooms in. HEIC works too, and the
   place, the camera and the comments are left out of the copies by default.
+- **Drawing over the picture.** Turn on drawing and circle a detail on a film or a photo: everyone sees the line as
+  you draw it, in your colour. It fades after two seconds and stays attached to the picture, not to the window.
+- **Reactions.** Send an emoji that floats over the picture for everyone, with your name on it.
+- **Your own audio track and subtitles.** Each participant picks their own: one watches the original, another the
+  dub, a third reads subtitles. You can also plug in your own `.srt`/`.ass` file or a separate audio track.
 - **Webcams and voice** in one window: a tile for each person, echo cancellation, per-person volume, and a chat.
 - **Works behind grey IPs.** A tiny rendezvous server of your own (any machine with a public IP) introduces the
   host and the guests, and they punch a direct connection through their routers: no port forwarding on either side,

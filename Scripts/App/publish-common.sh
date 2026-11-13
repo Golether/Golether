@@ -56,12 +56,12 @@ cat > "$HOME/.local/share/applications/golether.desktop" <<ENTRY
 [Desktop Entry]
 Type=Application
 Name=Golether
-Comment=Watch a video together, in sync
-Comment[de]=Videos gemeinsam und synchron ansehen
-Comment[es]=Ver un vídeo juntos y sincronizados
-Comment[fr]=Regarder une vidéo ensemble, en synchro
-Comment[pt]=Ver um vídeo em conjunto e em sincronia
-Comment[ru]=Синхронный совместный просмотр видео
+Comment=Watch movies and photos together, in sync
+Comment[de]=Filme und Fotos gemeinsam und synchron ansehen
+Comment[es]=Ver películas y fotos juntos y sincronizados
+Comment[fr]=Regarder films et photos ensemble, en synchro
+Comment[pt]=Ver filmes e fotografias em conjunto e em sincronia
+Comment[ru]=Совместный просмотр фильмов и фотографий в синхроне
 Exec="$here/app/Golether" %u
 Path=$here/app
 Icon=$here/golether.png

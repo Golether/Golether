@@ -113,7 +113,8 @@ public sealed partial class GalleryViewModel : ObservableObject
     public partial bool IsActive { get; private set; }
 
     /// <summary>
-    /// Gets a value indicating whether this device is the host, which may end the showing.
+    /// Gets a value indicating whether this device is the host of the current showing, which may end it; with no
+    /// showing there is nothing to end.
     /// </summary>
     [ObservableProperty]
     public partial bool IsHost { get; private set; }
@@ -506,6 +507,7 @@ public sealed partial class GalleryViewModel : ObservableObject
         HasError = false;
         IsGridOpen = false;
         IsActive = false;
+        IsHost = false;
         ShowsPicture = false;
     }
 

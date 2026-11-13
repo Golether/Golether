@@ -14,6 +14,8 @@ public sealed partial class BrowserParityTests
     /// </summary>
     private static readonly Dictionary<string, string> _gaps = new(StringComparer.Ordinal)
     {
+        ["Gallery.Alone.Chip"] = "the gallery of pictures and folders is deferred",
+        ["Gallery.Alone.Fold"] = "the gallery of pictures and folders is deferred",
         ["Gallery.BackToFilm"] = "the gallery of pictures and folders is deferred",
         ["Gallery.Grid"] = "the gallery of pictures and folders is deferred",
         ["Gallery.Next"] = "the gallery of pictures and folders is deferred",

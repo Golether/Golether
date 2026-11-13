@@ -286,6 +286,13 @@
   <Style Selector="Button.ghost:pressed /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{StaticResource GoletherPanel2}" />
   </Style>
+  <!-- A second way beside an amber button: only its frame is amber. -->
+  <Style Selector="Button.ghost.outline">
+    <Setter Property="BorderBrush" Value="{StaticResource GoletherAccent}" />
+  </Style>
+  <Style Selector="Button.ghost.outline /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="{StaticResource GoletherAccent}" />
+  </Style>
   <!-- An unobtrusive way to another path, under the card of the join screen. -->
   <Style Selector="Button.subtle">
     <Setter Property="Padding" Value="12,8" />

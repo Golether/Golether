@@ -1,5 +1,10 @@
 # Golether: Benutzerhandbuch
 
+Mit Golether sehen Sie Filme und Fotos gemeinsam an: Alle sehen im selben Moment dasselbe Bild, selbst Tausende
+Kilometer voneinander entfernt, und Kameras, Stimmen, Chat, Reaktionen und Zeichnen auf dem Bild sind im selben
+Fenster. Das passt zu einem Abend mit Freunden und Familie ebenso wie zu einer Nachhilfestunde, zur Besprechung einer
+Spielaufzeichnung oder zu einem Shooting, das man einem Kunden zeigt.
+
 ## Was Sie brauchen
 
 - Windows 10 oder neuer, Linux oder macOS 14+.
@@ -31,7 +36,7 @@ der Gastgeber eine andere Sprache, sind seine Wörter Übersetzungen Ihrer Wört
 dem einen Bildschirm ist *owl · lighthouse · wind · 47* auf dem anderen. Vergleichen Sie die Bedeutung der Wörter und
 die Zahl.
 
-## Einen Film zeigen (Sie sind der Gastgeber)
+## Einen Film oder Fotos zeigen (Sie sind der Gastgeber)
 
 1. Geben Sie Ihren Namen und den Namen der Sitzung ein und drücken Sie **Sitzung erstellen**. Der Port Ihres Computers
    (standardmäßig 47800) und die Anfrage an den Router liegen unter **Erweitert**: Ändern Sie sie nur, wenn der Port
@@ -58,7 +63,9 @@ die Zahl.
 6. Kameras und Sprache starten von selbst, wenn Sie einer Sitzung beitreten: Die Kachel jedes Teilnehmers rechts zeigt
    seine Kamera, und die Stimmen der anderen werden zu einem Strom gemischt. Kamera und Mikrofon wählen Sie in
    **Einstellungen**, Abschnitt **Kamera und Mikrofon** (sonst werden die Systemstandards verwendet). Eine
-   ausgeschaltete Kamera oder ein ausgeschaltetes Mikrofon wird wirklich freigegeben.
+   ausgeschaltete Kamera oder ein ausgeschaltetes Mikrofon wird wirklich freigegeben. Ihr eigenes Mikrofon und Ihre
+   Kamera schalten Sie, indem Sie auf Ihre Kachel zeigen: Sie wird dunkler und zeigt zwei große Schalter. Ein
+   ausgeschaltetes Gerät ist auf Ihrer Kachel markiert wie auf den Kacheln der anderen.
 
 ## Beitreten (Sie sind Teilnehmer)
 
@@ -82,10 +89,10 @@ die Zahl.
 | Abspielen / Pause per Klick | ein Klick auf das Video | — |
 | Vollbild per Klick | ein Doppelklick auf die Videofläche (funktioniert auch, bevor ein Film gewählt ist) | — |
 | Ihre eigene Lautstärke | das Lautsprechersymbol rechts: Darüberfahren zeigt eine Skala 0–100 %, Klick schaltet stumm und laut, Mausrad ändert | — |
-| Mikrofon und Kamera | „Mikrofon an“ / „Kamera an“ unter den Teilnehmerkacheln | — |
+| Mikrofon und Kamera | auf die eigene Kachel zeigen und den Schalter anklicken | — |
 | Ton und Untertitel | das Symbol „CC“ in der Player-Leiste: Jeder hat seine eigenen Spuren | — |
 | Reaktion für alle | das Smiley-Symbol in der Player-Leiste | — |
-| Über das Video zeichnen | das Stift-Symbol in der Player-Leiste | — |
+| Über das Bild zeichnen | die Schaltfläche Zeichnen (das Stift-Symbol) in der Player-Leiste | — |
 | Chat und Ereignisse | die Reiter **CHAT** und **EREIGNISSE** unten rechts; ein Klick auf den offenen Reiter oder den Pfeil blendet die Leiste aus | — |
 | Nachricht senden | das Feld unten in der Chat-Leiste | Enter |
 | Lautstärke eines anderen Teilnehmers | Rechtsklick auf seine Kachel → Schieberegler | — |
@@ -141,7 +148,8 @@ eigene Synchronisation). Beides sehen und hören nur Sie.
 
 ### Chat und Reaktionen
 
-Unten rechts gibt es zwei Reiter: **CHAT** und **EREIGNISSE**. Ein Klick auf den offenen Reiter (oder auf den Pfeil
+Unten rechts gibt es, auf einer eigenen Karte, zwei Reiter: **CHAT** und **EREIGNISSE**.
+Ein Klick auf den offenen Reiter (oder auf den Pfeil
 rechts) blendet die Leiste ganz aus und überlässt den Platz den Teilnehmerkacheln. Solange der Chat ausgeblendet ist,
 zeigt sein Reiter einen Zähler neuer Nachrichten. Nachrichten laufen über denselben geschützten Kanal wie der Rest der
 Sitzung und werden nirgends gespeichert: Wird die Sitzung geschlossen, sind sie weg.
@@ -156,9 +164,9 @@ Das Smiley-Symbol in der Player-Leiste schickt eine Reaktion: Einige Sekunden la
 über dem Video, mit dem Namen des Absenders. Reaktionen sind ab dem Beitritt zur Sitzung verfügbar, noch bevor ein Film
 gewählt ist. Die Ebene mit den Reaktionen lässt Klicks durch: Pause per Klick auf das Video funktioniert weiter.
 
-### Der Stift: etwas direkt auf dem Video einkreisen
+### Zeichnen auf dem Bild
 
-Das Symbol **Stift** in der Player-Leiste schaltet das Zeichnen ein. Die Schaltfläche bleibt gedrückt, und der Zeiger
+Das Stift-Symbol (**Zeichnen**) in der Player-Leiste schaltet das Zeichnen ein, auf einem Film wie auf einem Foto. Die Schaltfläche bleibt gedrückt, und der Zeiger
 über dem Video wird zum Stift. Halten Sie die linke Maustaste und bewegen Sie die Maus: Die Linie folgt dem Zeiger
 genau, und jeder Teilnehmer sieht sie im selben Moment. Lassen Sie die Taste los, bleibt die Linie zwei Sekunden und
 verblasst. Jeder Teilnehmer hat seine eigene Farbe, dieselbe wie seine Kachel, sodass klar ist, wer zeichnet. Ein
@@ -200,13 +208,14 @@ den Streifen seitwärts.
   Videokomponente in JPEG umgewandelt, die Teilnehmer brauchen dafür nichts.
 - **Nur für mich öffnen** (Rechtsklick auf ein Element) zeigt ein Bild nur auf Ihrem Bildschirm. Eine Zeile oben sagt,
   was alle anderen sehen, und bietet **Zurück zu allen** und **Allen zeigen** an; die anderen sehen auf Ihrer Kachel
-  die Marke „ALLEIN“. Der Stift ist währenddessen aus.
+  die Marke „ALLEIN“. Das Zeichnen ist währenddessen aus. Das Kreuz der Zeile oder ein paar Sekunden falten sie zu
+  einem kleinen Hinweis „Sie schauen allein“ zusammen; ein Klick darauf holt die Zeile zurück.
 - **Videos** des Ordners laufen wie ein Film: Auf den Bildschirm gebracht, wird ein Video zum Film aller, mit seiner
   Zeitleiste, seinem Ton und seinen Untertiteln, und der Streifen bleibt. Sein kleines Bild ist ein Bild aus dem Video.
 
 Der Film pausiert, sobald ein Bild auf den Bildschirm kommt, und wartet unter den Bildern; die Schaltflächen für Ton
 und Untertitel sind inaktiv, solange ein Bild gezeigt wird. Ein Video des Ordners auf dem Bildschirm ersetzt den Film.
-**Bilder schließen** (Gastgeber) beendet das Zeigen für alle, und der Film kehrt an die Stelle zurück, an der er
+**Fotos schließen** (Gastgeber) beendet das Zeigen für alle, und der Film kehrt an die Stelle zurück, an der er
 unterbrochen wurde. Auch die Wahl eines Films mit **Zeigen** → **Film oder Foto** beendet es.
 
 ### Warten, bis alle bereit sind
@@ -243,8 +252,8 @@ oben die Nummer des Versuchs und die Schaltfläche **Verlassen**.
 
 Rechtsklick auf die Kachel eines Teilnehmers und **Mikrofon ausschalten** oder **Kamera ausschalten** wählen. Der
 Gastgeber kann nur ausschalten: Nur der Teilnehmer kann das Gerät wieder einschalten, und Golether sagt ihm das. Die
-Kacheln zeigen, wessen Mikrofon oder Kamera aus ist. Ihre eigene Kachel hat kein Menü: Verwenden Sie für sich selbst die
-Schaltflächen unter den Kacheln.
+Kacheln zeigen, wessen Mikrofon oder Kamera aus ist. Ihre eigene Kachel hat kein Menü: Zeigen Sie auf sie, um Mikrofon und
+Kamera zu schalten.
 
 ### Gastgeber: einen Teilnehmer entfernen
 

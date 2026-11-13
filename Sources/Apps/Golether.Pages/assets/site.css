@@ -190,22 +190,11 @@ section.alt .card { background: var(--bg); }
 .card h3 { margin: 0 0 6px; font-size: 18px; }
 .card p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.5; }
 .card .icon { font-size: 26px; margin-bottom: 8px; }
-/* The icon and the "New!" mark share one line: the mark stands at the right edge of the card. */
-.card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
-.card-head .icon { margin-bottom: 0; }
-.card .new { font-size: 15px; font-weight: 600; white-space: nowrap; color: var(--accent); }
-/* A light glint runs over the mark from time to time; reduced motion leaves it plain amber. */
-@supports ((-webkit-background-clip: text) or (background-clip: text)) {
-  .card .new {
-    background: linear-gradient(100deg, var(--accent) 35%, #FFE4C4 50%, var(--accent) 65%) 100% 0 / 300% 100%;
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-    animation: glint 3.2s ease-in-out infinite;
-  }
-}
-@keyframes glint { 0%, 30% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+/* Four short cards in a row: who the app serves. */
+.cards.four { grid-template-columns: repeat(4, 1fr); }
 
 /* Downloads */
-.downloads { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.downloads { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 .download { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 24px 20px; display: flex; flex-direction: column; gap: 6px; }
 .download.mine { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(240, 168, 96, 0.25), 0 12px 40px rgba(240, 168, 96, 0.08); }
 .download h3 { margin: 0; font-size: 20px; }
@@ -213,6 +202,12 @@ section.alt .card { background: var(--bg); }
 .download .hint { color: var(--muted); font-size: 14px; line-height: 1.45; flex: 1; margin: 4px 0 14px; }
 .download .btn { width: 100%; }
 .download .other { text-align: center; font-size: 13px; color: var(--muted); margin-top: 4px; }
+/* A platform that is not released yet: the card is dimmer, and its button only says so. */
+.download.soon { opacity: 0.8; }
+.download.soon .btn { cursor: default; color: var(--muted); }
+.download.soon .btn:hover { transform: none; border-color: var(--line); }
+/* The way without installing anything, under the cards. */
+.online { margin: 22px 0 0; text-align: center; color: var(--muted); }
 
 footer { padding: 36px 0 48px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); }
 footer .wrap { display: flex; gap: 18px; flex-wrap: wrap; justify-content: space-between; }
@@ -240,12 +235,15 @@ footer .wrap { display: flex; gap: 18px; flex-wrap: wrap; justify-content: space
 @keyframes play { from { transform: scaleX(0.04); } to { transform: scaleX(1); } }
 @keyframes menu { from { opacity: 0; transform: translateY(-6px) scale(0.97); } to { opacity: 1; transform: none; } }
 
+@media (max-width: 1000px) {
+  .cards.four, .downloads { grid-template-columns: 1fr 1fr; }
+}
 @media (max-width: 900px) {
-  .steps, .steps.three, .cards, .downloads { grid-template-columns: 1fr 1fr; }
+  .steps, .steps.three, .cards, .cards.four, .downloads { grid-template-columns: 1fr 1fr; }
   .top nav a.hide-small { display: none; }
 }
 @media (max-width: 600px) {
-  .steps, .steps.three, .cards, .downloads { grid-template-columns: 1fr; }
+  .steps, .steps.three, .cards, .cards.four, .downloads { grid-template-columns: 1fr; }
   .hero { padding-top: 48px; }
   /* A phone stacks the buttons of the hero, each as wide as the column: the download first and filled. */
   .hero .actions { flex-direction: column; align-items: stretch; max-width: 380px; margin: 0 auto; }

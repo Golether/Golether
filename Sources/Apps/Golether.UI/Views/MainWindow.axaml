@@ -679,15 +679,33 @@
                            TextAlignment="Center" IsVisible="{Binding Gallery.HasError}" Text="{loc:Loc Gallery.LoadFailed}" />
                 <!-- The reactions and strokes over a picture, in this window, enlarged with the picture. -->
                 <views:SessionOverlay x:Name="PictureOverlay" Zoom="{Binding #PictureView.Zoom}" Center="{Binding #PictureView.Center}" />
-                <Border IsVisible="{Binding Gallery.IsAlone}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="16,14"
-                        CornerRadius="8" Padding="12,6" Background="{StaticResource GoletherPanel2}"
-                        BorderBrush="{StaticResource GoletherAccent}" BorderThickness="1">
-                  <StackPanel Orientation="Horizontal" Spacing="10">
-                    <TextBlock VerticalAlignment="Center" MaxWidth="420" TextTrimming="CharacterEllipsis" Text="{Binding Gallery.AloneText}" />
-                    <Button Focusable="False" Classes="ghost" Content="{loc:Loc Gallery.Alone.Return}" Command="{Binding Gallery.ReturnToCommonCommand}" />
-                    <Button Focusable="False" Classes="accent" Content="{loc:Loc Gallery.Alone.ShowAll}" Command="{Binding Gallery.ShowMineToAllCommand}" />
-                  </StackPanel>
-                </Border>
+                <!--
+                  Looking at a picture alone, as on the phone: a note with the two ways back, which its cross or a few
+                  seconds fold into a small pill over the picture; a click on the pill opens the note again.
+                -->
+                <Panel HorizontalAlignment="Center" VerticalAlignment="Top" Margin="16,14" IsVisible="{Binding Gallery.IsAlone}">
+                  <Border x:Name="AloneCard" CornerRadius="8" Padding="12,6,6,6" Background="{StaticResource GoletherPanel2}"
+                          BorderBrush="{StaticResource GoletherAccent}" BorderThickness="1">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                      <TextBlock VerticalAlignment="Center" MaxWidth="420" TextTrimming="CharacterEllipsis" Text="{Binding Gallery.AloneText}" />
+                      <Button Focusable="False" Classes="outline" Content="{loc:Loc Gallery.Alone.Return}" Command="{Binding Gallery.ReturnToCommonCommand}" />
+                      <Button Focusable="False" Classes="accent" Content="{loc:Loc Gallery.Alone.ShowAll}" Command="{Binding Gallery.ShowMineToAllCommand}" />
+                      <Button x:Name="AloneFold" Focusable="False" Classes="ghost square" Width="30" Height="30" BorderThickness="0"
+                              Click="OnAloneFolded" AutomationProperties.Name="{loc:Loc Gallery.Alone.Fold}" ToolTip.Tip="{loc:Loc Gallery.Alone.Fold}">
+                        <TextBlock Text="✕" />
+                      </Button>
+                    </StackPanel>
+                  </Border>
+                  <Button x:Name="AloneChip" Classes="pill" HorizontalAlignment="Center" IsVisible="False" Click="OnAloneUnfolded"
+                          AutomationProperties.Name="{loc:Loc Gallery.Alone.Chip}">
+                    <Border Classes="overFilm" Padding="14,6">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Ellipse Width="8" Height="8" Fill="{StaticResource GoletherAccent}" VerticalAlignment="Center" />
+                        <TextBlock Foreground="#FFFFFF" FontSize="13" VerticalAlignment="Center" Text="{loc:Loc Gallery.Alone.Chip}" />
+                      </StackPanel>
+                    </Border>
+                  </Button>
+                </Panel>
                 <!-- All items of the folder at once, on this screen only; a click puts one on everybody's screen. -->
                 <Border IsVisible="{Binding Gallery.IsGridOpen}" Background="{StaticResource GoletherBackground}" Padding="16,12,6,0">
                   <DockPanel>
@@ -798,103 +816,107 @@
               <StackPanel DockPanel.Dock="Bottom" Margin="12" Spacing="8">
                 <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding ConferenceNotice}"
                            IsVisible="{Binding !ConferenceAvailable}" />
-                <UniformGrid Columns="2" IsVisible="{Binding ConferenceAvailable}">
-                  <ToggleButton Classes="ghost" Margin="0,0,4,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                IsChecked="{Binding MicrophoneMuted, Mode=OneWay}" Command="{Binding ToggleMicrophoneCommand}"
-                                AutomationProperties.Name="{loc:Loc Main.Microphone.Name}"
-                                Content="{Binding MicrophoneText}" />
-                  <ToggleButton Classes="ghost" Margin="4,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                IsChecked="{Binding CameraOff, Mode=OneWay}" Command="{Binding ToggleCameraCommand}"
-                                AutomationProperties.Name="{loc:Loc Main.Camera.Name}"
-                                Content="{Binding CameraText}" />
-                </UniformGrid>
-                <!-- Camera/microphone selection and the avatar now live in the Settings window. -->
-                <!-- Chat and event feed share one area; a click on the open tab (or on the feed) hides it. -->
-                <Grid ColumnDefinitions="Auto,Auto,*,Auto">
-                  <Panel>
-                    <Button Classes="ghost tab" Classes.selected="{Binding IsChatTab}" Padding="8,4"
-                            Command="{Binding ShowTabCommand}" CommandParameter="{x:Static enums:SideTab.Chat}"
-                            AutomationProperties.Name="{loc:Loc Main.Chat.Name}" ToolTip.Tip="{loc:Loc Main.Chat.Tip}">
-                      <TextBlock Classes="label" Classes.unread="{Binding Chat.HasUnread}" Text="{Binding Chat.Header}" />
-                    </Button>
-                    <!-- New messages came while the chat was out of sight: a mark at the top right corner of its tab. -->
-                    <Border x:Name="ChatUnreadMark" Width="14" Height="14" CornerRadius="7" Margin="0,-6,-6,0"
-                            HorizontalAlignment="Right" VerticalAlignment="Top" IsHitTestVisible="False"
-                            Background="{StaticResource GoletherPanel}" IsVisible="{Binding Chat.HasUnread}">
-                      <PathIcon Data="{StaticResource IconUnread}" Width="12" Height="12" Foreground="{StaticResource GoletherAccent}" />
-                    </Border>
-                  </Panel>
-                  <Button Grid.Column="1" Classes="ghost tab" Classes.selected="{Binding IsEventsTab}" Padding="8,4" Margin="4,0,0,0"
-                          Command="{Binding ShowTabCommand}" CommandParameter="{x:Static enums:SideTab.Events}"
-                          AutomationProperties.Name="{loc:Loc Main.Events.Name}" ToolTip.Tip="{loc:Loc Main.Events.Tip}">
-                    <TextBlock Classes="label" Text="{loc:Loc Main.Events.Header}" />
-                  </Button>
-                  <Panel Grid.Column="3">
-                    <Button Classes="ghost" Padding="8,4" Command="{Binding ToggleEventsCommand}"
-                            AutomationProperties.Name="{loc:Loc Main.Panel.Name}" ToolTip.Tip="{loc:Loc Main.Panel.Tip}">
-                      <TextBlock Classes="label" Text="{Binding SidePanelArrow}" />
-                    </Button>
-                    <!-- While the panel is hidden, new chat messages send a stripe around the border of its button. -->
-                    <controls:BorderChase x:Name="PanelToggleChase" IsRunning="{Binding HighlightPanelToggle}" CornerRadius="7"
-                                          Color="{StaticResource GoletherAccentColor}" />
-                  </Panel>
-                </Grid>
-                <ScrollViewer x:Name="EventFeed" Height="210" IsVisible="{Binding ShowEvents}" Background="Transparent"
-                              Cursor="Hand" ToolTip.Tip="{loc:Loc Main.Events.HideTip}">
-                  <ItemsControl ItemsSource="{Binding Events}" FontSize="12" Margin="6,0">
-                    <ItemsControl.ItemsPanel>
-                      <ItemsPanelTemplate>
-                        <StackPanel Spacing="6" />
-                      </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="x:String">
-                        <TextBlock Text="{Binding}" TextWrapping="Wrap" />
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </ScrollViewer>
-                <!-- The chat is seen only by the participants of the session and stored nowhere. -->
-                <StackPanel Spacing="6" IsVisible="{Binding ShowChat}">
-                  <ScrollViewer x:Name="ChatScroll" Height="166">
-                    <Panel Margin="6,0">
-                      <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding !Chat.HasLines}"
-                                 Text="{loc:Loc Main.Chat.Note}" />
-                      <ItemsControl ItemsSource="{Binding Chat.Lines}">
-                        <ItemsControl.ItemsPanel>
-                          <ItemsPanelTemplate>
-                            <StackPanel Spacing="8" />
-                          </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate x:DataType="client:ChatLineViewModel">
-                            <StackPanel Spacing="1">
-                              <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding !IsSystem}">
-                                <TextBlock FontSize="12" FontWeight="SemiBold" Text="{Binding SenderText}"
-                                           Classes.self="{Binding IsLocal}" TextTrimming="CharacterEllipsis" MaxWidth="200" />
-                                <TextBlock Classes="mono muted" FontSize="10" VerticalAlignment="Bottom" Text="{Binding TimeText}" />
-                              </StackPanel>
-                              <SelectableTextBlock FontSize="12" TextWrapping="Wrap" Text="{Binding Text}" Classes.muted="{Binding IsSystem}" />
-                            </StackPanel>
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
+                <!--
+                  The microphone and the camera of this device are switched on its own tile; their choice and the avatar
+                  live in the Settings window.
+                -->
+                <!--
+                  Chat and event feed share one area, a card set apart from the panel as the cards of the start screen
+                  are from the window; a click on the open tab (or on the feed) hides it. A line under the tabs appears
+                  with the open area.
+                -->
+                <Border Classes="sideCard">
+                  <StackPanel>
+                    <Grid ColumnDefinitions="Auto,Auto,*,Auto" Margin="6">
+                      <Panel>
+                        <Button Classes="ghost tab" Classes.selected="{Binding IsChatTab}"
+                                Command="{Binding ShowTabCommand}" CommandParameter="{x:Static enums:SideTab.Chat}"
+                                AutomationProperties.Name="{loc:Loc Main.Chat.Name}" ToolTip.Tip="{loc:Loc Main.Chat.Tip}">
+                          <TextBlock Classes="label" Classes.unread="{Binding Chat.HasUnread}" Text="{Binding Chat.Header}" />
+                        </Button>
+                        <!-- New messages came while the chat was out of sight: a mark at the top right corner of its tab. -->
+                        <Border x:Name="ChatUnreadMark" Width="14" Height="14" CornerRadius="7" Margin="0,-6,-6,0"
+                                HorizontalAlignment="Right" VerticalAlignment="Top" IsHitTestVisible="False"
+                                Background="{StaticResource GoletherPanel2}" IsVisible="{Binding Chat.HasUnread}">
+                          <PathIcon Data="{StaticResource IconUnread}" Width="12" Height="12" Foreground="{StaticResource GoletherAccent}" />
+                        </Border>
+                      </Panel>
+                      <Button Grid.Column="1" Classes="ghost tab" Classes.selected="{Binding IsEventsTab}" Margin="4,0,0,0"
+                              Command="{Binding ShowTabCommand}" CommandParameter="{x:Static enums:SideTab.Events}"
+                              AutomationProperties.Name="{loc:Loc Main.Events.Name}" ToolTip.Tip="{loc:Loc Main.Events.Tip}">
+                        <TextBlock Classes="label" Text="{loc:Loc Main.Events.Header}" />
+                      </Button>
+                      <Panel Grid.Column="3">
+                        <Button Classes="ghost tab" Command="{Binding ToggleEventsCommand}"
+                                AutomationProperties.Name="{loc:Loc Main.Panel.Name}" ToolTip.Tip="{loc:Loc Main.Panel.Tip}">
+                          <TextBlock Classes="label" Text="{Binding SidePanelArrow}" />
+                        </Button>
+                        <!-- While the panel is hidden, new chat messages send a stripe around the border of its button. -->
+                        <controls:BorderChase x:Name="PanelToggleChase" IsRunning="{Binding HighlightPanelToggle}" CornerRadius="7"
+                                              Color="{StaticResource GoletherAccentColor}" />
+                      </Panel>
+                    </Grid>
+                    <Border Classes="sideCardLine" IsVisible="{Binding EventsExpanded}" />
+                    <Panel Margin="8" IsVisible="{Binding EventsExpanded}">
+                      <ScrollViewer x:Name="EventFeed" Height="210" IsVisible="{Binding ShowEvents}" Background="Transparent"
+                                    Cursor="Hand" ToolTip.Tip="{loc:Loc Main.Events.HideTip}">
+                        <ItemsControl ItemsSource="{Binding Events}" FontSize="12" Margin="6,0">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                              <StackPanel Spacing="6" />
+                            </ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                              <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </ScrollViewer>
+                      <!-- The chat is seen only by the participants of the session and stored nowhere. -->
+                      <StackPanel Spacing="6" IsVisible="{Binding ShowChat}">
+                        <ScrollViewer x:Name="ChatScroll" Height="166">
+                          <Panel Margin="6,0">
+                            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding !Chat.HasLines}"
+                                       Text="{loc:Loc Main.Chat.Note}" />
+                            <ItemsControl ItemsSource="{Binding Chat.Lines}">
+                              <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                  <StackPanel Spacing="8" />
+                                </ItemsPanelTemplate>
+                              </ItemsControl.ItemsPanel>
+                              <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="client:ChatLineViewModel">
+                                  <StackPanel Spacing="1">
+                                    <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding !IsSystem}">
+                                      <TextBlock FontSize="12" FontWeight="SemiBold" Text="{Binding SenderText}"
+                                                 Classes.self="{Binding IsLocal}" TextTrimming="CharacterEllipsis" MaxWidth="200" />
+                                      <TextBlock Classes="mono muted" FontSize="10" VerticalAlignment="Bottom" Text="{Binding TimeText}" />
+                                    </StackPanel>
+                                    <SelectableTextBlock FontSize="12" TextWrapping="Wrap" Text="{Binding Text}" Classes.muted="{Binding IsSystem}" />
+                                  </StackPanel>
+                                </DataTemplate>
+                              </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                          </Panel>
+                        </ScrollViewer>
+                        <Grid ColumnDefinitions="*,Auto">
+                          <TextBox x:Name="ChatInput" Text="{Binding Chat.Draft}" PlaceholderText="{loc:Loc Main.Chat.Placeholder}" MaxLength="{x:Static protocol:ChatMessage.MAX_TEXT_LENGTH}"
+                                   AcceptsReturn="False" TextWrapping="Wrap" MaxHeight="80" VerticalContentAlignment="Center"
+                                   AutomationProperties.Name="{loc:Loc Main.Chat.InputName}">
+                            <TextBox.KeyBindings>
+                              <KeyBinding Gesture="Enter" Command="{Binding Chat.SendCommand}" />
+                            </TextBox.KeyBindings>
+                          </TextBox>
+                          <Button Grid.Column="1" Classes="ghost square" Margin="6,0,0,0" VerticalAlignment="Bottom"
+                                  Command="{Binding Chat.SendCommand}" AutomationProperties.Name="{loc:Loc Main.Chat.SendName}" ToolTip.Tip="{loc:Loc Main.Chat.SendTip}">
+                            <PathIcon Data="{StaticResource IconSend}" Width="14" Height="14" />
+                          </Button>
+                        </Grid>
+                      </StackPanel>
                     </Panel>
-                  </ScrollViewer>
-                  <Grid ColumnDefinitions="*,Auto">
-                    <TextBox x:Name="ChatInput" Text="{Binding Chat.Draft}" PlaceholderText="{loc:Loc Main.Chat.Placeholder}" MaxLength="{x:Static protocol:ChatMessage.MAX_TEXT_LENGTH}"
-                             AcceptsReturn="False" TextWrapping="Wrap" MaxHeight="80" VerticalContentAlignment="Center"
-                             AutomationProperties.Name="{loc:Loc Main.Chat.InputName}">
-                      <TextBox.KeyBindings>
-                        <KeyBinding Gesture="Enter" Command="{Binding Chat.SendCommand}" />
-                      </TextBox.KeyBindings>
-                    </TextBox>
-                    <Button Grid.Column="1" Classes="ghost square" Margin="6,0,0,0" VerticalAlignment="Bottom"
-                            Command="{Binding Chat.SendCommand}" AutomationProperties.Name="{loc:Loc Main.Chat.SendName}" ToolTip.Tip="{loc:Loc Main.Chat.SendTip}">
-                      <PathIcon Data="{StaticResource IconSend}" Width="14" Height="14" />
-                    </Button>
-                  </Grid>
-                </StackPanel>
+                  </StackPanel>
+                </Border>
               </StackPanel>
               <ScrollViewer>
                 <!--
@@ -971,16 +993,24 @@
                             larger in proportion.
                           -->
                           <controls:AspectPanel HeightPerWidth="0.5625" Background="#0E1518">
-                            <Border Width="64" Height="64" CornerRadius="32" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                    Background="{Binding AvatarColor, Converter={x:Static clientControls:ColorTextBrushConverter.Instance}}">
-                              <TextBlock Text="{Binding Initial}" FontSize="28" FontWeight="Bold" Foreground="#0A0F11"
-                                         HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
-                            <!-- The chosen avatar covers the coloured initial while the camera is off. -->
-                            <Border Width="64" Height="64" CornerRadius="32" ClipToBounds="True" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                    IsVisible="{Binding ShowAvatarImage}">
-                              <Image Source="{Binding AvatarImage}" Stretch="UniformToFill" />
-                            </Border>
+                            <!--
+                              The avatar grows with the tile: drawn in a square of 100 and fitted to the height of the
+                              tile, its circle of 56 always takes a little over half of it.
+                            -->
+                            <Viewbox Stretch="Uniform">
+                              <Panel Width="100" Height="100">
+                                <Border Width="56" Height="56" CornerRadius="28" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                        Background="{Binding AvatarColor, Converter={x:Static clientControls:ColorTextBrushConverter.Instance}}">
+                                  <TextBlock Text="{Binding Initial}" FontSize="25" FontWeight="Bold" Foreground="#0A0F11"
+                                             HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <!-- The chosen avatar covers the coloured initial while the camera is off. -->
+                                <Border Width="56" Height="56" CornerRadius="28" ClipToBounds="True" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                        IsVisible="{Binding ShowAvatarImage}">
+                                  <Image Source="{Binding AvatarImage}" Stretch="UniformToFill" />
+                                </Border>
+                              </Panel>
+                            </Viewbox>
                             <!-- The whole frame, never cropped: a camera of another shape gets black bars at its sides. -->
                             <Panel Background="Black" IsVisible="{Binding HasCamera}">
                               <Image Source="{Binding CameraImage}" Stretch="Uniform" />
@@ -1015,6 +1045,41 @@
                                 <TextBlock Text="{Binding RoleText}" FontSize="11" Classes="muted" />
                               </StackPanel>
                             </Border>
+                            <!--
+                              The own microphone and camera: the pointer over the own tile dims it and brings two large switches; leaving it
+                              takes them away. Nothing stays on the tile: a switched-off device shows the same mark as on the tiles of the others.
+                            -->
+                            <Panel Classes="ownSwitches" Background="Transparent">
+                              <Panel.IsVisible>
+                                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                  <Binding Path="IsLocal" />
+                                  <Binding Path="$parent[ItemsControl].((vm:MainWindowViewModel)DataContext).ConferenceAvailable" />
+                                </MultiBinding>
+                              </Panel.IsVisible>
+                              <Border Classes="shade" />
+                              <StackPanel Classes="switches" Orientation="Horizontal" Spacing="14" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Button Classes="ownSwitch"
+                                        Classes.off="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).MicrophoneMuted}"
+                                        Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).ToggleMicrophoneCommand}"
+                                        AutomationProperties.Name="{loc:Loc Main.Microphone.Name}"
+                                        ToolTip.Tip="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).MicrophoneText}">
+                                  <Panel Classes="glyph">
+                                    <PathIcon Data="{StaticResource IconMicrophone}" />
+                                    <Line Classes="strike" StartPoint="2,2" EndPoint="22,22" />
+                                  </Panel>
+                                </Button>
+                                <Button Classes="ownSwitch"
+                                        Classes.off="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).CameraOff}"
+                                        Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).ToggleCameraCommand}"
+                                        AutomationProperties.Name="{loc:Loc Main.Camera.Name}"
+                                        ToolTip.Tip="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).CameraText}">
+                                  <Panel Classes="glyph">
+                                    <PathIcon Data="{StaticResource IconCamera}" />
+                                    <Line Classes="strike" StartPoint="2,2" EndPoint="22,22" />
+                                  </Panel>
+                                </Button>
+                              </StackPanel>
+                            </Panel>
                           </controls:AspectPanel>
                           <Grid ColumnDefinitions="*,*,*" Background="{StaticResource GoletherPanel2}">
                             <StackPanel Margin="8,6">

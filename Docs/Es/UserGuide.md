@@ -1,5 +1,10 @@
 # Golether: guía de uso
 
+Golether sirve para ver películas y fotos juntos: todos ven el mismo fotograma en el mismo momento, aunque os separen
+miles de kilómetros, con cámaras, voz, chat, reacciones y dibujo sobre la imagen en la misma ventana. Sirve tanto para
+una noche con amigos y familia como para una clase con un profesor particular, el análisis de la grabación de un
+partido o una sesión de fotos que se enseña a un cliente.
+
 ## Qué necesitas
 
 - Windows 10 o posterior, Linux o macOS 14+.
@@ -29,7 +34,7 @@ Las palabras del código de verificación también se muestran en tu idioma. Cad
 que cuando el anfitrión usa otro idioma, sus palabras son traducciones de las tuyas: *búho · faro · viento · 47* en una
 pantalla es *owl · lighthouse · wind · 47* en la otra. Compara el significado de las palabras y el número.
 
-## Mostrar una película (eres el anfitrión)
+## Mostrar una película o fotos (eres el anfitrión)
 
 1. Escribe tu nombre y el nombre de la sesión y pulsa **Crear una sesión**. El puerto de tu equipo (47800 por defecto)
    y la petición al router están en **Avanzado**: cámbialos solo si el puerto está ocupado o lo redirigiste a mano.
@@ -54,7 +59,9 @@ pantalla es *owl · lighthouse · wind · 47* en la otra. Compara el significado
 6. Las cámaras y la voz se inician solas al entrar en una sesión: el recuadro de cada participante a la derecha muestra
    su cámara, y las voces de los demás se mezclan en un solo flujo. La cámara y el micrófono se eligen en **Ajustes**,
    sección **Cámara y micrófono** (si no, se usan los predeterminados del sistema). Una cámara o un micrófono apagados se
-   liberan de verdad.
+   liberan de verdad. Para encender o apagar tu micrófono y tu cámara, pasa el puntero por tu
+   recuadro: se oscurece y muestra dos interruptores grandes. Un dispositivo apagado se marca en tu recuadro como en los
+   de los demás.
 
 ## Unirse (eres participante)
 
@@ -76,10 +83,10 @@ pantalla es *owl · lighthouse · wind · 47* en la otra. Compara el significado
 | Reproducir / pausar con un clic | un clic en el vídeo | — |
 | Pantalla completa con un clic | un doble clic en la zona del vídeo (funciona también antes de elegir una película) | — |
 | Tu propio volumen | el icono del altavoz a la derecha: al pasar por encima aparece una escala de 0–100 %, un clic silencia y reactiva, la rueda lo cambia | — |
-| Micrófono y cámara | «Micrófono encendido» / «Cámara encendida» bajo los recuadros de los participantes | — |
+| Micrófono y cámara | pasa el puntero por tu recuadro y pulsa el interruptor | — |
 | Sonido y subtítulos | el icono «CC» de la barra del reproductor: cada uno tiene sus propias pistas | — |
 | Reacción para todos | el icono de la carita en la barra del reproductor | — |
-| Dibujar sobre el vídeo | el icono del lápiz en la barra del reproductor | — |
+| Dibujar sobre la imagen | el botón Dibujo (el icono del lápiz) en la barra del reproductor | — |
 | Chat y eventos | las pestañas **CHAT** y **EVENTOS** abajo a la derecha; un clic en la pestaña abierta o en la flecha oculta el panel | — |
 | Enviar un mensaje | el campo de abajo del panel del chat | Intro |
 | Volumen de otro participante | clic derecho en su recuadro → control deslizante | — |
@@ -134,7 +141,8 @@ Solo tú ves y oyes cualquiera de los dos.
 
 ### Chat y reacciones
 
-Abajo a la derecha hay dos pestañas: **CHAT** y **EVENTOS**. Un clic en la pestaña abierta (o en la flecha de la
+Abajo a la derecha, en una tarjeta propia, hay dos pestañas: **CHAT** y **EVENTOS**.
+Un clic en la pestaña abierta (o en la flecha de la
 derecha) oculta el panel entero y deja el sitio a los recuadros de los participantes. Mientras el chat está oculto, su
 pestaña muestra un contador de mensajes nuevos. Los mensajes viajan por el mismo canal protegido que el resto de la
 sesión y no se guardan en ningún sitio: al cerrar la sesión, desaparecen.
@@ -149,9 +157,9 @@ todos los participantes, con el nombre de quien la envía. Las reacciones están
 sesión, antes de elegir una película. La capa de las reacciones deja pasar los clics: la pausa con un clic en el vídeo
 sigue funcionando.
 
-### El lápiz: rodear algo directamente en el vídeo
+### Dibujo sobre la imagen
 
-El icono del **lápiz** de la barra del reproductor activa el dibujo. El botón se queda pulsado y el cursor sobre el
+El icono del lápiz (**Dibujo**) de la barra del reproductor activa el dibujo, igual sobre una película que sobre una foto. El botón se queda pulsado y el cursor sobre el
 vídeo se convierte en un lápiz. Mantén pulsado el botón izquierdo del ratón y muévelo: la línea sigue al cursor con
 exactitud, y todos los participantes la ven en el mismo momento. Al soltar el botón, la línea se queda dos segundos y
 se desvanece. Cada participante tiene su propio color, el mismo que su recuadro, así que se sabe quién dibuja. Otro
@@ -194,14 +202,15 @@ tira de lado.
   ordenador del anfitrión con el componente de vídeo, así que los participantes no necesitan nada para ellas.
 - **Abrir solo para mí** (clic derecho en un elemento) muestra una imagen solo en tu pantalla. Una línea arriba dice lo
   que ven los demás y ofrece **Volver con todos** y **Mostrar a todos**; los demás ven la marca «APARTE» en tu
-  recuadro. Mientras tanto el lápiz está desactivado.
+  recuadro. Mientras tanto el dibujo está desactivado. La cruz de la línea, o unos segundos, la pliegan en un pequeño
+  aviso «Miras por tu cuenta»; un clic en él vuelve a mostrar la línea.
 - **Los vídeos** de la carpeta se reproducen como una película: puesto en pantalla, un vídeo se convierte en la
   película de todos, con su línea de tiempo, su sonido y sus subtítulos, y la tira sigue ahí. Su miniatura es un
   fotograma del vídeo.
 
 La película se pausa cuando aparece una imagen en pantalla y espera bajo las imágenes; los botones de sonido y
 subtítulos están inactivos mientras se muestra una imagen. Un vídeo de la carpeta puesto en pantalla sustituye a la
-película. **Cerrar las imágenes** (anfitrión) termina la muestra para todos, y la película vuelve al punto donde se
+película. **Cerrar las fotos** (anfitrión) termina la muestra para todos, y la película vuelve al punto donde se
 interrumpió. Elegir una película con **Mostrar** → **Película o foto** también la termina.
 
 ### Esperar a que todos estén listos
@@ -238,8 +247,8 @@ número del intento y el botón **Salir**.
 
 Clic derecho en el recuadro de un participante y elige **Apagar el micrófono** o **Apagar la cámara**. El anfitrión
 solo puede apagar: solo el participante puede volver a encender el dispositivo, y Golether se lo dice. Los recuadros
-muestran a quién se le ha apagado el micrófono o la cámara. Tu propio recuadro no tiene menú: para ti, usa los botones
-de debajo de los recuadros.
+muestran a quién se le ha apagado el micrófono o la cámara. Tu propio recuadro no tiene menú: pasa el puntero por él para
+encender o apagar tu micrófono y tu cámara.
 
 ### Anfitrión: expulsar a un participante
 

@@ -2,7 +2,7 @@
 
 ## Objectif
 
-Regarder une vidéo ensemble, avec les caméras des participants :
+Regarder des films et des photos ensemble, avec les caméras des participants :
 
 - la vidéo occupe la majeure partie de la fenêtre, les vignettes des participants sont à droite (jusqu'à 5 personnes,
   l'hôte compris) ;

@@ -52,12 +52,12 @@ cat > "$root/usr/share/applications/golether.desktop" <<'ENTRY'
 [Desktop Entry]
 Type=Application
 Name=Golether
-Comment=Watch a video together, in sync
-Comment[de]=Videos gemeinsam und synchron ansehen
-Comment[es]=Ver un vídeo juntos y sincronizados
-Comment[fr]=Regarder une vidéo ensemble, en synchro
-Comment[pt]=Ver um vídeo em conjunto e em sincronia
-Comment[ru]=Синхронный совместный просмотр видео
+Comment=Watch movies and photos together, in sync
+Comment[de]=Filme und Fotos gemeinsam und synchron ansehen
+Comment[es]=Ver películas y fotos juntos y sincronizados
+Comment[fr]=Regarder films et photos ensemble, en synchro
+Comment[pt]=Ver filmes e fotografias em conjunto e em sincronia
+Comment[ru]=Совместный просмотр фильмов и фотографий в синхроне
 Exec=golether %u
 Icon=golether
 Terminal=false
@@ -80,22 +80,23 @@ cat > "$root/usr/share/metainfo/io.github.depthrel.Golether.metainfo.xml" <<META
 <component type="desktop-application">
   <id>io.github.depthrel.Golether</id>
   <name>Golether</name>
-  <summary>Watch a video together, in sync, with webcams and voice</summary>
-  <summary xml:lang="de">Videos gemeinsam und synchron ansehen, mit Kameras und Stimmen</summary>
-  <summary xml:lang="es">Ver un vídeo juntos y sincronizados, con cámaras y voz</summary>
-  <summary xml:lang="fr">Regarder une vidéo ensemble, en synchro, avec caméras et voix</summary>
-  <summary xml:lang="pt">Ver um vídeo em conjunto e em sincronia, com câmaras e voz</summary>
-  <summary xml:lang="ru">Совместный просмотр видео в синхроне, с камерами и голосом</summary>
+  <summary>Watch movies and photos together, in sync, with webcams and voice</summary>
+  <summary xml:lang="de">Filme und Fotos gemeinsam und synchron ansehen, mit Kameras und Stimmen</summary>
+  <summary xml:lang="es">Ver películas y fotos juntos y sincronizados, con cámaras y voz</summary>
+  <summary xml:lang="fr">Regarder films et photos ensemble, en synchro, avec caméras et voix</summary>
+  <summary xml:lang="pt">Ver filmes e fotografias em conjunto e em sincronia, com câmaras e voz</summary>
+  <summary xml:lang="ru">Совместный просмотр фильмов и фотографий в синхроне, с камерами и голосом</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <developer id="io.github.depthrel">
     <name>DepthRel</name>
   </developer>
   <description>
-    <p>Golether plays one video file for up to five people at once. The host shares the file straight from the
-    computer, everyone sees and hears each other, and pause, seeking and speed stay in sync.</p>
-    <p>No accounts, no ads, no telemetry: the film, the cameras and the voices go directly between the participants,
-    encrypted, and no server of the project ever sees them.</p>
+    <p>Golether shows a film or a folder of photos to up to five people at once. The host shares the files straight
+    from the computer, everyone sees and hears each other, and pause, seeking and speed stay in sync. Reactions and
+    drawing over the picture are seen by everybody.</p>
+    <p>No accounts, no ads, no telemetry: the film, the photos, the cameras and the voices go directly between the
+    participants, encrypted, and no server of the project ever sees them.</p>
   </description>
   <launchable type="desktop-id">golether.desktop</launchable>
   <icon type="stock">golether</icon>
@@ -152,10 +153,10 @@ Recommends: gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, gstreamer1.0-p
 Section: video
 Priority: optional
 Homepage: https://golether.github.io/
-Description: Watch a video together, in sync, with webcams and voice
- Golether plays one video file for up to five people at once. The host shares the file straight from the computer,
- everyone sees and hears each other, and pause, seeking and speed stay in sync. No server of the project ever sees
- the film, the cameras or the voices.
+Description: Watch movies and photos together, in sync, with webcams and voice
+ Golether shows a film or a folder of photos to up to five people at once. The host shares the files straight from
+ the computer, everyone sees and hears each other, and pause, seeking and speed stay in sync. No server of the
+ project ever sees the film, the photos, the cameras or the voices.
 CONTROL
 
 mkdir -p "$output"

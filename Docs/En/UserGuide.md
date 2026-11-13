@@ -1,5 +1,10 @@
 # Golether: user guide
 
+Golether lets you watch films and photos together: everyone sees the same frame at the same moment, even a thousand
+miles apart, with webcams, voice, chat, reactions and drawing over the picture in the same window. It suits an evening
+with friends and family as well as a lesson with a tutor, the review of a game recording or a photo shoot shown to a
+client.
+
 ## What you need
 
 - Windows 10 or newer, Linux, or macOS 14+.
@@ -29,7 +34,7 @@ The words of the verification code are shown in your language too. Every languag
 the host uses another language, their words are translations of yours: *owl · lighthouse · wind · 47* on one screen is
 *Eule · Leuchtturm · Wind · 47* on the other. Compare the meaning of the words and the number.
 
-## Show a film (you are the host)
+## Show a film or photos (you are the host)
 
 1. Enter your name and the session name and press **Create a session**. The port of your computer (47800 by
    default) and the request to the router are under **Advanced**: change them only when the port is busy or was
@@ -56,7 +61,9 @@ the host uses another language, their words are translations of yours: *owl · l
 6. Cameras and voice start by themselves when you enter a session: each participant's tile on the right shows their
    camera, and the voices of the others are mixed into one stream. The camera and the microphone are chosen in
    **Settings**, section **Camera and microphone** (the system defaults are used otherwise). A camera or microphone
-   that is switched off is really released.
+   that is switched off is really released. To switch your own microphone or camera, point at your
+   tile: it dims and shows two large switches. A device that is off is marked on your tile, as on the tiles of the
+   others.
 
 ## Join (you are a participant)
 
@@ -78,10 +85,10 @@ the host uses another language, their words are translations of yours: *owl · l
 | Play / pause by click | a click on the video | — |
 | Full screen by click | a double click on the video area (works before a film is chosen, too) | — |
 | Your own volume | the speaker icon on the right: hover for a 0–100 % scale, click to mute and unmute, wheel to change | — |
-| Microphone and camera | "Microphone on" / "Camera on" under the participant tiles | — |
+| Microphone and camera | point at your own tile and click the switch | — |
 | Sound and subtitles | the "CC" icon in the player bar: everyone has their own tracks | — |
 | Reaction for everybody | the smiley icon in the player bar | — |
-| Draw over the video | the pen icon in the player bar | — |
+| Draw over the picture | the Drawing button (the pen icon) in the player bar | — |
 | Chat and events | the **CHAT** and **EVENTS** tabs at the bottom right; a click on the open tab or on the arrow hides the panel | — |
 | Send a message | the field at the bottom of the chat panel | Enter |
 | Volume of another participant | right click on their tile → slider | — |
@@ -134,7 +141,8 @@ either.
 
 ### Chat and reactions
 
-There are two tabs at the bottom right: **CHAT** and **EVENTS**. A click on the open tab (or on the arrow on the
+At the bottom right, in a card of their own, there are two tabs: **CHAT** and **EVENTS**.
+A click on the open tab (or on the arrow on the
 right) hides the panel entirely and gives the room to the participant tiles. While the chat is hidden, its tab shows
 a counter of new messages. Messages travel over the same protected channel as the rest of the session and are stored
 nowhere: when the session is closed, they are gone.
@@ -148,9 +156,9 @@ The smiley icon in the player bar sends a reaction: for a few seconds it floats 
 with the sender's name. Reactions are available from the moment you enter a session, before a film is chosen. The
 layer with the reactions lets clicks through: pause by a click on the video keeps working.
 
-### The pen: circle something right on the video
+### Drawing over the picture
 
-The **pen** icon in the player bar switches drawing on. The button stays pressed and the cursor over the video turns
+The pen icon (**Drawing**) in the player bar switches drawing on, over a film and over a photo alike. The button stays pressed and the cursor over the video turns
 into a pen. Hold the left mouse button and move: the line follows the cursor exactly, and every participant sees it at
 the same moment. When you release the button, the line stays for two seconds and fades away. Each participant has a
 colour of their own, the same as their tile, so it is clear who is drawing. Another click on the icon releases the
@@ -190,12 +198,13 @@ are the marks of those who look at it. The mouse wheel scrolls the strip sideway
   component, so participants need nothing for them.
 - **Open only for me** (right click on an item) shows a picture on your screen alone. A line on top says what
   everybody else sees and offers **Back to everybody** and **Show to everybody**; the others see the mark "ALONE" on
-  your tile. The pen is off meanwhile.
+  your tile. Drawing is off meanwhile. The cross of the line, or a few seconds, folds it into a small note "Looking on
+  your own"; a click on the note brings the line back.
 - **Videos** of the folder are played like a film: put on the screen, a video becomes everybody's film with its
   timeline, sound and subtitles, and the strip stays. Its small picture is a frame from the video.
 
 The film pauses when a picture comes on the screen and waits under the pictures; the sound and subtitle buttons are
-inactive while a picture is shown. A video of the folder put on the screen replaces the film. **Close the pictures**
+inactive while a picture is shown. A video of the folder put on the screen replaces the film. **Close the photos**
 (host) ends the showing for everybody, and the film comes back where it was interrupted. Choosing a film with
 **Show** → **Film or photo** ends it too.
 
@@ -231,7 +240,8 @@ with an ordinary entry. While the attempts run, a bar at the top shows the attem
 
 Right click on a participant's tile and choose **Switch off the microphone** or **Switch off the camera**. The host
 can only switch off: only the participant can switch the device on again, and Golether tells them so. The tiles show
-whose microphone or camera is off. Your own tile has no menu: use the buttons under the tiles for yourself.
+whose microphone or camera is off. Your own tile has no menu: point at it to switch your own microphone
+and camera.
 
 ### Host: remove a participant
 

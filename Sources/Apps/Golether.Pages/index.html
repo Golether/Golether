@@ -13,10 +13,10 @@
   <meta name="referrer" content="no-referrer">
   <script defer src="https://cloud.umami.is/script.js" data-website-id="63b7cb24-1307-412c-9787-61794027a8fd"
           data-domains="golether.github.io" data-do-not-track="true" data-exclude-search="true" data-exclude-hash="true"></script>
-  <title>Golether: watch movies together, in sync</title>
-  <meta name="description" content="Golether is a free app for watching a video file together: everyone sees the same frame at the same moment, with webcams and voice on the side.">
-  <meta property="og:title" content="Golether: watch movies together, in sync">
-  <meta property="og:description" content="The same frame for everyone, even a thousand miles apart. The laughter and voices of your people, right beside you.">
+  <title>Golether: share the moment together</title>
+  <meta name="description" content="Golether is a free app for watching movies and photos together: everyone sees the same frame at the same moment. Webcams, voice, chat, reactions and drawing over the picture.">
+  <meta property="og:title" content="Golether: share the moment together">
+  <meta property="og:description" content="Movies and photos: the same frame for everyone at the same moment, even a thousand miles apart. Webcams, voice, reactions and drawing over the picture, all in one window.">
   <meta property="og:image" content="https://golether.github.io/assets/screenshot.jpg">
   <link rel="icon" href="assets/golether.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/site.css">
@@ -43,14 +43,14 @@
   <main>
     <div class="hero">
       <div class="wrap">
-        <h1 data-t="hero.title">Watch movies <em>together</em><br>wherever you are</h1>
-        <p class="lead" data-t="hero.lead">The same frame for everyone, even a thousand miles apart.<br>The laughter and voices of your people, right beside you.</p>
+        <h1 data-t="hero.title">Share the moment <em>together</em><br>wherever you are</h1>
+        <p class="lead" data-t="hero.lead">Movies and photos: the same frame for everyone at the same moment, even a thousand miles apart.<br>Webcams, voice, reactions and drawing over the picture, all in one window.</p>
         <div class="actions">
           <a class="btn accent" id="hero-download" href="#download"><span data-t="hero.download">Download Golether</span></a>
           <a class="btn try" href="watch/" data-t="nav.try" data-umami-event="try-online" data-umami-event-place="hero">Try online</a>
           <a class="btn" href="#join" data-t="hero.how">I have an invitation</a>
         </div>
-        <div class="version"><span data-t="hero.free">Free and open source · Windows, Linux, macOS</span></div>
+        <div class="version"><span data-t="hero.free">Free and open source · Windows, Linux, macOS and the browser · Android soon</span></div>
 
         <div class="shot">
           <img src="assets/screenshot.jpg" width="1600" height="1000" alt="The Golether window: a film in the player, the participants and the chat on the right" data-t-alt="hero.shot">
@@ -71,10 +71,25 @@
       </div>
     </div>
 
+    <!-- Who the app serves: the same screen for friends, learning, reviewing a recording and showing photos. -->
+    <section id="uses" class="alt">
+      <div class="wrap">
+        <p class="eyebrow" data-t="uses.eyebrow">Who it is for</p>
+        <h2 data-t="uses.title">Not only for movie nights</h2>
+        <p class="sub" data-t="uses.sub">Whenever several people need to look at the same thing at the same moment.</p>
+        <div class="cards four">
+          <div class="card"><div class="icon" aria-hidden="true">🍿</div><h3 data-t="uses.1.title">Friends and family</h3><p data-t="uses.1.text">A movie in the evening or photos from a trip, with those who live in another city.</p></div>
+          <div class="card"><div class="icon" aria-hidden="true">🎓</div><h3 data-t="uses.2.title">Learning</h3><p data-t="uses.2.text">A tutor goes through a film with a student: each picks their own subtitles and audio track, and a key moment can be circled right on the frame.</p></div>
+          <div class="card"><div class="icon" aria-hidden="true">🏆</div><h3 data-t="uses.3.title">Reviewing recordings</h3><p data-t="uses.3.text">A coach and the team watch a game: pause and seeking work for everyone at once, and a play can be drawn over the frame.</p></div>
+          <div class="card"><div class="icon" aria-hidden="true">📷</div><h3 data-t="uses.4.title">Working with photos</h3><p data-t="uses.4.text">A photographer shows a shoot to a client: browse it together, or let each one zoom into a detail. The place and the camera stay out of the copies.</p></div>
+        </div>
+      </div>
+    </section>
+
     <section id="join">
       <div class="wrap">
         <p class="eyebrow" data-t="join.eyebrow">You were invited</p>
-        <h2 data-t="join.title">Four steps to the film</h2>
+        <h2 data-t="join.title">Four steps to the session</h2>
         <p class="sub" data-t="join.sub">All you need is Golether on your computer and the link your friend sent you.</p>
         <ol class="steps">
           <li>
@@ -92,7 +107,7 @@
           </li>
           <li>
             <h3 data-t="join.4.title">Enjoy</h3>
-            <p data-t="join.4.text">The host lets you in, and the film starts for everybody at the same moment.</p>
+            <p data-t="join.4.text">The host lets you in, and the film or the photos appear for everybody at the same moment.</p>
           </li>
         </ol>
         <p class="note" data-t="join.note"><b>The link did not open the app?</b> Ask the host for the <b>key</b> instead: copy it, open Golether, paste it into the “Invitation” field and press “Connect”. A link works for 15 minutes, a key for up to an hour; the whole company can join with one invitation.</p>
@@ -102,12 +117,12 @@
     <section id="host" class="alt">
       <div class="wrap">
         <p class="eyebrow" data-t="host.eyebrow">You invite</p>
-        <h2 data-t="host.title">Show a film to your friends</h2>
-        <p class="sub" data-t="host.sub">The film stays on your computer and goes straight to your guests.<br>Up to five people watch together.</p>
+        <h2 data-t="host.title">Show a film or photos</h2>
+        <p class="sub" data-t="host.sub">The film and the photos stay on your computer and go straight to your guests.<br>Up to five people watch together.</p>
         <ol class="steps three">
           <li>
-            <h3 data-t="host.1.title">Pick the film</h3>
-            <p data-t="host.1.text">Press “Create a session” and choose a video file. Nothing is uploaded to any server.</p>
+            <h3 data-t="host.1.title">Choose what to show</h3>
+            <p data-t="host.1.text">Press “Create a session” and choose a film, a photo or a whole folder. Nothing is uploaded to any server.</p>
           </li>
           <li>
             <h3 data-t="host.2.title">Send the invitation</h3>
@@ -127,12 +142,14 @@
         <h2 data-t="why.title">Like sitting on the same couch</h2>
         <p class="sub" data-t="why.sub">Everything for an evening together fits in one window.</p>
         <div class="cards">
-          <div class="card"><div class="card-head"><div class="icon" aria-hidden="true">🖼️</div><span class="new" data-t="why.7.badge">New!</span></div><h3 data-t="why.7.title">Photos as well as videos</h3><p data-t="why.7.text">Share moments and feelings from photos and videos. Two clicks, and you leaf through the album together.</p></div>
           <div class="card"><div class="icon" aria-hidden="true">⏯️</div><h3 data-t="why.1.title">Perfectly in sync</h3><p data-t="why.1.text">Play, pause and rewind work for everybody at once, whoever presses the button.</p></div>
-          <div class="card"><div class="icon" aria-hidden="true">🎞️</div><h3 data-t="why.2.title">Original quality</h3><p data-t="why.2.text">The film is not re-encoded into a blurry stream: everyone watches the file as it is.</p></div>
-          <div class="card"><div class="icon" aria-hidden="true">🙂</div><h3 data-t="why.3.title">Faces and voices</h3><p data-t="why.3.text">Webcams, voice, chat and reactions over the film. You can also draw right on the picture, and everyone sees it.</p></div>
-          <div class="card"><div class="icon" aria-hidden="true">🔒</div><h3 data-t="why.4.title">Private</h3><p data-t="why.4.text">The connection is encrypted and goes directly between you. Nobody joins without the host's approval.</p></div>
+          <div class="card"><div class="icon" aria-hidden="true">🖼️</div><h3 data-t="why.7.title">Movies and photos</h3><p data-t="why.7.text">Show a film or a whole folder of photos. Leaf through the album together, or open a photo just for yourself and zoom into a detail.</p></div>
+          <div class="card"><div class="icon" aria-hidden="true">✏️</div><h3 data-t="why.8.title">Drawing over the picture</h3><p data-t="why.8.text">Circle a detail right on the frame of a film or on a photo: everyone sees the line, and each person draws in their own colour.</p></div>
+          <div class="card"><div class="icon" aria-hidden="true">😂</div><h3 data-t="why.9.title">Reactions and chat</h3><p data-t="why.9.text">Emoji float over the picture with the sender's name, and the chat is right beside it.</p></div>
+          <div class="card"><div class="icon" aria-hidden="true">🙂</div><h3 data-t="why.3.title">Faces and voices</h3><p data-t="why.3.text">Everyone's webcam and voice next to the picture, with echo cancellation and a volume for each person.</p></div>
           <div class="card"><div class="icon" aria-hidden="true">💬</div><h3 data-t="why.5.title">Your own subtitles and audio</h3><p data-t="why.5.text">Everyone picks subtitles and an audio track on their own, independently of the others.</p></div>
+          <div class="card"><div class="icon" aria-hidden="true">🎞️</div><h3 data-t="why.2.title">Original quality</h3><p data-t="why.2.text">The film is not re-encoded into a blurry stream: everyone watches the file as it is.</p></div>
+          <div class="card"><div class="icon" aria-hidden="true">🔒</div><h3 data-t="why.4.title">Private</h3><p data-t="why.4.text">The connection is encrypted and goes directly between you. Nobody joins without the host's approval, and by default the place and the camera of a photo stay with you.</p></div>
           <div class="card"><div class="icon" aria-hidden="true">🎁</div><h3 data-t="why.6.title">Free for good</h3><p data-t="why.6.text">Open source. No accounts, no ads, no subscriptions.</p></div>
         </div>
       </div>
@@ -165,7 +182,15 @@
             <a class="btn accent" href="https://github.com/Golether/Golether/releases/latest" data-field="url" data-umami-event="download" data-umami-event-package="macos" data-umami-event-place="card" data-t="dl.button">Download</a>
             <a class="other" href="https://github.com/Golether/Golether/releases/latest" data-field="intel" data-umami-event="download" data-umami-event-package="macos-intel" data-umami-event-place="card" data-t="dl.macos.other">or for Macs with an Intel processor</a>
           </div>
+          <!-- Not released yet: the card says so instead of offering a download. -->
+          <div class="download soon" data-os="android">
+            <h3>Android</h3>
+            <div class="meta"></div>
+            <p class="hint" data-t="dl.android">An app for phones: join a session from a computer or host your own for up to three people.</p>
+            <span class="btn" data-t="dl.soon">Coming soon</span>
+          </div>
         </div>
+        <p class="online" data-t="dl.online">Rather not install anything? <a href="watch/" data-umami-event="try-online" data-umami-event-place="downloads">Try Golether online</a>, right in the browser.</p>
         </div>
       </div>
     </section>

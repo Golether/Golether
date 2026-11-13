@@ -2,7 +2,7 @@
 
 ## Ziel
 
-Gemeinsam ein Video ansehen, mit den Kameras der Teilnehmer:
+Gemeinsam Filme und Fotos ansehen, mit den Kameras der Teilnehmer:
 
 - das Video nimmt den größten Teil des Fensters ein, rechts sind die Kacheln der Teilnehmer (bis zu 5 Personen
   einschließlich des Gastgebers);

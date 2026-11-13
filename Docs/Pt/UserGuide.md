@@ -1,5 +1,10 @@
 # Golether: guia do utilizador
 
+O Golether serve para ver filmes e fotografias em conjunto: todos veem a mesma imagem no mesmo momento, mesmo a
+milhares de quilómetros de distância, com câmaras, voz, conversa, reações e desenho sobre a imagem na mesma janela.
+Serve tanto para uma noite com amigos e família como para uma aula com um explicador, a análise da gravação de um jogo
+ou uma sessão fotográfica mostrada a um cliente.
+
 ## O que é preciso
 
 - Windows 10 ou mais recente, Linux ou macOS 14+.
@@ -29,7 +34,7 @@ As palavras do código de verificação também aparecem no seu idioma. Cada idi
 quando o anfitrião usa outro idioma, as palavras dele são traduções das suas: *coruja · farol · vento · 47* num ecrã é
 *owl · lighthouse · wind · 47* no outro. Compare o significado das palavras e o número.
 
-## Mostrar um filme (é o anfitrião)
+## Mostrar um filme ou fotografias (é o anfitrião)
 
 1. Escreva o seu nome e o nome da sessão e prima **Criar uma sessão**. A porta do seu computador (47800 por
    predefinição) e o pedido ao router estão em **Avançado**: altere-os apenas se a porta estiver ocupada ou tiver sido
@@ -56,7 +61,9 @@ quando o anfitrião usa outro idioma, as palavras dele são traduções das suas
 6. As câmaras e a voz arrancam sozinhas quando entra numa sessão: o quadro de cada participante, à direita, mostra a
    câmara dele, e as vozes dos outros são misturadas num único fluxo. A câmara e o microfone escolhem-se nas
    **Definições**, secção **Câmara e microfone** (caso contrário, usam-se as predefinições do sistema). Uma câmara ou um
-   microfone desligado é realmente libertado.
+   microfone desligado é realmente libertado. Para ligar ou desligar o seu microfone e a sua câmara, aponte para o
+   seu quadro: ele escurece e mostra dois interruptores grandes. Um dispositivo desligado fica assinalado no seu quadro,
+   como nos dos outros.
 
 ## Entrar (é participante)
 
@@ -79,10 +86,10 @@ quando o anfitrião usa outro idioma, as palavras dele são traduções das suas
 | Reproduzir / pausar com um clique | um clique no vídeo | — |
 | Ecrã inteiro com um clique | um duplo clique na área do vídeo (funciona também antes de escolher um filme) | — |
 | O seu próprio volume | o ícone do altifalante à direita: ao passar por cima aparece uma escala de 0–100 %, um clique silencia e repõe, a roda muda-o | — |
-| Microfone e câmara | “Microfone ligado” / “Câmara ligada” por baixo dos quadros dos participantes | — |
+| Microfone e câmara | aponte para o seu quadro e clique no interruptor | — |
 | Som e legendas | o ícone “CC” da barra do leitor: cada um tem as suas próprias faixas | — |
 | Reação para todos | o ícone da carinha na barra do leitor | — |
-| Desenhar sobre o vídeo | o ícone da caneta na barra do leitor | — |
+| Desenhar sobre a imagem | o botão Desenho (o ícone da caneta) na barra do leitor | — |
 | Conversa e eventos | os separadores **CONVERSA** e **EVENTOS** em baixo à direita; um clique no separador aberto ou na seta oculta o painel | — |
 | Enviar uma mensagem | o campo em baixo no painel da conversa | Enter |
 | Volume de outro participante | clique com o botão direito no quadro dele → controlo deslizante | — |
@@ -137,7 +144,8 @@ vê e ouve qualquer um deles.
 
 ### Conversa e reações
 
-Há dois separadores em baixo à direita: **CONVERSA** e **EVENTOS**. Um clique no separador aberto (ou na seta à direita)
+Há dois separadores em baixo à direita, num cartão próprio: **CONVERSA** e **EVENTOS**.
+Um clique no separador aberto (ou na seta à direita)
 oculta o painel por completo e deixa o espaço para os quadros dos participantes. Enquanto a conversa está oculta, o
 separador dela mostra um contador de mensagens novas. As mensagens viajam pelo mesmo canal protegido que o resto da
 sessão e não ficam guardadas em lado nenhum: quando a sessão fecha, desaparecem.
@@ -152,9 +160,9 @@ O ícone da carinha na barra do leitor envia uma reação: durante alguns segund
 participantes, com o nome de quem a enviou. As reações estão disponíveis desde que entra numa sessão, antes de escolher
 um filme. A camada das reações deixa passar os cliques: a pausa com um clique no vídeo continua a funcionar.
 
-### A caneta: rodear algo diretamente no vídeo
+### Desenho sobre a imagem
 
-O ícone da **caneta** na barra do leitor ativa o desenho. O botão fica premido e o cursor sobre o vídeo transforma-se
+O ícone da caneta (**Desenho**) na barra do leitor ativa o desenho, tanto sobre um filme como sobre uma fotografia. O botão fica premido e o cursor sobre o vídeo transforma-se
 numa caneta. Mantenha premido o botão esquerdo do rato e mova-o: a linha segue o cursor com exatidão, e todos os
 participantes a veem no mesmo momento. Quando solta o botão, a linha fica dois segundos e desvanece-se. Cada
 participante tem a sua própria cor, a mesma do seu quadro, para se saber quem está a desenhar. Outro clique no ícone
@@ -195,13 +203,14 @@ Por baixo de cada elemento estão as marcas de quem o está a ver. A roda do rat
   pelo componente de vídeo, por isso os participantes não precisam de nada para elas.
 - **Abrir só para mim** (clique direito num elemento) mostra uma imagem só no seu ecrã. Uma linha em cima diz o que os
   outros veem e oferece **Voltar para todos** e **Mostrar a todos**; os outros veem a marca “À PARTE” no seu
-  mosaico. Entretanto a caneta fica desligada.
+  mosaico. Entretanto o desenho fica desligado. A cruz da linha, ou alguns segundos, recolhem-na num pequeno aviso
+  “Está a ver sozinho”; um clique nele traz a linha de volta.
 - **Os vídeos** da pasta são reproduzidos como um filme: posto no ecrã, um vídeo passa a ser o filme de todos, com a
   sua linha do tempo, o seu som e as suas legendas, e a faixa mantém-se. A sua miniatura é uma imagem do vídeo.
 
 O filme fica em pausa quando aparece uma imagem no ecrã e espera por baixo das imagens; os botões de som e de legendas
 ficam inativos enquanto é mostrada uma imagem. Um vídeo da pasta posto no ecrã substitui o filme. **Fechar as
-imagens** (anfitrião) termina a apresentação para todos, e o filme volta ao ponto onde foi interrompido. Escolher um
+fotografias** (anfitrião) termina a apresentação para todos, e o filme volta ao ponto onde foi interrompido. Escolher um
 filme com **Mostrar** → **Filme ou fotografia** também a termina.
 
 ### Esperar que todos estejam prontos
@@ -237,8 +246,8 @@ botão **Sair**.
 
 Clique com o botão direito no quadro de um participante e escolha **Desligar o microfone** ou **Desligar a câmara**. O
 anfitrião só pode desligar: só o participante pode voltar a ligar o dispositivo, e o Golether diz-lho. Os quadros
-mostram quem tem o microfone ou a câmara desligados. O seu próprio quadro não tem menu: para si, use os botões por baixo
-dos quadros.
+mostram quem tem o microfone ou a câmara desligados. O seu próprio quadro não tem menu: aponte para ele para ligar ou
+desligar o seu microfone e a sua câmara.
 
 ### Anfitrião: remover um participante
 

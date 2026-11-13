@@ -2,7 +2,7 @@
 
 ## Goal
 
-Watching a video together, with the participants' cameras:
+Watching films and photos together, with the participants' cameras:
 
 - the video takes most of the window, the participant tiles are on the right (up to 5 people including the host);
 - the video runs in sync for everybody; pause, seek and start from any participant apply to all;
