@@ -132,6 +132,124 @@ public sealed class ViewModelTests
     }
 
     /// <summary>
+    /// Alone in a session there is nobody to be in sync with: the chip says the film plays, without a drift; with
+    /// somebody else it tells the worst drift.
+    /// </summary>
+    [Fact]
+    public void Refresh_AloneShowsNoDrift()
+    {
+        _session.GetSnapshot().Returns(Snapshot(PlayState.Playing, TimeSpan.Zero) with { Participants = [Local()] });
+        var viewModel = CreateViewModel();
+        viewModel.Refresh();
+        Assert.Equal(Golether.Localization.Texts.Get("Main.Sync.Playing"), viewModel.SyncText);
+        Assert.Equal(IndicatorLevel.Good, viewModel.SyncLevel);
+
+        _session.GetSnapshot().Returns(Snapshot(PlayState.Playing, TimeSpan.FromMilliseconds(-180)));
+        viewModel.Refresh();
+        Assert.Equal("Синхронно · Δ ≤ 180 мс", viewModel.SyncText);
+    }
+
+    /// <summary>
+    /// The events read from the top down, like the chat: a new one comes last, and the oldest leaves first.
+    /// </summary>
+    [Fact]
+    public void Events_ReadFromTheTopDown()
+    {
+        var viewModel = CreateViewModel();
+        var time = new DateTimeOffset(2026, 11, 13, 20, 0, 0, TimeSpan.Zero);
+
+        for (var i = 0; i < 52; i++)
+        {
+            _session.EventRaised += Raise.Event<EventHandler<SessionEvent>>(_session, new SessionEvent(time.AddSeconds(i), null, $"событие {i}"));
+        }
+
+        Assert.Equal(50, viewModel.Events.Count);
+        Assert.EndsWith("событие 2", viewModel.Events[0], StringComparison.Ordinal);
+        Assert.EndsWith("событие 51", viewModel.Events[^1], StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The status bar tells a participant in plain words how good the way to the host is; the host is told nothing.
+    /// </summary>
+    [Fact]
+    public void Refresh_TellsTheWayToTheHostInPlainWords()
+    {
+        var hosted = Snapshot(PlayState.Paused, TimeSpan.Zero);
+        _session.GetSnapshot().Returns(hosted);
+        var viewModel = CreateViewModel();
+        viewModel.Refresh();
+        Assert.Equal(string.Empty, viewModel.HostLinkText);
+
+        // Until the clock is set the round trip is not judged.
+        _session.GetSnapshot().Returns(hosted with { IsHost = false, RoundTrip = TimeSpan.FromMilliseconds(120) });
+        viewModel.Refresh();
+        Assert.Equal(Golether.Localization.Texts.Get("Main.HostLink.Checking"), viewModel.HostLinkText);
+
+        foreach (var (milliseconds, quality) in new[] { (120, "Main.HostLink.Good"), (900, "Main.HostLink.Weak"), (2400, "Main.HostLink.Poor") })
+        {
+            _session.GetSnapshot().Returns(hosted with
+            {
+                IsHost = false,
+                ClockUncertainty = TimeSpan.FromMilliseconds(4),
+                RoundTrip = TimeSpan.FromMilliseconds(milliseconds),
+            });
+            viewModel.Refresh();
+            Assert.Equal(
+                Golether.Localization.Texts.Format("Main.HostLink", Golether.Localization.Texts.Get(quality), DisplayFormat.Ping(milliseconds)),
+                viewModel.HostLinkText);
+        }
+    }
+
+    /// <summary>
+    /// "End" asks first: the host hears that the others lose what is shown, a participant that the way back stays
+    /// open; nothing is left without a yes.
+    /// </summary>
+    /// <returns>A task that completes when the test is done.</returns>
+    [Fact]
+    public async Task EndSession_AsksFirst()
+    {
+        _session.GetSnapshot().Returns(Snapshot(PlayState.Paused, TimeSpan.Zero));
+        var viewModel = CreateViewModel();
+        viewModel.Refresh();
+
+        _dialogs.ConfirmAsync(default!, default!, default!).ReturnsForAnyArgs(false);
+        await viewModel.EndSessionCommand.ExecuteAsync(null);
+        await _dialogs.Received(1).ConfirmAsync(
+            Golether.Localization.Texts.Get("Main.Leave.Confirm.Title"),
+            Golether.Localization.Texts.Get("Main.Leave.Confirm.HostText"),
+            Golether.Localization.Texts.Get("Main.Leave.Confirm.Accept"));
+        await _session.DidNotReceive().LeaveAsync();
+
+        _session.GetSnapshot().Returns(Snapshot(PlayState.Paused, TimeSpan.Zero) with { IsHost = false });
+        viewModel.Refresh();
+        _dialogs.ClearReceivedCalls();
+        _dialogs.ConfirmAsync(default!, default!, default!).ReturnsForAnyArgs(true);
+        await viewModel.EndSessionCommand.ExecuteAsync(null);
+        await _dialogs.Received(1).ConfirmAsync(Arg.Any<string>(), Golether.Localization.Texts.Get("Main.Leave.Confirm.ParticipantText"), Arg.Any<string>());
+        await _session.Received(1).LeaveAsync();
+    }
+
+    /// <summary>
+    /// The avatar goes to a session that starts before the settings of the device were read: it is read when needed.
+    /// </summary>
+    /// <returns>A task that completes when the test is done.</returns>
+    [Fact]
+    public async Task Avatar_IsSentToASessionStartedBeforeTheSettingsWereRead()
+    {
+        byte[] avatar = [1, 2, 3];
+        var store = Substitute.For<IAvatarStore>();
+        store.LoadCurrentAsync().Returns(avatar);
+        var viewModel = new MainWindowViewModel(_session, _dialogs, _settings, new InlineDispatcher(), _ => throw new NotSupportedException(), "A249-B9CC-3AAB-52AC",
+            new UnavailableConferenceMedia("нет"),
+            _components,
+            avatarStore: store);
+
+        await viewModel.StartHostingCommand.ExecuteAsync(null);
+
+        await _session.Received(1).SetAvatarAsync(avatar, Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
     /// Participants that left disappear from the list.
     /// </summary>
     [Fact]
@@ -184,7 +302,7 @@ public sealed class ViewModelTests
         viewModel.Refresh();
 
         Assert.True(viewModel.HasResumeOffer);
-        Assert.Equal("В прошлый раз вы остановились на 1:06:40", viewModel.ResumeText);
+        Assert.Equal("В прошлый раз Вы остановились на 1:06:40", viewModel.ResumeText);
         await viewModel.ResumeCommand.ExecuteAsync(null);
         await _session.Received(1).RequestAsync(new PlaybackRequest(PlaybackRequestKind.Seek, TimeSpan.FromSeconds(4000)), Arg.Any<CancellationToken>());
         Assert.False(viewModel.HasResumeOffer);
@@ -306,7 +424,7 @@ public sealed class ViewModelTests
     }
 
     /// <summary>
-    /// A failed join shows the reason and stores the normalized name.
+    /// A failed join shows the reason under "could not connect" and stores the normalized name.
     /// </summary>
     [Fact]
     public async Task Join_ShowsErrors()
@@ -318,7 +436,7 @@ public sealed class ViewModelTests
 
         await viewModel.JoinCommand.ExecuteAsync(null);
 
-        await _dialogs.Received(1).ShowErrorAsync(Arg.Any<string>(), "Ведущий отклонил запрос.");
+        await _dialogs.Received(1).ShowErrorAsync("Не удалось соединиться", "Ведущий отклонил запрос.");
         await _settings.Received(1).SetAsync(MainWindowViewModel.DISPLAY_NAME_SETTING, "Марина", Arg.Any<CancellationToken>());
         Assert.False(viewModel.IsBusy);
     }
@@ -475,7 +593,9 @@ public sealed class ViewModelTests
         dialog.SelectedLifetime = dialog.Lifetimes[1];
         _session.DidNotReceive().CreateInvite(Arg.Any<IReadOnlyList<PeerEndpoint>>(), Arg.Any<TimeSpan>());
 
-        dialog.Regenerate();
+        // Opening the window makes the first invitations without saying "a new invitation was made".
+        dialog.Open();
+        Assert.Empty(dialog.Message);
         _session.Received(1).CreateInvite(Arg.Any<IReadOnlyList<PeerEndpoint>>(), InviteRegistry.WebLinkLifetime);
         _session.Received(1).CreateInvite(Arg.Any<IReadOnlyList<PeerEndpoint>>(), TimeSpan.FromHours(1));
         var (link, key) = (dialog.Link, dialog.Key);
@@ -486,10 +606,11 @@ public sealed class ViewModelTests
         Assert.NotEqual(key, dialog.Key);
         _session.Received(2).CreateInvite(Arg.Any<IReadOnlyList<PeerEndpoint>>(), InviteRegistry.WebLinkLifetime);
 
-        // "New invitation" replaces both: a guest who was removed, or a second guest, gets a link that works.
+        // "Renew invitation" replaces both: a guest who was removed, or a second guest, gets a link that works.
         (link, key) = (dialog.Link, dialog.Key);
         dialog.Regenerate();
 
+        Assert.Equal(Golether.Localization.Texts.Get("Invite.Dialog.Created"), dialog.Message);
         Assert.NotEqual(link, dialog.Link);
         Assert.NotEqual(key, dialog.Key);
         Assert.NotEqual(Invite.ParseLink(link).Token, Invite.ParseLink(dialog.Link).Token);

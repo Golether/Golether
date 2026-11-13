@@ -107,7 +107,13 @@
                 first where it is not, so a phone never leaves its last word alone on a line.
               -->
               <WrapPanel Classes="hero" AutomationProperties.Name="{loc:Loc Main.Hero.Title}">
-                <TextBlock Classes="hero" Text="{Binding [Main.Hero.Title], Source={x:Static loc:LocalizationSource.Instance}, Converter={x:Static controls:PhrasePartConverter.Head}}" />
+                <!-- "Together" in the accent colour, as on the desktop and the project page. -->
+                <TextBlock Classes="hero">
+                  <Run Text="{Binding [Main.Hero.Title], Source={x:Static loc:LocalizationSource.Instance}, Converter={x:Static controls:PhrasePartConverter.HeadStart}}" /><Run
+                       Text="{Binding [Main.Hero.Title], Source={x:Static loc:LocalizationSource.Instance}, Converter={x:Static controls:PhrasePartConverter.HeadAccent}}"
+                       Foreground="{StaticResource GoletherAccent}" /><Run
+                       Text="{Binding [Main.Hero.Title], Source={x:Static loc:LocalizationSource.Instance}, Converter={x:Static controls:PhrasePartConverter.HeadEnd}}" />
+                </TextBlock>
                 <TextBlock Classes="hero" Text="{Binding [Main.Hero.Title], Source={x:Static loc:LocalizationSource.Instance}, Converter={x:Static controls:PhrasePartConverter.Rest}}" />
               </WrapPanel>
               <TextBlock Classes="muted" TextWrapping="Wrap" MaxWidth="720" HorizontalAlignment="Left" Text="{loc:Loc Browser.Hero.Text}" />
@@ -141,7 +147,7 @@
                   <TextBlock Classes="title" Text="{loc:Loc Main.Join.Title}" />
                   <TextBlock Classes="muted" TextWrapping="Wrap" Text="{loc:Loc Main.Join.Text}" />
                   <TextBlock Classes="label" Text="{loc:Loc Main.Join.Label}" />
-                  <TextBox Classes="package" Text="{Binding InviteLink}" PlaceholderText="https://golether.github.io/watch/#…"
+                  <TextBox Classes="package" Text="{Binding InviteLink}" PlaceholderText="{loc:Loc Main.Join.Placeholder}"
                            AutomationProperties.Name="{loc:Loc Main.Join.Label}" />
                   <TextBlock TextWrapping="Wrap" Text="{Binding InviteDescription}"
                              IsVisible="{Binding InviteDescription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
@@ -648,24 +654,31 @@
         <StackPanel Spacing="12">
           <TextBlock Classes="title" Text="{loc:Loc Invite.WindowTitle}" />
           <TextBlock Classes="muted" TextWrapping="Wrap" Text="{loc:Loc Invite.Dialog.Explanation}" />
-          <TextBlock Classes="label" Text="{loc:Loc Invite.Dialog.LinkLabel}" />
-          <TextBox Classes="package invite" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="120" Text="{Binding InviteText}"
-                   AutomationProperties.Name="{loc:Loc Invite.Dialog.LinkLabel}" />
-          <!-- The copy button stands beside the note, or on a phone across the dialog right under the link. -->
-          <DockPanel Classes="inviteCopy">
-            <Button Classes="accent" Command="{Binding CopyInviteCommand}">
-              <StackPanel Orientation="Horizontal" Spacing="6">
-                <PathIcon Data="{StaticResource IconCopy}" Width="14" Height="14" Foreground="{StaticResource GoletherAccentInk}" />
-                <TextBlock Text="{loc:Loc Invite.Dialog.CopyLink}" />
-              </StackPanel>
-            </Button>
-            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" Text="{loc:Loc Browser.Invite.Note}" />
-          </DockPanel>
-          <TextBlock Foreground="{StaticResource GoletherSecure}" TextWrapping="Wrap" Text="{Binding InviteNote}"
-                     IsVisible="{Binding InviteNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <!-- The link in an area of its own, as in the window of the desktop: what it is for at the top, then the link. -->
+          <Border Classes="card" Padding="16">
+            <StackPanel Spacing="10">
+              <TextBlock Classes="heading" Text="{loc:Loc Invite.Dialog.LinkTitle}" />
+              <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{loc:Loc Browser.Invite.Note}" />
+              <TextBox Classes="package invite" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="120" Text="{Binding InviteText}"
+                       AutomationProperties.Name="{loc:Loc Invite.Dialog.LinkLabel}" />
+              <!-- The copy button stands on the right, or on a phone across the area right under the link. -->
+              <DockPanel Classes="inviteCopy">
+                <Button Classes="accent" Command="{Binding CopyInviteCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <PathIcon Data="{StaticResource IconCopy}" Width="14" Height="14" Foreground="{StaticResource GoletherAccentInk}" />
+                    <TextBlock Text="{loc:Loc Invite.Dialog.CopyLink}" />
+                  </StackPanel>
+                </Button>
+                <Panel />
+              </DockPanel>
+            </StackPanel>
+          </Border>
+          <!-- Two lines are always kept for the answer to a button, so the dialog does not jump when it comes or goes. -->
+          <TextBlock Foreground="{StaticResource GoletherSecure}" FontSize="12" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
+                     Height="32" Text="{Binding InviteNote}" />
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,4,0,0">
             <Button Classes="ghost" Content="{loc:Loc Invite.Dialog.NewLink}" Command="{Binding RenewInviteCommand}" />
-            <Button Classes="ghost" Content="{loc:Loc Common.Close}" Command="{Binding CloseInviteCommand}" />
+            <Button Classes="accent" Content="{loc:Loc Common.Close}" Command="{Binding CloseInviteCommand}" />
           </StackPanel>
         </StackPanel>
       </Border>
@@ -691,31 +704,35 @@
       </ScrollViewer>
     </Border>
 
-    <!-- The host ends the session for everybody only after a confirmation. -->
+    <!-- The session is left only after a confirmation, worded as in the desktop application. -->
     <Border Classes="dialogVeil" IsVisible="{Binding IsLeaveConfirmOpen}">
       <ScrollViewer>
-      <Border Classes="dialog">
-        <StackPanel Spacing="12">
-          <TextBlock Classes="title" TextWrapping="Wrap" Text="{loc:Loc Main.Leave}" />
-          <TextBlock TextWrapping="Wrap" Text="{loc:Loc Mobile.Leave.Host.Text}" />
-          <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
-            <Button Classes="ghost" Content="{loc:Loc Common.Cancel}" Command="{Binding CancelLeaveCommand}" />
-            <Button Classes="danger" Content="{loc:Loc Main.Leave}" Command="{Binding ConfirmLeaveCommand}" />
-          </StackPanel>
-        </StackPanel>
+      <Border Classes="dialog message">
+        <DockPanel>
+          <desktop:DialogHeader DockPanel.Dock="Top" Title="{loc:Loc Main.Leave.Confirm.Title}" />
+          <Border DockPanel.Dock="Bottom" Classes="dialogFooter">
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+              <Button Classes="ghost" Content="{loc:Loc Common.Cancel}" Command="{Binding CancelLeaveCommand}" />
+              <Button Classes="accent" Content="{loc:Loc Main.Leave.Confirm.Accept}" Command="{Binding ConfirmLeaveCommand}" />
+            </StackPanel>
+          </Border>
+          <TextBlock Classes="messageText muted" TextWrapping="Wrap" Text="{Binding LeaveConfirmText}" />
+        </DockPanel>
       </Border>
       </ScrollViewer>
     </Border>
 
-    <!-- An error the shared parts reported. -->
+    <!-- An error the shared parts reported, marked as an error in the same way as on the desktop. -->
     <Border Classes="dialogVeil" IsVisible="{Binding HasError}">
       <ScrollViewer>
-      <Border Classes="dialog">
-        <StackPanel Spacing="12">
-          <TextBlock Classes="title" TextWrapping="Wrap" Text="{Binding ErrorTitle}" />
-          <TextBlock TextWrapping="Wrap" Text="{Binding ErrorText}" />
-          <Button Classes="accent" HorizontalAlignment="Right" Content="{loc:Loc Common.Close}" Command="{Binding CloseErrorCommand}" />
-        </StackPanel>
+      <Border Classes="dialog message">
+        <DockPanel>
+          <desktop:DialogHeader DockPanel.Dock="Top" Classes="error" Title="{Binding ErrorTitle}" />
+          <Border DockPanel.Dock="Bottom" Classes="dialogFooter">
+            <Button Classes="accent" HorizontalAlignment="Right" Content="{loc:Loc Common.Understood}" Command="{Binding CloseErrorCommand}" />
+          </Border>
+          <TextBlock Classes="messageText muted" TextWrapping="Wrap" Text="{Binding ErrorText}" />
+        </DockPanel>
       </Border>
       </ScrollViewer>
     </Border>

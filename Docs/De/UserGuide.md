@@ -36,8 +36,8 @@ die Zahl.
 1. Geben Sie Ihren Namen und den Namen der Sitzung ein und drücken Sie **Sitzung erstellen**. Der Port Ihres Computers
    (standardmäßig 47800) und die Anfrage an den Router liegen unter **Erweitert**: Ändern Sie sie nur, wenn der Port
    belegt ist oder von Hand weitergeleitet wurde.
-2. Drücken Sie **Zeigen** → **Datei** und wählen Sie ein Video. Die Datei bleibt bei Ihnen: Die Teilnehmer erhalten sie
-   Stück für Stück während des Ansehens und behalten sie nur im Arbeitsspeicher.
+2. Drücken Sie **Zeigen** → **Film oder Foto** und wählen Sie ein Video. Die Datei bleibt bei Ihnen: Die Teilnehmer
+   erhalten sie Stück für Stück während des Ansehens und behalten sie nur im Arbeitsspeicher.
 3. Drücken Sie **Einladen**, kopieren Sie den **Link** und schicken Sie ihn Ihren Gästen auf beliebigem Weg. Ein Klick
    darauf öffnet Golether auf dem Computer des Gastes und fragt, ob er beitreten möchte. Der Link gilt 15 Minuten.
    Öffnet der Link die Anwendung bei einem Gast nicht, schicken Sie den **Schlüssel** aus demselben Fenster: Er wird
@@ -170,7 +170,7 @@ Klicks auf das Video wie gewohnt: Pause und Vollbild.
 
 ### Fotos und Videos eines Ordners zeigen (Gastgeber)
 
-**Zeigen** → **Ordner mit Bildern** (Ctrl+Shift+O) öffnet ein Fenster, das zeigt, was in einem Ordner liegt: seine
+**Zeigen** → **Ordner mit Fotos** (Ctrl+Shift+O) öffnet ein Fenster, das zeigt, was in einem Ordner liegt: seine
 Unterordner, seine Bilder mit kleinen Vorschauen und seine Videos. Öffnen Sie den gewünschten Ordner und drücken Sie
 **Zeigen**. Darunter zählt das Fenster, was hinausgeht (Bilder, Videos, die Größe der Bilder) und was ausgelassen
 wird: RAW-Dateien von Kameras und Bilder über 64 MB. Dazu gehören zwei Schalter:
@@ -185,8 +185,8 @@ wird: RAW-Dateien von Kameras und Bilder über 64 MB. Dazu gehören zwei Schalte
 Im Fenster funktionieren **Zurück** und **Vorwärts** wie in einem Dateimanager, auch mit Alt+← und Alt+→, der
 Rücktaste und den Seitentasten der Maus.
 
-Höchstens 2000 Dateien werden auf einmal gezeigt. Ein einzelnes Bild, gewählt mit **Zeigen** → **Datei**, wird allein
-gezeigt: Nichts anderes aus seinem Ordner geht hinaus, und seine Metadaten bleiben bei Ihnen.
+Höchstens 2000 Dateien werden auf einmal gezeigt. Ein einzelnes Bild, gewählt mit **Zeigen** → **Film oder Foto**, wird
+allein gezeigt: Nichts anderes aus seinem Ordner geht hinaus, und seine Metadaten bleiben bei Ihnen.
 
 Solange ein Ordner gezeigt wird, liegt unter dem Bild ein Streifen kleiner Bilder. Ein Klick auf ein Element bringt es
 auf den Bildschirm aller, wie ein Sprung im Film: Jeder Teilnehmer kann das, der Gastgeber entscheidet. ← und → gehen
@@ -207,7 +207,7 @@ den Streifen seitwärts.
 Der Film pausiert, sobald ein Bild auf den Bildschirm kommt, und wartet unter den Bildern; die Schaltflächen für Ton
 und Untertitel sind inaktiv, solange ein Bild gezeigt wird. Ein Video des Ordners auf dem Bildschirm ersetzt den Film.
 **Bilder schließen** (Gastgeber) beendet das Zeigen für alle, und der Film kehrt an die Stelle zurück, an der er
-unterbrochen wurde. Auch die Wahl eines Films mit **Zeigen** → **Datei** beendet es.
+unterbrochen wurde. Auch die Wahl eines Films mit **Zeigen** → **Film oder Foto** beendet es.
 
 ### Warten, bis alle bereit sind
 
@@ -252,7 +252,7 @@ Dasselbe Menü (Rechtsklick auf die Kachel eines Teilnehmers) enthält **Aus der
 Bestätigung, dann verlässt der Teilnehmer die Sitzung sofort und sieht eine Meldung, dass der Gastgeber ihn entfernt
 hat. Das ist keine Sperre: Er kann zurückkommen, aber nur mit einer neuen Einladung von Ihnen; weder die früheren
 Einladungen noch die automatische Wiederverbindung lassen ihn herein. Die früheren Einladungen funktionieren für Ihre
-anderen Gäste weiter: Entfernt wird die Person, nicht der Link. Öffnen Sie **Einladen**, drücken Sie **Neue Einladung**
+anderen Gäste weiter: Entfernt wird die Person, nicht der Link. Öffnen Sie **Einladen**, drücken Sie **Einladung erneuern**
 und schicken Sie den neuen Link dieser Person privat. Dieselbe Regel gilt für jemanden, den Sie im Fenster mit dem
 Prüfcode abgelehnt haben.
 
@@ -282,13 +282,13 @@ gegeben wurde, zeigt die Statusleiste unten im Fenster.
 
 ## Wenn etwas schiefging
 
-**⋯ → Diagnosebericht…** speichert eine Textdatei in `data/logs` (die Schaltfläche **⋯** erscheint oben rechts, wenn
+**⋯ → Diagnosebericht** speichert eine Textdatei in `data/logs` (die Schaltfläche **⋯** erscheint oben rechts, wenn
 das Fenster so schmal ist, dass die Schaltflächen der oberen Leiste nicht mehr hineinpassen): die Version, der Zustand
 der Komponenten, Informationen über die Sitzung (ohne den Namen des Films) und die letzten Zeilen des Protokolls.
 Schlüssel, Token und Passwörter werden aus dem Bericht entfernt, sodass die Datei an jeden geschickt werden kann, der
 Ihnen hilft.
 
-Bei jeder Fensterbreite wird derselbe Bericht über **Einstellungen → Über Golether → Diagnosebericht…** gespeichert.
+Bei jeder Fensterbreite wird derselbe Bericht über **Einstellungen → Über Golether → Diagnosebericht** gespeichert.
 Daneben öffnet **Problem melden** in Ihrem Mailprogramm einen Brief an die Entwickler (project.golether@gmail.com),
 Version und System sind schon eingetragen; das Fenster jedes Fehlers bietet dasselbe an. Hängen Sie den Bericht an den
 Brief: Nichts wird gesendet, bevor Sie ihn selbst abschicken.
@@ -317,8 +317,9 @@ Browser öffnet die Seite mit den Links für Ihr System. Nichts wird von selbst 
 entscheiden. Das Häkchen **Diese Version ignorieren**, vor dem Schließen der Leiste gesetzt, schaltet die Erinnerung an
 diese Version ab; über die nächste informiert Golether Sie. Persönliche Daten werden von einem Update nicht berührt.
 
-In **Einstellungen**, Abschnitt **Updates**, können Sie die Prüfung abschalten oder eine eigene Quelle angeben (die
-Adresse einer Datei mit der Liste der Versionen, `https://…`); das ist nur für eigene Builds nötig.
+In **Einstellungen**, Abschnitt **Updates**, können Sie die automatische Prüfung abschalten. **Nach Updates suchen**
+fragt sofort nach, und die Antwort steht neben der Schaltfläche: „Sie haben die neueste Version“ oder „Eine neuere
+Version ist verfügbar“.
 
 ## Vermittlungsserver
 

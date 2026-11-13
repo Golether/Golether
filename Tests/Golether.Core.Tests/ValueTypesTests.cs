@@ -81,6 +81,17 @@ public sealed class ValueTypesTests
     }
 
     /// <summary>
+    /// A session without a name is called a joint watching, not a participant; a given name is cleaned like a person's.
+    /// </summary>
+    [Fact]
+    public void SessionName_IsNormalized()
+    {
+        Assert.Equal("Совместный просмотр", ParticipantInfo.NormalizeSessionName("  \t"));
+        Assert.Equal("Вечер кино", ParticipantInfo.NormalizeSessionName(" Вечер\u0007 кино "));
+        Assert.Equal(ParticipantInfo.MAX_DISPLAY_NAME_LENGTH, ParticipantInfo.NormalizeSessionName(new string('x', 200)).Length);
+    }
+
+    /// <summary>
     /// The environment variable overrides the data directory.
     /// </summary>
     [Fact]

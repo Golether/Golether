@@ -70,6 +70,11 @@ public sealed partial class MainWindow : Window
     private bool _closeConfirmed;
 
     /// <summary>
+    /// Whether the question about leaving the session is on the screen, so another click on the cross asks nothing.
+    /// </summary>
+    private bool _askingToClose;
+
+    /// <summary>
     /// The window state before full screen.
     /// </summary>
     private WindowState _stateBeforeFullScreen = WindowState.Normal;
@@ -217,6 +222,16 @@ public sealed partial class MainWindow : Window
         _cameras = new CameraRenderer(conference, viewModel);
         _timeline.Attach(viewModel);
         viewModel.Chat.LineAdded += (_, _) => Dispatcher.UIThread.Post(() => ChatScroll.ScrollToEnd(), DispatcherPriority.Background);
+
+        // The events read from the top down like the chat, so a new one is brought into sight at the bottom.
+        viewModel.Events.CollectionChanged += (_, _) => Dispatcher.UIThread.Post(() => EventFeed.ScrollToEnd(), DispatcherPriority.Background);
+        EventFeed.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == IsVisibleProperty && EventFeed.IsVisible)
+            {
+                Dispatcher.UIThread.Post(() => EventFeed.ScrollToEnd(), DispatcherPriority.Background);
+            }
+        };
         ReactionOverlay.Opened += (_, _) =>
         {
             if (TopLevel.GetTopLevel(ReactionOverlay.Child) is not { } overlay)
@@ -346,6 +361,34 @@ public sealed partial class MainWindow : Window
         }
 
         e.Cancel = true;
+        if (_askingToClose)
+        {
+            return;
+        }
+
+        // A person closing the window is asked first; the system shutting down, or the application closing the window
+        // itself, does not wait for an answer.
+        if (!e.IsProgrammatic && e.CloseReason is not (WindowCloseReason.OSShutdown or WindowCloseReason.ApplicationShutdown))
+        {
+            _askingToClose = true;
+            try
+            {
+                if (!await viewModel.ConfirmLeaveAsync())
+                {
+                    return;
+                }
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException)
+            {
+                // A question that cannot be shown must not keep the window open against the will of the user.
+                System.Diagnostics.Trace.WriteLine($"Golether: asking before closing failed: {ex.Message}");
+            }
+            finally
+            {
+                _askingToClose = false;
+            }
+        }
+
         _closeConfirmed = true;
         try
         {

@@ -59,7 +59,7 @@ Sources/
   Tunnels/Golether.Tunnels.AmneziaWG       chaves X25519, ofuscação, .conf, pacotes assinados, controlo através da CLI
   Session/Golether.Session                 HostSession e ParticipantSession
   Session/Golether.Session.Hosting         uma sessão organizada na sua rede: escuta, retransmissor TURN, sala do servidor de encontro, portas do router, convites
-  Apps/Golether.Client                     camada comum do cliente: serviços, modelos de visão e controlos sem janelas, as cores do tema, recursos pagos
+  Apps/Golether.Client                     camada comum do cliente: serviços, modelos de visão e controlos sem janelas, as cores do tema, recursos só das aplicações (não do navegador)
   Apps/Golether.Mobile                     os ecrãs do cliente móvel: Avalonia, uma vista em vez de janelas, tema e ícones próprios
   Apps/Golether.Mobile.Android             o pacote Android: atividade, serviço em primeiro plano da sessão, componentes nativos
   Apps/Golether.Browser                    a versão para navegador (um protótipo): as sessões em WebAssembly sobre WebRTC, os ecrãs do ambiente de trabalho desenhados pelo Avalonia

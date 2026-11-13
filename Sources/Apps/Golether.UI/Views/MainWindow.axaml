@@ -61,7 +61,7 @@
       -->
       <Decorator x:Name="TopBarSlot" DockPanel.Dock="Top">
       <controls:SlideReveal x:Name="TopBar" SlideUp="True">
-      <Border Classes="panel" BorderBrush="{StaticResource GoletherLine}" BorderThickness="0,0,0,1" Padding="16,10">
+      <Border Classes="panel topBar" BorderBrush="{StaticResource GoletherLine}" BorderThickness="0,0,0,1" Padding="16,10">
         <Grid ColumnDefinitions="Auto,*">
           <StackPanel Orientation="Horizontal" Spacing="0" VerticalAlignment="Center" Margin="0,0,18,0">
             <Image Source="/Assets/golether-256.png" Width="22" Height="22" Margin="0,0,8,0" />
@@ -71,17 +71,25 @@
           <DockPanel Grid.Column="1">
             <!-- When the window is narrow the actions fold into the "more" button. -->
             <controls:OverflowPanel x:Name="TopActions" DockPanel.Dock="Right" Spacing="8" ReservedWidth="160" VerticalAlignment="Center">
-              <Border Classes="chip" IsVisible="{Binding IsInSession}">
-                <TextBlock Text="{Binding SyncText}" Foreground="{Binding SyncLevel, Converter={x:Static controls:IndicatorLevelBrushConverter.Instance}}" />
+              <!--
+                The states of the session look like the buttons beside them (the same height and corners), only
+                without a frame of their own: the playback state is told by the coloured dot.
+              -->
+              <Border Classes="status" IsVisible="{Binding IsInSession}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Ellipse Width="8" Height="8" VerticalAlignment="Center"
+                           Fill="{Binding SyncLevel, Converter={x:Static controls:IndicatorLevelBrushConverter.Instance}}" />
+                  <TextBlock Text="{Binding SyncText}" />
+                </StackPanel>
               </Border>
-              <Border Classes="chip secure" IsVisible="{Binding IsInSession}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                  <PathIcon Data="{StaticResource IconLock}" Width="11" Height="11" Foreground="{StaticResource GoletherSecure}" />
-                  <TextBlock Text="{Binding SecurityText}" Foreground="{StaticResource GoletherSecure}" FontFamily="{StaticResource GoletherMono}" FontSize="11" FontWeight="SemiBold" />
+              <Border Classes="status secure" IsVisible="{Binding IsInSession}" ToolTip.Tip="{loc:Loc Main.SecurityTip}">
+                <StackPanel Orientation="Horizontal" Spacing="7">
+                  <PathIcon Data="{StaticResource IconLock}" Width="12" Height="12" Foreground="{StaticResource GoletherSecure}" />
+                  <TextBlock Text="{Binding SecurityText}" />
                 </StackPanel>
               </Border>
               <!-- When the bar is narrow the items fold into "more" one by one: this mark first, ending the session last. -->
-              <Border Classes="chip" IsVisible="{Binding IsHost}" controls:OverflowPanel.CanOverflow="True" controls:OverflowPanel.OverflowOrder="1">
+              <Border Classes="status" IsVisible="{Binding IsHost}" controls:OverflowPanel.CanOverflow="True" controls:OverflowPanel.OverflowOrder="1">
                 <TextBlock Text="{loc:Loc Main.HostYou}" Foreground="{StaticResource GoletherMuted}" />
               </Border>
               <!-- Language, avatar, cameras and tunnels all live behind one Settings button now. -->
@@ -95,7 +103,7 @@
               </Button>
               <Button x:Name="InviteButton" Classes="ghost" Content="{loc:Loc Main.Invite}" Command="{Binding InviteCommand}" IsVisible="{Binding IsHost}"
                       controls:OverflowPanel.CanOverflow="True" controls:OverflowPanel.OverflowOrder="3" />
-              <Button x:Name="LeaveButton" Classes="danger" Content="{loc:Loc Main.Leave}" Command="{Binding LeaveCommand}" IsVisible="{Binding IsInSession}"
+              <Button x:Name="LeaveButton" Classes="danger" Content="{loc:Loc Main.Leave}" Command="{Binding EndSessionCommand}" IsVisible="{Binding IsInSession}"
                       controls:OverflowPanel.CanOverflow="True" controls:OverflowPanel.OverflowOrder="4" />
               <Button x:Name="MoreActions" Classes="ghost square" controls:OverflowPanel.IsOverflowButton="True"
                       AutomationProperties.Name="{loc:Loc Main.MoreName}" ToolTip.Tip="{loc:Loc Main.MoreTip}" FontSize="18" Content="⋯">
@@ -120,7 +128,7 @@
                         <PathIcon Data="{StaticResource IconReport}" Width="14" Height="14" />
                       </MenuItem.Icon>
                     </MenuItem>
-                    <MenuItem Classes="danger" Header="{loc:Loc Main.Leave}" Command="{Binding LeaveCommand}"
+                    <MenuItem Classes="danger" Header="{loc:Loc Main.Leave}" Command="{Binding EndSessionCommand}"
                               IsVisible="{Binding #LeaveButton.(controls:OverflowPanel.IsFolded)}"
                               Foreground="{StaticResource GoletherBad}" />
                   </MenuFlyout>
@@ -145,7 +153,10 @@
                    Text="{loc:Loc Key=Main.Version, Arg={Binding AppVersion}}" />
         <StackPanel Orientation="Horizontal" Spacing="22">
           <TextBlock Classes="mono muted" FontSize="11" Text="{loc:Loc Key=Main.Device, Arg={Binding DeviceFingerprint}}" />
-          <TextBlock Classes="mono muted" FontSize="11" Text="{Binding ClockText}" IsVisible="{Binding IsInSession}" />
+          <!-- A participant sees how good the way to the host is; the host has nobody to reach. -->
+          <TextBlock Classes="mono muted" FontSize="11" Text="{Binding HostLinkText}"
+                     IsVisible="{Binding HostLinkText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                     ToolTip.Tip="{loc:Loc Main.HostLinkTip}" />
           <TextBlock Classes="mono muted" FontSize="11" Text="{Binding SharingText}"
                      IsVisible="{Binding SharingText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                      ToolTip.Tip="{loc:Loc Main.SharingTip}" />
@@ -159,7 +170,13 @@
         <ScrollViewer IsVisible="{Binding !IsInSession}">
           <StackPanel MaxWidth="980" Margin="24,36" Spacing="22">
             <StackPanel Spacing="6">
-              <TextBlock FontSize="28" FontWeight="Bold" Text="{loc:Loc Main.Hero.Title}" />
+              <!-- The word "together" in the accent colour, as on the project page; the title follows the language. -->
+              <TextBlock FontSize="28" FontWeight="Bold" TextWrapping="Wrap" AutomationProperties.Name="{loc:Loc Main.Hero.Title}">
+                <Run Text="{Binding [Main.Hero.Title], Source={x:Static loc:LocalizationSource.Instance}, Converter={x:Static controls:AccentPartConverter.Start}}" /><Run
+                     Text="{Binding [Main.Hero.Title], Source={x:Static loc:LocalizationSource.Instance}, Converter={x:Static controls:AccentPartConverter.Accent}}"
+                     Foreground="{StaticResource GoletherAccent}" /><Run
+                     Text="{Binding [Main.Hero.Title], Source={x:Static loc:LocalizationSource.Instance}, Converter={x:Static controls:AccentPartConverter.End}}" />
+              </TextBlock>
               <TextBlock Classes="muted" TextWrapping="Wrap" MaxWidth="720" HorizontalAlignment="Left"
                          Text="{loc:Loc Main.Hero.Text}" />
             </StackPanel>
@@ -170,7 +187,7 @@
             <WrapPanel Orientation="Horizontal">
               <Border Classes="card" Width="460" Margin="0,0,20,20">
                 <StackPanel Spacing="12">
-                  <TextBlock Classes="title" Text="{loc:Loc Main.Host.Title}" />
+                  <TextBlock Classes="title" Text="{loc:Loc Main.Host.TitleFilmOrPhotos}" />
                   <TextBlock Classes="muted" TextWrapping="Wrap" Text="{loc:Loc Main.Host.Text}" />
                   <TextBlock Classes="label" Text="{loc:Loc Main.Host.SessionName}" />
                   <TextBox Text="{Binding NewSessionName}" MaxLength="64" />
@@ -213,14 +230,24 @@
                   <TextBlock Classes="title" Text="{loc:Loc Main.Join.Title}" />
                   <TextBlock Classes="muted" TextWrapping="Wrap" Text="{loc:Loc Main.Join.Text}" />
                   <TextBlock Classes="label" Text="{loc:Loc Main.Join.Label}" />
-                  <TextBox Classes="package" Text="{Binding InviteLink}" PlaceholderText="golether://join/v1/…" />
+                  <!--
+                    The link (https://…/join/#…) and the key (golether://join/v1/…) are one invitation in two spellings,
+                    and either is taken. Neither holds a line break, so Enter connects, as on the phone.
+                  -->
+                  <TextBox Classes="package" Text="{Binding InviteLink}" PlaceholderText="{loc:Loc Main.Join.Placeholder}"
+                           AcceptsReturn="False" AutomationProperties.Name="{loc:Loc Main.Join.Label}">
+                    <TextBox.KeyBindings>
+                      <KeyBinding Gesture="Enter" Command="{Binding JoinCommand}" />
+                    </TextBox.KeyBindings>
+                  </TextBox>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <Button Classes="ghost" Content="{loc:Loc Common.Paste}" Command="{Binding PasteInviteCommand}" />
                     <Button Classes="accent" Content="{loc:Loc Main.Join.Connect}" Command="{Binding JoinCommand}" />
                   </StackPanel>
                 </StackPanel>
               </Border>
-              <Border Classes="card" Width="460" Margin="0,0,20,20">
+              <!-- The components are a matter only while one of them is missing: then the card says what to do. -->
+              <Border Classes="card" Width="460" Margin="0,0,20,20" IsVisible="{Binding HasMissingComponents}">
                 <StackPanel Spacing="14">
                   <TextBlock Classes="title" Text="{loc:Loc Main.Components.Title}" />
                   <TextBlock Classes="muted" TextWrapping="Wrap"
@@ -383,8 +410,7 @@
                       </StackPanel>
                       <Button.Flyout>
                         <MenuFlyout Placement="TopEdgeAlignedLeft">
-                          <MenuItem Header="{loc:Loc Gallery.ShowMenu.File}" Command="{Binding PickFileCommand}" InputGesture="Ctrl+O"
-                                    ToolTip.Tip="{loc:Loc Gallery.ShowMenu.FileTip}" ToolTip.ShowDelay="0" ToolTip.Placement="Right">
+                          <MenuItem Header="{loc:Loc Gallery.ShowMenu.Media}" Command="{Binding PickFileCommand}" InputGesture="Ctrl+O">
                             <MenuItem.Icon>
                               <PathIcon Data="{StaticResource IconFile}" Width="14" Height="14" />
                             </MenuItem.Icon>
@@ -594,25 +620,23 @@
                                IsVisible="{Binding IsFilmOnScreen}" controls:ShrinkPanel.DropOrder="2" />
                     <TextBlock Classes="mono muted" VerticalAlignment="Center" Text="{Binding DurationText, StringFormat=' / {0}'}"
                                IsVisible="{Binding IsFilmOnScreen}" controls:ShrinkPanel.DropOrder="6" />
-                    <DockPanel Margin="16,0,0,0">
-                      <!-- The countdown: in full while it fits, otherwise the seconds alone. -->
-                      <controls:FallbackPanel DockPanel.Dock="Left" VerticalAlignment="Center" IsVisible="{Binding IsFilmOnScreen}">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                          <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource GoletherAccent}"
-                                     Text="{Binding CountdownText}" ToolTip.Tip="{Binding CountdownText}" />
-                          <Button Focusable="False" Classes="ghost" Padding="10,3" IsVisible="{Binding CanStartNow}" Command="{Binding StartNowCommand}"
-                                  Content="{loc:Loc Main.StartNow}" ToolTip.Tip="{loc:Loc Main.StartNowTip}" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="10" ToolTip.Tip="{Binding CountdownText}">
-                          <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource GoletherAccent}"
-                                     Text="{Binding CountdownShort}" />
-                          <Button Focusable="False" Classes="ghost" Padding="10,3" IsVisible="{Binding CanStartNow}" Command="{Binding StartNowCommand}"
-                                  Content="{loc:Loc Main.StartNow}" ToolTip.Tip="{loc:Loc Main.StartNowTip}" />
-                        </StackPanel>
-                      </controls:FallbackPanel>
-                      <TextBlock Margin="16,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                                 Classes="muted" Text="{Binding LastEvent}" IsVisible="{Binding !Gallery.IsActive}" />
-                    </DockPanel>
+                    <!--
+                      What happens in the session (joins, the router, the connections) is told in the events of the side
+                      panel only: the bar under the film keeps to the film.
+                    -->
+                    <!--
+                      The countdown and whom the start waits for lie over the film (SessionOverlay); the bar keeps only
+                      the way not to wait, which has to be pressed.
+                    -->
+                    <Button x:Name="StartNowButton" Focusable="False" Classes="ghost" Padding="10,3" Margin="16,0,0,0" VerticalAlignment="Center"
+                            Command="{Binding StartNowCommand}" Content="{loc:Loc Main.StartNow}" ToolTip.Tip="{loc:Loc Main.StartNowTip}">
+                      <Button.IsVisible>
+                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                          <Binding Path="CanStartNow" />
+                          <Binding Path="IsFilmOnScreen" />
+                        </MultiBinding>
+                      </Button.IsVisible>
+                    </Button>
                   </controls:ShrinkPanel>
                 </DockPanel>
               </StackPanel>
@@ -735,10 +759,16 @@
                 <StackPanel IsVisible="{Binding !IsAwaitingApproval}" Spacing="12">
                   <TextBlock Classes="title" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Text="{Binding VideoPlaceholder}" />
                   <TextBlock Classes="muted" TextWrapping="Wrap" TextAlignment="Center" Text="{Binding PlayerNotice}" />
-                  <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" IsVisible="{Binding CanPickFirstFile}">
-                    <Button Classes="accent" Content="{loc:Loc Main.PickFile}" Command="{Binding PickFileCommand}" />
-                    <Button Classes="ghost" Content="{loc:Loc Gallery.PickFolder}" Command="{Binding PickFolderCommand}" />
-                  </StackPanel>
+                  <!--
+                    Two equal ways to begin, so the buttons are of one size; the film, the usual evening, keeps the
+                    accent colour.
+                  -->
+                  <UniformGrid Columns="2" ColumnSpacing="10" HorizontalAlignment="Center" IsVisible="{Binding CanPickFirstFile}">
+                    <Button Classes="accent" MinWidth="140" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            Content="{loc:Loc Main.PickFile}" Command="{Binding PickFileCommand}" />
+                    <Button Classes="ghost" MinWidth="140" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            Content="{loc:Loc Gallery.PickFolder}" Command="{Binding PickFolderCommand}" />
+                  </UniformGrid>
                   <StackPanel Spacing="8" HorizontalAlignment="Center" Width="380" IsVisible="{Binding !VideoComponent.IsAvailable}">
                     <Button Classes="accent" HorizontalAlignment="Center" Content="{loc:Loc Key=Main.VideoComponent, Arg={Binding VideoComponent.InstallText}}"
                             Command="{Binding VideoComponent.InstallCommand}" IsVisible="{Binding VideoComponent.CanInstall}" />

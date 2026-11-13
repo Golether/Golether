@@ -34,8 +34,8 @@ the host uses another language, their words are translations of yours: *owl · l
 1. Enter your name and the session name and press **Create a session**. The port of your computer (47800 by
    default) and the request to the router are under **Advanced**: change them only when the port is busy or was
    forwarded by hand.
-2. Press **Show** → **File** and choose a video. The file stays with you: participants receive it piece by piece while
-   watching and keep it in memory only.
+2. Press **Show** → **Film or photo** and choose a video. The file stays with you: participants receive it piece by
+   piece while watching and keep it in memory only.
 3. Press **Invite**, copy the **link** and send it to your guests any way you like. A click on it opens Golether on
    the guest's computer and asks whether to join. The link works for 15 minutes. If the link does not open the
    application for a guest, send the **key** from the same window: it is pasted into Golether by hand and works for
@@ -162,7 +162,7 @@ work as usual: pause and full screen.
 
 ### Show the photos and videos of a folder (host)
 
-**Show** → **Folder of pictures** (Ctrl+Shift+O) opens a window that shows what lies in a folder: its nested folders,
+**Show** → **Folder of photos** (Ctrl+Shift+O) opens a window that shows what lies in a folder: its nested folders,
 its pictures with small previews and its videos. Open the folder you need and press **Show**. Under it the window
 counts what goes out (pictures, videos, the size of the pictures) and what is left out: camera RAW files and pictures
 larger than 64 MB. Two switches go with it:
@@ -176,8 +176,8 @@ larger than 64 MB. Two switches go with it:
 In the window **Back** and **Forward** work as in a file manager, with Alt+← and Alt+→, Backspace and the side buttons
 of the mouse as well.
 
-At most 2000 files are shown at once. A single picture chosen with **Show** → **File** is shown alone: nothing else of
-its folder goes out, and its metadata stays with you.
+At most 2000 files are shown at once. A single picture chosen with **Show** → **Film or photo** is shown alone: nothing
+else of its folder goes out, and its metadata stays with you.
 
 While a folder is shown, a strip of small pictures lies under the screen. A click on an item puts it on everybody's
 screen, like a seek of the film: every participant can do it, the host decides. ← and → go to the previous and the
@@ -197,7 +197,7 @@ are the marks of those who look at it. The mouse wheel scrolls the strip sideway
 The film pauses when a picture comes on the screen and waits under the pictures; the sound and subtitle buttons are
 inactive while a picture is shown. A video of the folder put on the screen replaces the film. **Close the pictures**
 (host) ends the showing for everybody, and the film comes back where it was interrupted. Choosing a film with
-**Show** → **File** ends it too.
+**Show** → **Film or photo** ends it too.
 
 ### Waiting until everybody is ready
 
@@ -239,7 +239,7 @@ The same menu (right click on a participant's tile) has **Remove from the sessio
 and then the participant leaves the session at once and sees a message that the host removed them. This is not a ban:
 they can come back, but only with a new invitation from you; neither the earlier invitations nor the automatic
 reconnection let them in. The earlier invitations still work for your other guests: it is the person who is removed,
-not the link. Open **Invite**, press **New invitation** and send the new link to that person privately. The same rule
+not the link. Open **Invite**, press **Renew invitation** and send the new link to that person privately. The same rule
 applies to somebody you refused in the window with the verification code.
 
 ### Start, end of the film and the space bar
@@ -268,12 +268,12 @@ given is shown in the status bar at the bottom of the window.
 
 ## If something went wrong
 
-**⋯ → Diagnostic report…** saves a text file into `data/logs` (the **⋯** button appears at the top right when the
+**⋯ → Diagnostic report** saves a text file into `data/logs` (the **⋯** button appears at the top right when the
 window is narrow enough that the buttons of the top bar no longer fit): the version, the state of the components,
 information about the session (without the name of the film) and the last lines of the log. Keys, tokens and
 passwords are cut out of the report, so the file can be sent to whoever helps you.
 
-At any width of the window the same report is saved from **Settings → About Golether → Diagnostic report…**. Next to
+At any width of the window the same report is saved from **Settings → About Golether → Diagnostic report**. Next to
 it, **Report a problem** opens a letter to the developers (project.golether@gmail.com) in your mail program, with the
 version and the system already filled in; the window of every error offers the same. Attach the report to the letter:
 nothing is sent until you send it yourself.
@@ -301,8 +301,8 @@ opens the page with the links for your system. Nothing is downloaded or installe
 this version** tick, set before closing the bar, switches off the reminder about that version; Golether will tell you
 about the next one. Personal data is not touched by an update.
 
-In **Settings**, section **Updates**, you can switch the check off or name your own source (the address of a file
-with the list of versions, `https://…`); it is needed only for builds of your own.
+In **Settings**, section **Updates**, you can switch the automatic check off. **Check for updates** asks at once, and
+the answer appears beside the button: "You have the latest version" or "A newer version is available".
 
 ## Rendezvous server
 

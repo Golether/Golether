@@ -219,7 +219,7 @@ public sealed class SessionIntegrationTests : IAsyncLifetime
         await WaitUntilAsync(() => _guestConference.MicrophoneMuted, token);
         Assert.False(_guestConference.CameraOff);
         await WaitUntilAsync(() => HostSees(s => s is { MicrophoneOff: true, CameraOff: false }), token);
-        Assert.Contains(events, e => e.Contains("выключил ваш микрофон", StringComparison.Ordinal));
+        Assert.Contains(events, e => e.Contains("выключил Ваш микрофон", StringComparison.Ordinal));
 
         // The participant switches the microphone on again; a camera request leaves it on.
         _guestConference.SetMuted(false, false);
@@ -466,8 +466,8 @@ public sealed class SessionIntegrationTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// An avatar reaches everybody with the authenticated owner, comes back to its sender, and a participant who joins
-    /// later is sent the avatars already chosen.
+    /// An avatar reaches everybody with the authenticated owner, is shown to its sender at once and comes back to it,
+    /// and a participant who joins later is sent the avatars already chosen.
     /// </summary>
     /// <returns>A task that completes when the test is done.</returns>
     [Fact]
@@ -489,6 +489,9 @@ public sealed class SessionIntegrationTests : IAsyncLifetime
         // is every copy, not how many came.
         await _host.SetAvatarAsync(Png(1));
         await guest.SendAvatarAsync(Png(2), token);
+
+        // The own tile does not wait for the host: the avatar is shown to its sender as soon as it is sent.
+        Assert.Contains(guestAvatars, avatar => avatar.Peer == _guestIdentity.PeerId && avatar.IsLocal && avatar.Image!.SequenceEqual(Png(2)));
         await WaitUntilAsync(
             () => guestAvatars.Any(a => a.Peer == _hostIdentity.PeerId) && guestAvatars.Any(a => a.Peer == _guestIdentity.PeerId) &&
                 hostAvatars.Any(a => a.Peer == _guestIdentity.PeerId),

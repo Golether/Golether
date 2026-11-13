@@ -4,18 +4,18 @@ using Golether.Client.Services;
 namespace Golether.Client.Tests;
 
 /// <summary>
-/// Tests of <see cref="AllFeaturesAccess"/>: the desktop application has no paid features.
+/// Tests of <see cref="AllFeaturesAccess"/>: the free applications have every feature.
 /// </summary>
 public sealed class AllFeaturesAccessTests
 {
     /// <summary>
-    /// Every paid feature is available.
+    /// Every feature of the applications is available.
     /// </summary>
     [Fact]
     public void EverythingIsAvailable()
     {
         var access = new AllFeaturesAccess();
 
-        Assert.All(Enum.GetValues<PaidFeature>(), feature => Assert.True(access.IsAvailable(feature)));
+        Assert.All(Enum.GetValues<AppOnlyFeature>(), feature => Assert.True(access.IsAvailable(feature)));
     }
 }

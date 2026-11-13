@@ -25,7 +25,7 @@ public sealed partial class MessageDialog : Window
         : this()
     {
         Title = title;
-        TitleText.Text = title;
+        Header.Title = title;
         MessageText.Text = message;
 
         // A message that is said in full by its heading has nothing underneath.
@@ -60,6 +60,7 @@ public sealed partial class MessageDialog : Window
     public static MessageDialog ForError(string title, string message)
     {
         var dialog = new MessageDialog(title, message);
+        dialog.Header.Classes.Add("error");
         dialog.ReportButton.IsVisible = true;
 
         return dialog;

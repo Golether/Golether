@@ -32,18 +32,30 @@ public sealed class ComponentLocator
     private readonly Func<string?> _readOsRelease;
 
     /// <summary>
+    /// The system folder of Windows, where a Visual C++ runtime installed for all programs lives.
+    /// </summary>
+    private readonly string _systemDirectory;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="ComponentLocator"/> class.
     /// </summary>
     /// <param name="bundledDirectory">The folder with shipped native files (<c>&lt;app&gt;/native</c>).</param>
     /// <param name="installRoot">The installation root of <see cref="ComponentInstaller"/>.</param>
     /// <param name="canLoadSystemLibrary">Checks a system library by name; <see cref="NativeLibrary.TryLoad(string, out nint)"/> when <see langword="null"/>.</param>
     /// <param name="readOsRelease">Reads the Linux distribution description; the real file when <see langword="null"/>.</param>
-    public ComponentLocator(string bundledDirectory, string installRoot, Func<string, bool>? canLoadSystemLibrary = null, Func<string?>? readOsRelease = null)
+    /// <param name="systemDirectory">The system folder of Windows; the real one when <see langword="null"/>.</param>
+    public ComponentLocator(
+        string bundledDirectory,
+        string installRoot,
+        Func<string, bool>? canLoadSystemLibrary = null,
+        Func<string?>? readOsRelease = null,
+        string? systemDirectory = null)
     {
         _bundledDirectory = bundledDirectory ?? throw new ArgumentNullException(nameof(bundledDirectory));
         _installRoot = installRoot ?? throw new ArgumentNullException(nameof(installRoot));
         _canLoadSystemLibrary = canLoadSystemLibrary ?? (name => NativeLibrary.TryLoad(name, out _));
         _readOsRelease = readOsRelease ?? (() => File.Exists("/etc/os-release") ? File.ReadAllText("/etc/os-release") : null);
+        _systemDirectory = systemDirectory ?? Environment.SystemDirectory;
     }
 
     /// <summary>
@@ -130,12 +142,12 @@ public sealed class ComponentLocator
     private (ComponentSource Source, string? Path) FindConference()
     {
         var bundled = Path.Combine(_bundledDirectory, "gstreamer");
-        if (GStreamerBundle.IsComplete(bundled))
+        if (CanRunGStreamer(bundled))
         {
             return (ComponentSource.Bundled, bundled);
         }
 
-        if (FindInstalled(ComponentId.Conference) is { } installed && GStreamerBundle.IsComplete(Path.Combine(installed, "gstreamer")))
+        if (FindInstalled(ComponentId.Conference) is { } installed && CanRunGStreamer(Path.Combine(installed, "gstreamer")))
         {
             return (ComponentSource.Installed, Path.Combine(installed, "gstreamer"));
         }
@@ -147,6 +159,17 @@ public sealed class ComponentLocator
 
         return (ComponentSource.Missing, null);
     }
+
+    /// <summary>
+    /// Checks that a GStreamer bundle is complete and can run here: a bundle built with Visual C++ also needs its
+    /// runtime, in the bundle or in Windows. Without it the component is not called available, since cameras and voice
+    /// would fail to start.
+    /// </summary>
+    /// <param name="root">The bundle.</param>
+    /// <returns><see langword="true"/> when the bundle can be used.</returns>
+    private bool CanRunGStreamer(string root)
+        => GStreamerBundle.IsComplete(root) &&
+           (!OperatingSystem.IsWindows() || GStreamerBundle.FindMissingCompilerRuntime(root, _systemDirectory) is null);
 
     /// <summary>
     /// Finds the AmneziaWG the application carries itself. An AmneziaWG the user installed is deliberately not

@@ -34,9 +34,9 @@ public sealed class TracksViewModelTests
     private readonly ICommonDialogs _dialogs = Substitute.For<ICommonDialogs>();
 
     /// <summary>
-    /// The paid features; subtitles are bought.
+    /// The features of the applications; subtitles are offered.
     /// </summary>
-    private readonly SwitchableFeatures _features = new(PaidFeature.Subtitles);
+    private readonly SwitchableFeatures _features = new(AppOnlyFeature.Subtitles);
 
     /// <summary>
     /// The tracks the player reports.
@@ -192,13 +192,13 @@ public sealed class TracksViewModelTests
     }
 
     /// <summary>
-    /// Without paid subtitles the list is empty and the default subtitles of the file are switched off, while the
+    /// Without subtitles offered the list is empty and the default subtitles of the file are switched off, while the
     /// sound tracks stay.
     /// </summary>
     [Fact]
-    public void Unpaid_SubtitlesAreHiddenAndOff()
+    public void Unavailable_SubtitlesAreHiddenAndOff()
     {
-        _features.Set(PaidFeature.Subtitles, false);
+        _features.Set(AppOnlyFeature.Subtitles, false);
         _tracks = Film(audioSelected: 1, subtitleSelected: 1);
         var model = Create();
 
@@ -212,14 +212,14 @@ public sealed class TracksViewModelTests
     }
 
     /// <summary>
-    /// Without paid subtitles the remembered subtitle language is neither applied nor overwritten, while the sound
+    /// Without subtitles offered the remembered subtitle language is neither applied nor overwritten, while the sound
     /// language still is applied.
     /// </summary>
     /// <returns>A task that completes when the test is done.</returns>
     [Fact]
-    public async Task Unpaid_PreferenceIsKept()
+    public async Task Unavailable_PreferenceIsKept()
     {
-        _features.Set(PaidFeature.Subtitles, false);
+        _features.Set(AppOnlyFeature.Subtitles, false);
         _stored[TracksViewModel.SUBTITLE_LANGUAGE_SETTING] = "ru";
         _stored[TracksViewModel.AUDIO_LANGUAGE_SETTING] = "ru";
         _tracks = Film(audioSelected: 1, subtitleSelected: null);
@@ -234,13 +234,13 @@ public sealed class TracksViewModelTests
     }
 
     /// <summary>
-    /// Without paid subtitles a subtitle file is not even asked for; a sound file still is.
+    /// Without subtitles offered a subtitle file is not even asked for; a sound file still is.
     /// </summary>
     /// <returns>A task that completes when the test is done.</returns>
     [Fact]
-    public async Task Unpaid_AddFileDoesNothing()
+    public async Task Unavailable_AddFileDoesNothing()
     {
-        _features.Set(PaidFeature.Subtitles, false);
+        _features.Set(AppOnlyFeature.Subtitles, false);
         var model = Create();
 
         await model.AddSubtitlesCommand.ExecuteAsync(null);
@@ -251,12 +251,12 @@ public sealed class TracksViewModelTests
     }
 
     /// <summary>
-    /// Without paid subtitles a subtitle track that appears later and is selected by the player is switched off too.
+    /// Without subtitles offered a subtitle track that appears later and is selected by the player is switched off too.
     /// </summary>
     [Fact]
-    public void Unpaid_LaterSubtitlesAreSwitchedOff()
+    public void Unavailable_LaterSubtitlesAreSwitchedOff()
     {
-        _features.Set(PaidFeature.Subtitles, false);
+        _features.Set(AppOnlyFeature.Subtitles, false);
         _tracks = Film(audioSelected: 1, subtitleSelected: null);
         var model = Create();
         model.Refresh();
@@ -269,19 +269,19 @@ public sealed class TracksViewModelTests
     }
 
     /// <summary>
-    /// A purchase in the middle of a film shows the subtitle list and applies the remembered language at once.
+    /// Subtitles offered in the middle of a film show the subtitle list and applies the remembered language at once.
     /// </summary>
     /// <returns>A task that completes when the test is done.</returns>
     [Fact]
-    public async Task Purchase_PreferenceApplies()
+    public async Task Opened_PreferenceApplies()
     {
-        _features.Set(PaidFeature.Subtitles, false);
+        _features.Set(AppOnlyFeature.Subtitles, false);
         _stored[TracksViewModel.SUBTITLE_LANGUAGE_SETTING] = "ru";
         _tracks = Film(audioSelected: 1, subtitleSelected: null);
         var model = Create();
         await model.LoadAsync();
 
-        _features.Set(PaidFeature.Subtitles, true);
+        _features.Set(AppOnlyFeature.Subtitles, true);
 
         _player.Received(1).SelectTrack(MediaTrackKind.Subtitle, 1);
         Assert.True(model.SubtitlesAvailable);
@@ -290,15 +290,15 @@ public sealed class TracksViewModelTests
     }
 
     /// <summary>
-    /// A purchase restored while the model is being created (on another thread) is not lost.
+    /// Subtitles offered while the model is being created (on another thread) are not lost.
     /// </summary>
     [Fact]
-    public void PurchaseDuringCreation_IsNotLost()
+    public void OpenedDuringCreation_IsNotLost()
     {
         var dispatcher = Substitute.For<IUiDispatcher>();
         dispatcher.When(d => d.Post(Arg.Any<Action>())).Do(call => call.Arg<Action>()());
 
-        var model = new TracksViewModel(_player, _settings, _dialogs, dispatcher, new PurchaseOnSubscribe());
+        var model = new TracksViewModel(_player, _settings, _dialogs, dispatcher, new OpenedOnSubscribe());
 
         Assert.True(model.SubtitlesAvailable);
     }
@@ -329,15 +329,15 @@ public sealed class TracksViewModelTests
     }
 
     /// <summary>
-    /// Access whose purchase of subtitles lands just before the first listener subscribes, as a restore of purchases
-    /// running on another thread at start can.
+    /// Access whose subtitles open just before the first listener subscribes, as a change on another thread at the
+    /// start can.
     /// </summary>
-    private sealed class PurchaseOnSubscribe : IFeatureAccess
+    private sealed class OpenedOnSubscribe : IFeatureAccess
     {
         /// <summary>
-        /// Whether subtitles are bought.
+        /// Whether subtitles are offered.
         /// </summary>
-        private bool _bought;
+        private bool _opened;
 
         /// <summary>
         /// The listeners.
@@ -349,9 +349,9 @@ public sealed class TracksViewModelTests
         {
             add
             {
-                if (!_bought)
+                if (!_opened)
                 {
-                    _bought = true;
+                    _opened = true;
                     _changed?.Invoke(this, EventArgs.Empty);
                 }
 
@@ -362,6 +362,6 @@ public sealed class TracksViewModelTests
         }
 
         /// <inheritdoc />
-        public bool IsAvailable(PaidFeature feature) => feature == PaidFeature.Subtitles && _bought;
+        public bool IsAvailable(AppOnlyFeature feature) => feature == AppOnlyFeature.Subtitles && _opened;
     }
 }

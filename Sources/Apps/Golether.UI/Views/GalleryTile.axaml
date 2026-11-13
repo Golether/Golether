@@ -7,6 +7,14 @@
              x:DataType="client:GalleryItemViewModel">
   <UserControl.Resources>
     <StreamGeometry x:Key="IconFilm">M2,4 H22 V20 H2 Z M4,6 V8 H6 V6 Z M4,11 V13 H6 V11 Z M4,16 V18 H6 V16 Z M18,6 V8 H20 V6 Z M18,11 V13 H20 V11 Z M18,16 V18 H20 V16 Z M10,8.5 V15.5 L15.5,12 Z</StreamGeometry>
+    <!--
+      The signs of the menu: one person ("Person" from Material Icons, Apache License 2.0) for a picture opened here only,
+      the same person with two more behind for showing it to everybody. The icons share the 24x24 frame (corner dots), so
+      the layers of the group lie exactly over each other.
+    -->
+    <StreamGeometry x:Key="IconPerson">M0,0 H0.01 V0.01 Z M23.99,23.99 H24 V24 H23.99 Z M12,12 C14.21,12 16,10.21 16,8 C16,5.79 14.21,4 12,4 C9.79,4 8,5.79 8,8 C8,10.21 9.79,12 12,12 Z M12,14 C9.33,14 4,15.34 4,18 V20 H20 V18 C20,15.34 14.67,14 12,14 Z</StreamGeometry>
+    <StreamGeometry x:Key="IconGroupFront">M0,0 H0.01 V0.01 Z M23.99,23.99 H24 V24 H23.99 Z M12,11.6 C13.77,11.6 15.2,10.17 15.2,8.4 C15.2,6.63 13.77,5.2 12,5.2 C10.23,5.2 8.8,6.63 8.8,8.4 C8.8,10.17 10.23,11.6 12,11.6 Z M12,13.2 C9.87,13.2 5.6,14.27 5.6,16.4 V18.8 H18.4 V16.4 C18.4,14.27 14.13,13.2 12,13.2 Z</StreamGeometry>
+    <StreamGeometry x:Key="IconGroupBehind">M0,0 H0.01 V0.01 Z M23.99,23.99 H24 V24 H23.99 Z M5.2,11 C6.52,11 7.6,9.92 7.6,8.6 C7.6,7.28 6.52,6.2 5.2,6.2 C3.88,6.2 2.8,7.28 2.8,8.6 C2.8,9.92 3.88,11 5.2,11 Z M0.4,17.6 V16.2 C0.4,14.4 3.4,13.4 5.2,13.4 C6.1,13.4 7.1,13.6 7.9,13.9 C5.9,14.7 4.6,15.6 4.6,17 V17.6 Z M18.8,11 C20.12,11 21.2,9.92 21.2,8.6 C21.2,7.28 20.12,6.2 18.8,6.2 C17.48,6.2 16.4,7.28 16.4,8.6 C16.4,9.92 17.48,11 18.8,11 Z M23.6,17.6 V16.2 C23.6,14.4 20.6,13.4 18.8,13.4 C17.9,13.4 16.9,13.6 16.1,13.9 C18.1,14.7 19.4,15.6 19.4,17 V17.6 Z</StreamGeometry>
   </UserControl.Resources>
   <!--
     An item of a shown folder, the same in the strip and in the grid: a click puts it on everybody's screen, the menu
@@ -19,8 +27,20 @@
             Command="{Binding ShowToAllCommand}" ToolTip.Tip="{Binding FullName}" AutomationProperties.Name="{Binding FullName}">
       <Button.ContextMenu>
         <ContextMenu>
-          <MenuItem Header="{loc:Loc Gallery.Item.ShowAll}" Command="{Binding ShowToAllCommand}" />
-          <MenuItem Header="{loc:Loc Gallery.Item.OpenAlone}" Command="{Binding OpenAloneCommand}" />
+          <MenuItem Header="{loc:Loc Gallery.Item.ShowAll}" Command="{Binding ShowToAllCommand}">
+            <MenuItem.Icon>
+              <!-- The two behind are dimmer, so they read as standing behind the one in front. -->
+              <Panel Width="16" Height="16">
+                <PathIcon Data="{StaticResource IconGroupBehind}" Width="16" Height="16" Opacity="0.55" />
+                <PathIcon Data="{StaticResource IconGroupFront}" Width="16" Height="16" />
+              </Panel>
+            </MenuItem.Icon>
+          </MenuItem>
+          <MenuItem Header="{loc:Loc Gallery.Item.OpenAlone}" Command="{Binding OpenAloneCommand}">
+            <MenuItem.Icon>
+              <PathIcon Data="{StaticResource IconPerson}" Width="16" Height="16" />
+            </MenuItem.Icon>
+          </MenuItem>
         </ContextMenu>
       </Button.ContextMenu>
       <Panel>

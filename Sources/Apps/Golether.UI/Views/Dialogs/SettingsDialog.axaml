@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:client="using:Golether.Client.ViewModels"
+        xmlns:controls="using:Golether.UI.Controls"
         xmlns:loc="using:Golether.Client.Localization"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Golether.UI.ViewModels"
@@ -140,15 +141,16 @@
 
       <!-- New versions: told about, never installed by themselves. -->
       <TextBlock Classes="title" Text="{loc:Loc Settings.Updates}" IsVisible="{Binding CanChooseUpdates}" />
-      <StackPanel Spacing="6" IsVisible="{Binding CanChooseUpdates}">
+      <StackPanel Spacing="10" IsVisible="{Binding CanChooseUpdates}">
         <CheckBox IsChecked="{Binding CheckUpdates}" Content="{loc:Loc Settings.Updates.Check}"
                   AutomationProperties.Name="{loc:Loc Settings.Updates.Check}" />
-        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{loc:Loc Settings.Updates.CheckNote}" Margin="0,0,0,6" />
-        <TextBlock Classes="label" Text="{loc:Loc Settings.Updates.Source}" />
-        <TextBox Text="{Binding UpdateUrl}" MaxLength="300" PlaceholderText="{Binding DefaultUpdateUrl}"
-                 IsEnabled="{Binding CheckUpdates}"
-                 AutomationProperties.Name="{loc:Loc Settings.Updates.Source}" />
-        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{loc:Loc Settings.Updates.SourceNote}" />
+        <!-- A check on request, whatever the box says; the answer stands beside the button. -->
+        <StackPanel Orientation="Horizontal" Spacing="14">
+          <Button Classes="ghost" Content="{loc:Loc Settings.Updates.CheckNow}" Command="{Binding CheckNowCommand}" />
+          <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="260" Text="{Binding UpdateStatusText}"
+                     Foreground="{Binding UpdateStatusLevel, Converter={x:Static controls:IndicatorLevelBrushConverter.Instance}}"
+                     IsVisible="{Binding UpdateStatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        </StackPanel>
       </StackPanel>
     </StackPanel>
   </ScrollViewer>

@@ -21,5 +21,5 @@ public sealed class AllFeaturesAccess : IFeatureAccess
     }
 
     /// <inheritdoc />
-    public bool IsAvailable(PaidFeature feature) => true;
+    public bool IsAvailable(AppOnlyFeature feature) => true;
 }

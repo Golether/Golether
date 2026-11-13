@@ -548,7 +548,7 @@ public sealed class ParticipantSession : IAsyncDisposable
 
         lock (_gate)
         {
-            _sessionName = ParticipantInfo.NormalizeDisplayName(welcome.SessionName);
+            _sessionName = ParticipantInfo.NormalizeSessionName(welcome.SessionName);
             _mediaStreams = Math.Clamp(welcome.MediaDataStreams, 1, 16);
             _participants = ToViews(welcome.Participants, []);
             _latestState = welcome.Playback;
@@ -692,7 +692,8 @@ public sealed class ParticipantSession : IAsyncDisposable
     }
 
     /// <summary>
-    /// Sends this device's avatar to the host, which relays it to everybody; an empty picture clears it.
+    /// Sends this device's avatar to the host, which relays it to everybody; an empty picture clears it. The own tile
+    /// shows it at once, like the host's does, without waiting for the host to send it back.
     /// </summary>
     /// <param name="image">The PNG bytes, or <see langword="null"/> to clear the avatar.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
@@ -700,7 +701,13 @@ public sealed class ParticipantSession : IAsyncDisposable
     public async Task SendAvatarAsync(byte[]? image, CancellationToken cancellationToken)
     {
         var channel = _channel ?? throw new InvalidOperationException(Texts.Get("Session.Error.NotJoined"));
-        await SendAsync(channel, new AvatarMessage(image, null), cancellationToken).ConfigureAwait(false);
+        var message = new AvatarMessage(image, null);
+        await SendAsync(channel, message, cancellationToken).ConfigureAwait(false);
+
+        if (message.Sanitize() is { } clean)
+        {
+            AvatarReceived?.Invoke(this, new AvatarUpdate(_localPeer, clean.Image, true));
+        }
     }
 
     /// <summary>

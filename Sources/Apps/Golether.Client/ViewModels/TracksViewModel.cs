@@ -55,7 +55,7 @@ public sealed partial class TracksViewModel : ObservableObject
     private readonly IUiDispatcher _dispatcher;
 
     /// <summary>
-    /// The paid features: subtitles are one of them, the sound tracks are not.
+    /// The features of the applications: subtitles are one of them, the sound tracks are not.
     /// </summary>
     private readonly IFeatureAccess _features;
 
@@ -86,7 +86,7 @@ public sealed partial class TracksViewModel : ObservableObject
     /// <param name="settings">The settings.</param>
     /// <param name="dialogs">The dialogs.</param>
     /// <param name="dispatcher">The UI dispatcher.</param>
-    /// <param name="features">The paid features.</param>
+    /// <param name="features">The features of the applications this client offers.</param>
     public TracksViewModel(ILocalPlayerControls player, ISettingsStore settings, ICommonDialogs dialogs, IUiDispatcher dispatcher, IFeatureAccess features)
     {
         _player = player ?? throw new ArgumentNullException(nameof(player));
@@ -94,9 +94,9 @@ public sealed partial class TracksViewModel : ObservableObject
         _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
         _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
         _features = features ?? throw new ArgumentNullException(nameof(features));
-        // Subscribe before reading, so a purchase restored meanwhile on another thread is not lost.
+        // Subscribe before reading, so a change made meanwhile on another thread is not lost.
         _features.Changed += (_, _) => _dispatcher.Post(OnFeaturesChanged);
-        SubtitlesAvailable = _features.IsAvailable(PaidFeature.Subtitles);
+        SubtitlesAvailable = _features.IsAvailable(AppOnlyFeature.Subtitles);
         _player.TracksChanged += (_, _) =>
         {
             if (Interlocked.Exchange(ref _refreshPosted, 1) == 0)
@@ -129,7 +129,7 @@ public sealed partial class TracksViewModel : ObservableObject
     public partial bool SubtitlesShown { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether subtitles are paid for on this device; without them the subtitle list
+    /// Gets or sets a value indicating whether this client offers subtitles; without them the subtitle list
     /// is empty and the subtitles of a file are switched off.
     /// </summary>
     [ObservableProperty]
@@ -310,11 +310,11 @@ public sealed partial class TracksViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Applies a purchase or a refund of subtitles: the list is rebuilt and the remembered language applied again.
+    /// Applies subtitles becoming offered or not: the list is rebuilt and the remembered language applied again.
     /// </summary>
     private void OnFeaturesChanged()
     {
-        var available = _features.IsAvailable(PaidFeature.Subtitles);
+        var available = _features.IsAvailable(AppOnlyFeature.Subtitles);
         if (available == SubtitlesAvailable)
         {
             return;

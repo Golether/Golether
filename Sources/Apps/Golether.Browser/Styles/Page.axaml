@@ -53,6 +53,21 @@
   <Style Selector="views|MainView.compact Border.dialog">
     <Setter Property="Padding" Value="16,14" />
   </Style>
+  <!--
+    A message or a question, as the message window of the desktop: the title on its band, the text and the answers on
+    the ground. The band reaches the rounded edges, so the card clips them.
+  -->
+  <Style Selector="Border.dialog.message">
+    <Setter Property="Background" Value="{StaticResource GoletherBackground}" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+  <Style Selector="Border.dialog.message TextBlock.messageText">
+    <Setter Property="Margin" Value="22,18,22,18" />
+  </Style>
+  <Style Selector="views|MainView.compact Border.dialog.message TextBlock.messageText">
+    <Setter Property="Margin" Value="16,14,16,16" />
+  </Style>
   <Style Selector="DockPanel.inviteCopy > Button">
     <Setter Property="DockPanel.Dock" Value="Right" />
     <Setter Property="Margin" Value="12,0,0,0" />

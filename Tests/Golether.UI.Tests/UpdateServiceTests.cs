@@ -69,15 +69,20 @@ public sealed class UpdateServiceTests
         Assert.Equal(UpdateService.DEFAULT_MANIFEST_URL, service.EffectiveManifestUrl);
         Assert.NotNull(await service.CheckAsync(token));
 
-        // The check can be switched off, and a broken address or a broken answer is not an error either.
+        // The service asks whenever it is asked: whether to look by itself is the caller's choice.
         service.Enabled = false;
-        Assert.Null(await service.CheckAsync(token));
-        service.Enabled = true;
+        Assert.NotNull(await service.CheckAsync(token));
+
+        // A forbidden address or a broken answer is a failed check, not "this version is the newest".
         service.ManifestUrl = "ftp://example.org/updates.json";
-        Assert.Null(await service.CheckAsync(token));
+        await Assert.ThrowsAsync<HttpRequestException>(() => service.CheckAsync(token));
         service.ManifestUrl = "https://example.org/updates.json";
         var broken = new UpdateService(new HttpClient(new StubHandler("<html>")), new Version(0, 1, 0)) { ManifestUrl = service.ManifestUrl };
-        Assert.Null(await broken.CheckAsync(token));
+        await Assert.ThrowsAsync<HttpRequestException>(() => broken.CheckAsync(token));
+
+        // A version not newer than this one is no offer.
+        var current = new UpdateService(new HttpClient(new StubHandler(manifest)), new Version(9, 9, 9)) { ManifestUrl = service.ManifestUrl };
+        Assert.Null(await current.CheckAsync(token));
     }
 
     /// <summary>

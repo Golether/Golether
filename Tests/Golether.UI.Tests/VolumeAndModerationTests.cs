@@ -160,7 +160,7 @@ public sealed class VolumeAndModerationTests
 
         tile.ToggleVoiceMuteCommand.Execute(null);
         Assert.True(tile.IsVoiceMuted);
-        Assert.Equal(("заглушён у вас", "Вернуть звук"), (tile.VoiceVolumeText, tile.VoiceMuteText));
+        Assert.Equal(("заглушён у Вас", "Вернуть звук"), (tile.VoiceVolumeText, tile.VoiceMuteText));
         tile.ToggleVoiceMuteCommand.Execute(null);
         Assert.Equal(100, tile.VoiceVolume);
         tile.VoiceVolume = 30;

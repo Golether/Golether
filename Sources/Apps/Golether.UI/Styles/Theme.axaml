@@ -1,4 +1,5 @@
 <Styles xmlns="https://github.com/avaloniaui"
+        xmlns:controls="using:Golether.UI.Controls"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <!--
     Golether dark theme: ink ground, tungsten-amber accent (projector lamp), teal for security,
@@ -54,6 +55,11 @@
     <Setter Property="FontSize" Value="20" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
+  <!-- The heading of a part of a window: a step above the text, below the title of the window. -->
+  <Style Selector="TextBlock.heading">
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
   <Style Selector="TextBlock.logo">
     <Setter Property="FontSize" Value="15" />
     <Setter Property="FontWeight" Value="Bold" />
@@ -63,6 +69,31 @@
   <!-- Surfaces -->
   <Style Selector="Border.panel">
     <Setter Property="Background" Value="{StaticResource GoletherPanel}" />
+  </Style>
+  <!--
+    A message or a question is two zones: the title on a band of the panel colour with a line under it, and below it,
+    on the ground of the window, the text with its answers. The accent mark before the title turns red for an error.
+  -->
+  <Style Selector="controls|DialogHeader">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{StaticResource GoletherPanel}" BorderBrush="{StaticResource GoletherLine}" BorderThickness="0,0,0,1"
+                Padding="22,16">
+          <DockPanel>
+            <Border Name="PART_Mark" DockPanel.Dock="Left" Width="4" MinHeight="20" CornerRadius="2" Margin="0,3,12,3"
+                    Background="{StaticResource GoletherAccent}" />
+            <TextBlock Classes="title" VerticalAlignment="Center" TextWrapping="Wrap" Text="{TemplateBinding Title}" />
+          </DockPanel>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="controls|DialogHeader.error /template/ Border#PART_Mark">
+    <Setter Property="Background" Value="{StaticResource GoletherBad}" />
+  </Style>
+  <!-- The answers stay on the ground of the text, so the window does not stripe; only the title has a band. -->
+  <Style Selector="Border.dialogFooter">
+    <Setter Property="Padding" Value="22,4,22,18" />
   </Style>
   <Style Selector="Border.card">
     <Setter Property="Background" Value="{StaticResource GoletherPanel}" />
@@ -198,6 +229,69 @@
   </Style>
   <Style Selector="Border.chip.secure > TextBlock">
     <Setter Property="Foreground" Value="{StaticResource GoletherSecure}" />
+  </Style>
+  <!--
+    A state of the session in the top bar. It stands in a row of buttons, so it takes their height (the same padding,
+    frame and size of text) and their slightly rounded corners; the filled ground tells it from a button.
+  -->
+  <Style Selector="Border.status">
+    <Setter Property="Background" Value="{StaticResource GoletherPanel2}" />
+    <Setter Property="BorderBrush" Value="{StaticResource GoletherLine}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="7" />
+    <Setter Property="Padding" Value="12,7" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.status TextBlock">
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.status.secure">
+    <Setter Property="BorderBrush" Value="#734FB3A5" />
+    <Setter Property="Background" Value="{StaticResource GoletherSecureTint}" />
+  </Style>
+  <Style Selector="Border.status.secure TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource GoletherSecure}" />
+  </Style>
+  <!--
+    The top bar is a row of states and actions, quieter than the buttons of a dialog: everything in it is a step smaller
+    (13 px text, 30 px high), and all of it alike, so the states still stand level with the buttons.
+  -->
+  <Style Selector="Border.topBar Button">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="MinHeight" Value="30" />
+    <Setter Property="Padding" Value="12,4" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.topBar Border.status">
+    <Setter Property="MinHeight" Value="30" />
+    <Setter Property="Padding" Value="11,4" />
+  </Style>
+  <Style Selector="Border.topBar Border.status TextBlock">
+    <Setter Property="FontSize" Value="13" />
+  </Style>
+  <Style Selector="Border.topBar Button.square">
+    <Setter Property="Width" Value="30" />
+    <Setter Property="Height" Value="30" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+  <!-- A note over the film, as the phone draws it: a dark pill that the picture shows through a little. -->
+  <Style Selector="Border.overFilm">
+    <Setter Property="Background" Value="#A60A0F11" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Padding" Value="12,5" />
+  </Style>
+  <!-- The lamp pulses only while the note is on the screen: an endless animation keeps the window drawing. -->
+  <Style Selector="Border.live Ellipse.pulse">
+    <Style.Animations>
+      <Animation Duration="0:0:1" IterationCount="INFINITE" PlaybackDirection="Alternate">
+        <KeyFrame Cue="0%">
+          <Setter Property="Opacity" Value="1" />
+        </KeyFrame>
+        <KeyFrame Cue="100%">
+          <Setter Property="Opacity" Value="0.25" />
+        </KeyFrame>
+      </Animation>
+    </Style.Animations>
   </Style>
   <Style Selector="Border.code">
     <Setter Property="Background" Value="{StaticResource GoletherSecureTint}" />

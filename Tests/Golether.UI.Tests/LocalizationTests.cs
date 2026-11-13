@@ -144,6 +144,26 @@ public sealed class LocalizationTests
     }
 
     /// <summary>
+    /// In every language the accent word of the start screen is part of its title, so "together" always stands out.
+    /// </summary>
+    [Fact]
+    public void HeroTitle_HoldsItsAccentWordInEveryLanguage()
+    {
+        foreach (var language in NewLocalizer().Languages)
+        {
+            var localizer = NewLocalizer(language.Code);
+
+            var (start, accent, end) = Golether.UI.Controls.AccentPartConverter.Split(localizer.Get("Main.Hero.Title"), localizer.Get("Main.Hero.Accent"));
+
+            Assert.False(string.IsNullOrEmpty(accent), $"{language.Code}: the accent word is not in the title.");
+            Assert.Equal(localizer.Get("Main.Hero.Title"), start + accent + end);
+        }
+
+        // A title without the word is shown whole, with nothing in the accent colour.
+        Assert.Equal(("Смотрим", string.Empty, string.Empty), Golether.UI.Controls.AccentPartConverter.Split("Смотрим", "вместе"));
+    }
+
+    /// <summary>
     /// A stored language the application no longer has is treated like a first start.
     /// </summary>
     /// <returns>A task that completes when the test is done.</returns>
@@ -293,13 +313,13 @@ public sealed class LocalizationTests
     {
         using (Texts.Scope(NewLocalizer("en")))
         {
-            Assert.Equal("This is not a Golether invitation.", Assert.Throws<FormatException>(() => Invite.ParseLink("hello")).Message);
-            Assert.Equal("The invitation is damaged.", Assert.Throws<FormatException>(() => Invite.ParseLink(Invite.LINK_PREFIX + "!!!")).Message);
+            Assert.Equal("This is not a Golether invitation. Paste the link or the key the host sent you.", Assert.Throws<FormatException>(() => Invite.ParseLink("hello")).Message);
+            Assert.Equal("The invitation is damaged: it seems it was not copied in full. Copy it again, all of it.", Assert.Throws<FormatException>(() => Invite.ParseLink(Invite.LINK_PREFIX + "!!!")).Message);
         }
 
         using (Texts.Scope(NewLocalizer("ru")))
         {
-            Assert.Equal("Это не приглашение Golether.", Assert.Throws<FormatException>(() => Invite.ParseLink("hello")).Message);
+            Assert.Equal("Это не приглашение Golether. Вставьте ссылку или ключ, которые Вам прислал ведущий.", Assert.Throws<FormatException>(() => Invite.ParseLink("hello")).Message);
         }
     }
 

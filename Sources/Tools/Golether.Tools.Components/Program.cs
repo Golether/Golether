@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Golether.Components.Catalog;
+using Golether.Components.GStreamer;
 using Golether.Components.Installation;
 using Golether.Core.Data.Enums;
 
@@ -69,7 +70,7 @@ public static class Program
                 var package = ComponentCatalog.Find(id, options.RuntimeIdentifier)
                     ?? throw new ComponentInstallException($"The catalog has no {id} package for {options.RuntimeIdentifier}.");
                 var installed = installer.GetInstallDirectory(package);
-                if (!File.Exists(Path.Combine(installed, ComponentMarker.FILE_NAME)))
+                if (!File.Exists(Path.Combine(installed, ComponentMarker.FILE_NAME)) || !IsUsable(id, installed))
                 {
                     Console.WriteLine($"==> {id} {package.Version} ({package.RuntimeIdentifier}): {package.Url}");
                     var lastDecile = -1;
@@ -96,6 +97,16 @@ public static class Program
             return 1;
         }
     }
+
+    /// <summary>
+    /// Checks that a finished installation in the cache still makes a good package: a GStreamer bundle prepared before
+    /// the Visual C++ runtime went into it would not start on a computer without that runtime, so it is prepared again.
+    /// </summary>
+    /// <param name="id">The component.</param>
+    /// <param name="installed">The installation directory.</param>
+    /// <returns><see langword="true"/> when the installation can be packaged as it is.</returns>
+    private static bool IsUsable(ComponentId id, string installed)
+        => id != ComponentId.Conference || GStreamerBundle.CarriesCompilerRuntime(Path.Combine(installed, "gstreamer"));
 
     /// <summary>
     /// Copies the runtime files of an installed component into the output directory.

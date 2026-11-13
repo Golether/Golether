@@ -4,13 +4,13 @@ using Golether.Client.Services;
 namespace Golether.Browser.Services;
 
 /// <summary>
-/// The paid features in a browser, as in the free mobile client: the strokes of others are seen, but drawing, an own
+/// The features in a browser, which lacks some of the applications: the strokes of others are seen, but drawing, an own
 /// avatar and subtitles belong to the applications.
 /// </summary>
 internal sealed class BrowserFeatures : IFeatureAccess
 {
     /// <summary>
-    /// Never raised: nothing can be bought in a browser.
+    /// Never raised: the browser version always lacks the same features.
     /// </summary>
     public event EventHandler? Changed
     {
@@ -19,5 +19,5 @@ internal sealed class BrowserFeatures : IFeatureAccess
     }
 
     /// <inheritdoc />
-    public bool IsAvailable(PaidFeature feature) => false;
+    public bool IsAvailable(AppOnlyFeature feature) => false;
 }

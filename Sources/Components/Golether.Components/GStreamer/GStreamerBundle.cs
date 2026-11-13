@@ -1,4 +1,5 @@
 using Golether.Components.Pe;
+using Golether.Localization;
 
 namespace Golether.Components.GStreamer;
 
@@ -49,16 +50,43 @@ public static class GStreamerBundle
     public static readonly string ScannerPath = Path.Combine("libexec", "gstreamer-1.0", "gst-plugin-scanner.exe");
 
     /// <summary>
-    /// Copies the needed plugins, the core libraries, the plugin scanner and all DLLs they depend on.
+    /// The libraries of the Microsoft Visual C++ runtime that the official (MSVC) build of GStreamer imports. They are
+    /// not part of Windows and the GStreamer installer does not carry them, so the bundle does: on a computer without
+    /// the Visual C++ Redistributable not even GLib would load otherwise.
+    /// </summary>
+    public static readonly IReadOnlyList<string> CompilerRuntime = ["vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll"];
+
+    /// <summary>
+    /// The core library that tells which compiler built the bundle: everything else stands on it.
+    /// </summary>
+    private const string BASE_LIBRARY = "glib-2.0-0.dll";
+
+    /// <summary>
+    /// Copies the needed plugins, the core libraries, the plugin scanner and all DLLs they depend on, with the Visual
+    /// C++ runtime taken from the system folder of this computer.
     /// </summary>
     /// <param name="installRoot">The GStreamer installation.</param>
     /// <param name="targetRoot">The bundle directory (created).</param>
     /// <returns>The number of bytes copied.</returns>
-    /// <exception cref="FileNotFoundException">A required plugin or library is missing in the installation.</exception>
-    public static long Copy(string installRoot, string targetRoot)
+    /// <exception cref="FileNotFoundException">A required plugin or library is missing in the installation, or the
+    /// Visual C++ runtime it needs is missing on this computer.</exception>
+    public static long Copy(string installRoot, string targetRoot) => Copy(installRoot, targetRoot, Environment.SystemDirectory);
+
+    /// <summary>
+    /// Copies the needed plugins, the core libraries, the plugin scanner and all DLLs they depend on. A library of the
+    /// Visual C++ runtime that the installation does not have is taken from the system folder.
+    /// </summary>
+    /// <param name="installRoot">The GStreamer installation.</param>
+    /// <param name="targetRoot">The bundle directory (created).</param>
+    /// <param name="systemDirectory">The system folder that holds the Visual C++ runtime.</param>
+    /// <returns>The number of bytes copied.</returns>
+    /// <exception cref="FileNotFoundException">A required plugin or library is missing in the installation, or the
+    /// Visual C++ runtime it needs is missing in the system folder.</exception>
+    public static long Copy(string installRoot, string targetRoot, string systemDirectory)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(installRoot);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetRoot);
+        ArgumentException.ThrowIfNullOrWhiteSpace(systemDirectory);
         var binSource = Path.Combine(installRoot, "bin");
         var available = Directory.EnumerateFiles(binSource, "*.dll")
             .ToDictionary(p => Path.GetFileName(p), p => p, StringComparer.OrdinalIgnoreCase);
@@ -78,6 +106,7 @@ public static class GStreamerBundle
 
         var copied = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var pending = new Queue<string>();
+        var needsCompilerRuntime = false;
         long bytes = 0;
         foreach (var (source, target) in roots)
         {
@@ -89,12 +118,28 @@ public static class GStreamerBundle
         {
             foreach (var dependency in PeImports.Read(pending.Dequeue()))
             {
-                // Libraries that are not part of GStreamer come from Windows (kernel32, ucrt, …).
                 if (available.TryGetValue(dependency, out var path) && copied.Add(dependency))
                 {
                     bytes += CopyFile(path, Path.Combine(targetRoot, "bin", Path.GetFileName(path)));
                     pending.Enqueue(path);
                 }
+                else if (!available.ContainsKey(dependency) && IsCompilerRuntime(dependency))
+                {
+                    needsCompilerRuntime = true;
+                }
+
+                // Everything else comes from Windows (kernel32, the universal C runtime, …).
+            }
+        }
+
+        // A build of Visual C++ gets its whole runtime, the way Microsoft deploys it next to a program. The runtime
+        // imports nothing but Windows itself.
+        if (needsCompilerRuntime)
+        {
+            foreach (var name in CompilerRuntime)
+            {
+                var runtime = RequireCompilerRuntime(name, systemDirectory);
+                bytes += CopyFile(runtime, Path.Combine(targetRoot, "bin", name));
             }
         }
 
@@ -109,6 +154,89 @@ public static class GStreamerBundle
     public static bool IsComplete(string root)
         => File.Exists(Path.Combine(root, "bin", "gstreamer-1.0-0.dll")) &&
            Plugins.All(p => File.Exists(Path.Combine(root, PluginDirectory, p + ".dll")));
+
+    /// <summary>
+    /// Finds a library of the Visual C++ runtime a bundle built with Visual C++ needs and that neither the bundle nor
+    /// the system folder has. A bundle without it is there, but cannot run on this computer.
+    /// </summary>
+    /// <param name="root">The bundle or installation.</param>
+    /// <param name="systemDirectory">The system folder of this computer.</param>
+    /// <returns>The name of the missing library, or <see langword="null"/> when nothing is missing.</returns>
+    public static string? FindMissingCompilerRuntime(string root, string systemDirectory)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(root);
+        ArgumentException.ThrowIfNullOrWhiteSpace(systemDirectory);
+
+        if (!NeedsCompilerRuntime(root))
+        {
+            return null;
+        }
+
+        return CompilerRuntime.FirstOrDefault(name =>
+            !File.Exists(Path.Combine(root, "bin", name)) &&
+            !File.Exists(Path.Combine(systemDirectory, name)));
+    }
+
+    /// <summary>
+    /// Checks that a bundle runs on any Windows by itself: a build of Visual C++ carries the whole runtime.
+    /// </summary>
+    /// <param name="root">The bundle or installation.</param>
+    /// <returns><see langword="true"/> when the bundle needs nothing of Visual C++ from the computer.</returns>
+    public static bool CarriesCompilerRuntime(string root)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(root);
+
+        return !NeedsCompilerRuntime(root) || CompilerRuntime.All(name => File.Exists(Path.Combine(root, "bin", name)));
+    }
+
+    /// <summary>
+    /// Checks whether a bundle was built with Visual C++: GLib, the base of everything, imports its runtime. A build of
+    /// another compiler needs no Visual C++ at all.
+    /// </summary>
+    /// <param name="root">The bundle or installation.</param>
+    /// <returns><see langword="true"/> when the bundle needs the Visual C++ runtime.</returns>
+    private static bool NeedsCompilerRuntime(string root)
+    {
+        var baseLibrary = Path.Combine(root, "bin", BASE_LIBRARY);
+        return File.Exists(baseLibrary) && ReadImports(baseLibrary).Any(IsCompilerRuntime);
+    }
+
+    /// <summary>
+    /// Checks whether a library belongs to the Visual C++ runtime.
+    /// </summary>
+    /// <param name="name">The file name of the library.</param>
+    /// <returns><see langword="true"/> for one of <see cref="CompilerRuntime"/>.</returns>
+    private static bool IsCompilerRuntime(string name) => CompilerRuntime.Contains(name, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Finds a library of the Visual C++ runtime in the system folder.
+    /// </summary>
+    /// <param name="name">The file name of the library.</param>
+    /// <param name="systemDirectory">The system folder.</param>
+    /// <returns>The path of the library.</returns>
+    /// <exception cref="FileNotFoundException">The library is not there.</exception>
+    private static string RequireCompilerRuntime(string name, string systemDirectory)
+    {
+        var path = Path.Combine(systemDirectory, name);
+        return File.Exists(path) ? path : throw new FileNotFoundException(Texts.Format("Install.Error.CompilerRuntimeMissing", name), path);
+    }
+
+    /// <summary>
+    /// Reads the libraries a file imports; a file that cannot be read imports nothing that could be checked.
+    /// </summary>
+    /// <param name="path">The library.</param>
+    /// <returns>The imported names.</returns>
+    private static IReadOnlyList<string> ReadImports(string path)
+    {
+        try
+        {
+            return PeImports.Read(path);
+        }
+        catch (Exception ex) when (ex is BadImageFormatException or IOException or UnauthorizedAccessException)
+        {
+            return [];
+        }
+    }
 
     /// <summary>
     /// Throws when a file is missing.

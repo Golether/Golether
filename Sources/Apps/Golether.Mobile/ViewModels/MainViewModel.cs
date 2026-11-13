@@ -92,7 +92,7 @@ public sealed partial class MainViewModel : ObservableObject, ICameraTiles
     private readonly Func<IFeatureAccess, Task<IMobileServices>> _start;
 
     /// <summary>
-    /// The paid features. Nothing can be bought yet, so everything is open until the store comes.
+    /// The features of the applications: the mobile application is free and has them all.
     /// </summary>
     private readonly IFeatureAccess _features = new AllFeaturesAccess();
 
@@ -439,7 +439,7 @@ public sealed partial class MainViewModel : ObservableObject, ICameraTiles
     /// <summary>
     /// Gets a value indicating whether the user may choose their own picture.
     /// </summary>
-    public bool CanChooseAvatar => _features.IsAvailable(PaidFeature.Avatar);
+    public bool CanChooseAvatar => _features.IsAvailable(AppOnlyFeature.Avatar);
 
     /// <summary>
     /// Gets the version of the application, as the join screen shows it.
@@ -833,7 +833,7 @@ public sealed partial class MainViewModel : ObservableObject, ICameraTiles
         try
         {
             var name = await SaveDisplayNameAsync(services);
-            var sessionName = string.IsNullOrWhiteSpace(NewSessionName) ? Texts.Get("Main.DefaultSessionName") : NewSessionName.Trim();
+            var sessionName = string.IsNullOrWhiteSpace(NewSessionName) ? Texts.Get("Session.DefaultSessionName") : NewSessionName.Trim();
             var conference = await PrepareDevicesAsync(services);
             var host = services.CreateHost(conference, _current, _admissions);
             await UseConnectionAsync(services, host);

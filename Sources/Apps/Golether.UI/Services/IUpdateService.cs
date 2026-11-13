@@ -21,10 +21,12 @@ public interface IUpdateService
     Version CurrentVersion { get; }
 
     /// <summary>
-    /// Asks the source whether a newer version exists.
+    /// Asks the source whether a newer version exists, whatever <see cref="Enabled"/> says: the caller decides when
+    /// to ask.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The newer release, or <see langword="null"/>.</returns>
+    /// <returns>The newer release, or <see langword="null"/> when this version is the newest.</returns>
+    /// <exception cref="HttpRequestException">The source is not allowed, did not answer or answered nonsense.</exception>
     Task<UpdateInfo?> CheckAsync(CancellationToken cancellationToken);
 
     /// <summary>

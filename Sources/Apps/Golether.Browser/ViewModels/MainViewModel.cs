@@ -569,10 +569,17 @@ internal sealed partial class MainViewModel : ObservableObject
     public partial string InviteNote { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets a value indicating whether the host is asked before ending the session.
+    /// Gets or sets a value indicating whether the user is asked before leaving the session.
     /// </summary>
     [ObservableProperty]
     public partial bool IsLeaveConfirmOpen { get; set; }
+
+    /// <summary>
+    /// Gets or sets what leaving means, as the desktop says it: the host is told that the others lose what is shown,
+    /// a participant that the way back stays open.
+    /// </summary>
+    [ObservableProperty]
+    public partial string LeaveConfirmText { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the guest the host is asked about, or <see langword="null"/>.
@@ -642,10 +649,21 @@ internal sealed partial class MainViewModel : ObservableObject
         => _app.Settings.Set(NAME_SETTING, value.Trim());
 
     /// <summary>
-    /// Checks a pasted invitation and tells what it leads to.
+    /// Checks a pasted invitation and tells what it leads to. The spaces an invitation never starts with are dropped,
+    /// so a field of spaces stays empty, as in the desktop application.
     /// </summary>
     /// <param name="value">The link.</param>
-    partial void OnInviteLinkChanged(string value) => DescribeInvitation();
+    partial void OnInviteLinkChanged(string value)
+    {
+        var trimmed = value.TrimStart();
+        if (trimmed.Length != value.Length)
+        {
+            InviteLink = trimmed;
+            return;
+        }
+
+        DescribeInvitation();
+    }
 
     /// <summary>
     /// Opens a session on this page.
@@ -658,7 +676,7 @@ internal sealed partial class MainViewModel : ObservableObject
         await LeaveNowAsync().ConfigureAwait(true);
         await OpenAsync(async () =>
         {
-            var session = await BrowserSession.HostAsync(_app, Trimmed(NewSessionName, Texts.Get("Main.DefaultSessionName")), Trimmed(DisplayName, string.Empty)).ConfigureAwait(true);
+            var session = await BrowserSession.HostAsync(_app, Trimmed(NewSessionName, Texts.Get("Session.DefaultSessionName")), Trimmed(DisplayName, string.Empty)).ConfigureAwait(true);
             Attach(session);
         }, busy: true);
     }
@@ -891,14 +909,15 @@ internal sealed partial class MainViewModel : ObservableObject
     private void CloseInvite() => IsInviteOpen = false;
 
     /// <summary>
-    /// Leaves the session; the host is asked first, since the session ends for everybody.
+    /// Leaves the session; the user is asked first, as in the desktop application.
     /// </summary>
-    /// <returns>A task that completes when the page left or the host was asked.</returns>
+    /// <returns>A task that completes when the page left or the user was asked.</returns>
     [RelayCommand]
     private async Task LeaveAsync()
     {
-        if (IsHost && IsActive)
+        if (IsInSession)
         {
+            LeaveConfirmText = Texts.Get(IsHost ? "Main.Leave.Confirm.HostText" : "Main.Leave.Confirm.ParticipantText");
             IsLeaveConfirmOpen = true;
             return;
         }
@@ -1159,6 +1178,15 @@ internal sealed partial class MainViewModel : ObservableObject
         {
             SyncText = Texts.Get(snapshot.Playback?.State == PlayState.Playing ? "Main.Sync.Syncing" : IsEnded ? "Main.Sync.Ended" : "Main.Sync.Paused");
             SyncLevel = IndicatorLevel.Neutral;
+            return;
+        }
+
+        // Alone there is nobody to be in sync with: the drift of this player from the clock of the session is its own
+        // business, and the sync engine evens it out.
+        if (!snapshot.Participants.Any(p => !p.IsLocal && p.Status?.Position is not null))
+        {
+            SyncText = Texts.Get("Main.Sync.Playing");
+            SyncLevel = IndicatorLevel.Good;
             return;
         }
 

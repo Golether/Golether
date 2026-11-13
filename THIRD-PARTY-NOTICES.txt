@@ -68,6 +68,12 @@ GStreamer 1.28.7, the subset used for cameras and voice (official MSVC build)
   GStreamer is linked dynamically: each of these libraries is a separate DLL in app\native\gstreamer and can be
   replaced by another build of the same version.
 
+Microsoft Visual C++ runtime (vcruntime140.dll, vcruntime140_1.dll, msvcp140.dll), in app\native\gstreamer\bin
+  The official GStreamer build is made with Visual C++ and needs this runtime, which Windows does not include. The
+  files are taken unchanged from the Microsoft Visual C++ Redistributable and are distributed as its redistributable
+  code under the Microsoft license terms: https://learn.microsoft.com/visualstudio/releases/2022/redistribution
+  They are not free software and are not covered by the licenses of this file; Golether itself does not use them.
+
 Written offer: for three years from the release of a package that contains these components, the maintainer of
 Golether provides the corresponding source code of the exact versions included, on request to
 project.golether@gmail.com, free of charge.

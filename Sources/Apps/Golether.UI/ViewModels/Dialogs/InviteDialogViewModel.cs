@@ -100,25 +100,42 @@ public sealed partial class InviteDialogViewModel : ObservableObject
     public partial string Message { get; set; } = string.Empty;
 
     /// <summary>
-    /// Creates a new link and a new key.
+    /// Makes the first link and key when the window opens. Nothing is reported: the user renewed nothing yet.
+    /// </summary>
+    public void Open() => TryMakeInvitations();
+
+    /// <summary>
+    /// Creates a new link and a new key at the user's request and says so.
     /// </summary>
     [RelayCommand]
     public void Regenerate()
     {
+        if (TryMakeInvitations())
+        {
+            Message = Texts.Get("Invite.Dialog.Created");
+        }
+    }
+
+    /// <summary>
+    /// Makes a new link and a new key and shows them.
+    /// </summary>
+    /// <returns><see langword="false"/> when they could not be made; the reason is shown.</returns>
+    private bool TryMakeInvitations()
+    {
         if (!TryReadExtraAddress(out var extra))
         {
-            return;
+            return false;
         }
 
         if (TryCreate(extra, InviteRegistry.WebLinkLifetime) is not { } link || TryCreate(extra, SelectedLifetime.Lifetime) is not { } key)
         {
-            return;
+            return false;
         }
 
         Link = link.ToWebLink();
         LinkExpires = FormatTime(link.ExpiresAt);
         ShowKey(key);
-        Message = Texts.Get("Invite.Dialog.Created");
+        return true;
     }
 
     /// <summary>

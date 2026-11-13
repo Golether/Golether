@@ -22,7 +22,24 @@ public sealed record ParticipantInfo(PeerId PeerId, string DisplayName, bool IsH
     /// <param name="name">The raw name.</param>
     /// <returns>The trimmed name without control characters, at most <see cref="MAX_DISPLAY_NAME_LENGTH"/> characters;
     /// the localized default name when nothing is left.</returns>
-    public static string NormalizeDisplayName(string? name)
+    public static string NormalizeDisplayName(string? name) => NormalizeName(name, Texts.Get("Session.DefaultParticipantName"));
+
+    /// <summary>
+    /// Normalizes the name of a session received from the user or the network: a session is not a participant, so an
+    /// empty name becomes the name of a session, not of a person.
+    /// </summary>
+    /// <param name="name">The raw name.</param>
+    /// <returns>The trimmed name without control characters, at most <see cref="MAX_DISPLAY_NAME_LENGTH"/> characters;
+    /// the localized default name of a session when nothing is left.</returns>
+    public static string NormalizeSessionName(string? name) => NormalizeName(name, Texts.Get("Session.DefaultSessionName"));
+
+    /// <summary>
+    /// Drops control characters and surrounding space and bounds the length of a name.
+    /// </summary>
+    /// <param name="name">The raw name.</param>
+    /// <param name="fallback">The name used when nothing is left.</param>
+    /// <returns>The cleaned name, or <paramref name="fallback"/>.</returns>
+    private static string NormalizeName(string? name, string fallback)
     {
         var cleaned = new string((name ?? string.Empty).Where(c => !char.IsControl(c)).ToArray()).Trim();
         if (cleaned.Length > MAX_DISPLAY_NAME_LENGTH)
@@ -30,6 +47,6 @@ public sealed record ParticipantInfo(PeerId PeerId, string DisplayName, bool IsH
             cleaned = cleaned[..MAX_DISPLAY_NAME_LENGTH].TrimEnd();
         }
 
-        return cleaned.Length == 0 ? Texts.Get("Session.DefaultParticipantName") : cleaned;
+        return cleaned.Length == 0 ? fallback : cleaned;
     }
 }

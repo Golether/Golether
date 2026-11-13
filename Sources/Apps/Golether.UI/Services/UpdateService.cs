@@ -102,24 +102,32 @@ public sealed class UpdateService : IUpdateService
     public async Task<UpdateInfo?> CheckAsync(CancellationToken cancellationToken)
     {
         var url = EffectiveManifestUrl;
-        if (!Enabled || !IsAllowed(url))
+        if (!IsAllowed(url))
         {
-            return null;
+            throw new HttpRequestException($"The update source '{url}' is neither https:// nor a local address.");
         }
 
+        UpdateManifest? manifest;
         try
         {
-            var manifest = await _http.GetFromJsonAsync<UpdateManifest>(url, cancellationToken).ConfigureAwait(false);
-            var release = OperatingSystem.IsWindows() ? manifest?.Windows
-                : OperatingSystem.IsMacOS() ? manifest?.MacOs
-                : manifest?.Linux;
-            return Choose(release, CurrentVersion);
+            manifest = await _http.GetFromJsonAsync<UpdateManifest>(url, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException or NotSupportedException or UriFormatException)
+        catch (HttpRequestException ex)
         {
             _logger.LogInformation("The update source did not answer: {Error}", ex.Message);
-            return null;
+            throw;
         }
+        catch (Exception ex) when (ex is TaskCanceledException or System.Text.Json.JsonException or NotSupportedException or UriFormatException)
+        {
+            // Every way the source can fail ends in one exception: the caller only tells "could not check".
+            _logger.LogInformation("The update source did not answer: {Error}", ex.Message);
+            throw new HttpRequestException(ex.Message, ex);
+        }
+
+        var release = OperatingSystem.IsWindows() ? manifest?.Windows
+            : OperatingSystem.IsMacOS() ? manifest?.MacOs
+            : manifest?.Linux;
+        return Choose(release, CurrentVersion);
     }
 
     /// <summary>

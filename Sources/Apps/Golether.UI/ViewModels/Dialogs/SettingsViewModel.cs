@@ -1,10 +1,11 @@
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Golether.Client.Enums;
 using Golether.Client.Services;
 using Golether.Client.ViewModels;
 using Golether.Localization;
-using Golether.UI.Services;
+using Golether.UI.Enums;
 
 namespace Golether.UI.ViewModels.Dialogs;
 
@@ -49,9 +50,14 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly Action<bool>? _applyAlwaysShowBars;
 
     /// <summary>
-    /// Stores the choices about updates, or <see langword="null"/>.
+    /// Stores whether new versions are looked for by themselves, or <see langword="null"/>.
     /// </summary>
-    private readonly Action<bool, string>? _applyUpdates;
+    private readonly Action<bool>? _applyUpdates;
+
+    /// <summary>
+    /// Asks the source about a newer version at once, or <see langword="null"/> when updates are not offered.
+    /// </summary>
+    private readonly Func<Task<UpdateStatus>>? _checkUpdatesNow;
 
     /// <summary>
     /// Switches the sound of new chat messages on or off, or <see langword="null"/> when sounds are not offered.
@@ -62,11 +68,6 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// Whether new versions were looked for when the window opened.
     /// </summary>
     private readonly bool _initialCheckUpdates;
-
-    /// <summary>
-    /// The update source when the window opened.
-    /// </summary>
-    private readonly string _initialUpdateUrl;
 
     /// <summary>
     /// The avatar waiting to be applied, or <see langword="null"/> when it was not changed.
@@ -116,9 +117,10 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <param name="alwaysShowBars">Whether the bars stay in full screen now.</param>
     /// <param name="applyAlwaysShowBars">Keeps the bars in full screen or lets them hide.</param>
     /// <param name="canChooseUpdates">Whether the application looks for new versions at all.</param>
-    /// <param name="checkUpdates">Whether new versions are looked for now.</param>
-    /// <param name="updateUrl">The update source typed by the user, or an empty string for the project page.</param>
-    /// <param name="applyUpdates">Stores the choices about updates.</param>
+    /// <param name="checkUpdates">Whether new versions are looked for by themselves now.</param>
+    /// <param name="updateStatus">What the last look for a newer version found.</param>
+    /// <param name="checkUpdatesNow">Asks the source about a newer version at once.</param>
+    /// <param name="applyUpdates">Stores whether new versions are looked for by themselves.</param>
     /// <param name="openAbout">Opens the window about the application, or <see langword="null"/> to leave it out.</param>
     /// <param name="canChooseSounds">Whether the sounds of the application can be switched.</param>
     /// <param name="chatSound">Whether new chat messages are announced by a sound now.</param>
@@ -140,8 +142,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         Action<bool>? applyAlwaysShowBars = null,
         bool canChooseUpdates = false,
         bool checkUpdates = true,
-        string updateUrl = "",
-        Action<bool, string>? applyUpdates = null,
+        UpdateStatus updateStatus = UpdateStatus.Unknown,
+        Func<Task<UpdateStatus>>? checkUpdatesNow = null,
+        Action<bool>? applyUpdates = null,
         Func<Task>? openAbout = null,
         bool canChooseSounds = false,
         bool chatSound = true,
@@ -153,9 +156,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         _applyChatSound = applyChatSound;
         CanChooseUpdates = canChooseUpdates;
         CheckUpdates = checkUpdates;
-        UpdateUrl = updateUrl;
+        UpdateStatus = updateStatus;
         _initialCheckUpdates = checkUpdates;
-        _initialUpdateUrl = updateUrl;
+        _checkUpdatesNow = checkUpdatesNow;
         _applyUpdates = applyUpdates;
         AlwaysShowBars = alwaysShowBars;
         _applyAlwaysShowBars = applyAlwaysShowBars;
@@ -260,21 +263,62 @@ public sealed partial class SettingsViewModel : ObservableObject
     public bool CanChooseUpdates { get; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the application tells about new versions when it starts.
+    /// Gets or sets a value indicating whether the application looks for new versions by itself.
     /// </summary>
     [ObservableProperty]
     public partial bool CheckUpdates { get; set; }
 
     /// <summary>
-    /// Gets or sets the address of the update source; an empty address means the project page.
+    /// Gets or sets what the last look for a newer version found.
     /// </summary>
     [ObservableProperty]
-    public partial string UpdateUrl { get; set; }
+    [NotifyPropertyChangedFor(nameof(UpdateStatusText), nameof(UpdateStatusLevel))]
+    [NotifyCanExecuteChangedFor(nameof(CheckNowCommand))]
+    public partial UpdateStatus UpdateStatus { get; set; }
 
     /// <summary>
-    /// Gets the update source used when none is typed, shown as the hint of the field.
+    /// Gets the answer shown beside the button of the check, or an empty string before anybody asked.
     /// </summary>
-    public string DefaultUpdateUrl => UpdateService.DEFAULT_MANIFEST_URL;
+    public string UpdateStatusText => UpdateStatus switch
+    {
+        UpdateStatus.Checking => Texts.Get("Settings.Updates.Checking"),
+        UpdateStatus.Latest => Texts.Get("Settings.Updates.Latest"),
+        UpdateStatus.Available => Texts.Get("Settings.Updates.Available"),
+        UpdateStatus.Failed => Texts.Get("Settings.Updates.Failed"),
+        _ => string.Empty,
+    };
+
+    /// <summary>
+    /// Gets the colour of the answer: green for the newest version, red for a newer one, plain otherwise.
+    /// </summary>
+    public IndicatorLevel UpdateStatusLevel => UpdateStatus switch
+    {
+        UpdateStatus.Latest => IndicatorLevel.Good,
+        UpdateStatus.Available => IndicatorLevel.Critical,
+        _ => IndicatorLevel.Neutral,
+    };
+
+    /// <summary>
+    /// Asks the source about a newer version at once, whether or not the application looks by itself.
+    /// </summary>
+    /// <returns>A task that completes when the answer is shown.</returns>
+    [RelayCommand(CanExecute = nameof(CanCheckNow))]
+    private async Task CheckNowAsync()
+    {
+        if (_checkUpdatesNow is null)
+        {
+            return;
+        }
+
+        UpdateStatus = UpdateStatus.Checking;
+        UpdateStatus = await _checkUpdatesNow();
+    }
+
+    /// <summary>
+    /// Determines whether a check can be started: one at a time.
+    /// </summary>
+    /// <returns><see langword="true"/> when no check is running.</returns>
+    private bool CanCheckNow() => UpdateStatus != UpdateStatus.Checking;
 
     /// <summary>
     /// Gets or sets the avatar shown in the window: the one waiting to be applied, or the current one.
@@ -460,11 +504,10 @@ public sealed partial class SettingsViewModel : ObservableObject
         _applyAlwaysShowBars?.Invoke(AlwaysShowBars);
         _applyChatSound?.Invoke(ChatSound);
 
-        // Untouched choices are not stored again: applying them would only start another check.
-        var updateUrl = (UpdateUrl ?? string.Empty).Trim();
-        if (CheckUpdates != _initialCheckUpdates || updateUrl != _initialUpdateUrl)
+        // An untouched choice is not stored again: applying it would only start another check.
+        if (CheckUpdates != _initialCheckUpdates)
         {
-            _applyUpdates?.Invoke(CheckUpdates, updateUrl);
+            _applyUpdates?.Invoke(CheckUpdates);
         }
 
         if (Language is { } language && SelectedLanguage is { } option && option.Code != language.Selected.Code)

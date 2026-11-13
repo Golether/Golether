@@ -1,9 +1,10 @@
 namespace Golether.Client.Enums;
 
 /// <summary>
-/// A feature of the client that is bought once ("Pro"); the desktop application has them all.
+/// A feature of the applications that the browser version does not offer. The desktop and mobile applications are free
+/// and have them all.
 /// </summary>
-public enum PaidFeature
+public enum AppOnlyFeature
 {
     /// <summary>
     /// Drawing over the video with the pen; the strokes of the others are seen without it.

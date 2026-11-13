@@ -8,6 +8,7 @@ using Golether.Core.Identity;
 using Golether.Core.Networking;
 using Golether.Media.Conference;
 using Golether.Security.Invites;
+using Golether.UI.Enums;
 using Golether.UI.Services;
 using Golether.UI.ViewModels;
 
@@ -38,6 +39,49 @@ public sealed class ExternalLinkTests
     /// The update source.
     /// </summary>
     private readonly IUpdateService _updates = Substitute.For<IUpdateService>();
+
+    /// <summary>
+    /// The field of the invitation takes the link and the key alike, with whatever space a messenger leaves around
+    /// them: both are one invitation in two spellings.
+    /// </summary>
+    /// <returns>A task that completes when the test is done.</returns>
+    [Fact]
+    public async Task InviteField_TakesTheLinkAndTheKey()
+    {
+        var invite = Sample();
+        var viewModel = CreateViewModel();
+
+        foreach (var text in new[] { invite.ToWebLink(), invite.ToLink() })
+        {
+            _session.ClearReceivedCalls();
+            viewModel.InviteLink = "\r\n  " + text + " \n";
+
+            await viewModel.JoinCommand.ExecuteAsync(null);
+
+            var joined = (string)_session.ReceivedCalls().Single(call => call.GetMethodInfo().Name == nameof(ISessionService.JoinAsync)).GetArguments()[0]!;
+            var parsed = Invite.ParseLink(joined);
+            Assert.Equal((invite.HostPeerId, invite.Token), (parsed.HostPeerId, parsed.Token));
+        }
+    }
+
+    /// <summary>
+    /// Joining waits for an invitation: with an empty field the button is off, and spaces typed alone do not stay in
+    /// the field to turn it on.
+    /// </summary>
+    [Fact]
+    public void InviteField_OfSpacesKeepsJoiningOff()
+    {
+        var viewModel = CreateViewModel();
+        Assert.False(viewModel.JoinCommand.CanExecute(null));
+
+        viewModel.InviteLink = "   ";
+        Assert.Empty(viewModel.InviteLink);
+        Assert.False(viewModel.JoinCommand.CanExecute(null));
+
+        viewModel.InviteLink = " " + Sample().ToLink();
+        Assert.StartsWith(Invite.LINK_PREFIX, viewModel.InviteLink, StringComparison.Ordinal);
+        Assert.True(viewModel.JoinCommand.CanExecute(null));
+    }
 
     /// <summary>
     /// A link clicked in the browser is not joined silently: the user sees who invites and agrees first.
@@ -235,6 +279,7 @@ public sealed class ExternalLinkTests
     {
         var release = new UpdateInfo("9.9.9", "Новое", "https://example.org/golether-9.9.9.exe", null, 0, "https://example.org/download");
         _updates.CheckAsync(Arg.Any<CancellationToken>()).Returns(release);
+        _updates.Enabled = true;
         var viewModel = CreateViewModel();
 
         await viewModel.CheckUpdatesAsync();
@@ -266,19 +311,54 @@ public sealed class ExternalLinkTests
     }
 
     /// <summary>
-    /// The settings window stores whether to look for new versions and where.
+    /// The settings window stores whether to look for new versions by themselves; switched off, nothing is asked and
+    /// an offer on the screen goes away.
     /// </summary>
+    /// <returns>A task that completes when the test is done.</returns>
     [Fact]
-    public void UpdateSource_IsStored()
+    public async Task UpdateChecks_AreStored()
     {
+        var release = new UpdateInfo("9.9.9", null, "https://example.org/golether-9.9.9.exe", null, 0);
+        _updates.CheckAsync(Arg.Any<CancellationToken>()).Returns(release);
+        _updates.Enabled = true;
         var viewModel = CreateViewModel();
+        await viewModel.CheckUpdatesAsync();
+        Assert.True(viewModel.HasUpdate);
+        _updates.ClearReceivedCalls();
 
-        viewModel.SetUpdateSource(false, "  https://example.org/updates.json ");
+        viewModel.SetUpdateChecks(false);
 
         Assert.False(_updates.Enabled);
-        Assert.Equal("https://example.org/updates.json", _updates.ManifestUrl);
         Assert.Equal("false", _settings.Values[UpdateService.ENABLED_SETTING]);
-        Assert.Equal("https://example.org/updates.json", _settings.Values[UpdateService.URL_SETTING]);
+        Assert.False(viewModel.HasUpdate);
+        await _updates.DidNotReceive().CheckAsync(Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// A check the user asked for runs even with the checks by themselves switched off, and tells the newest version,
+    /// a newer one and a source that did not answer apart: not knowing is not "the newest".
+    /// </summary>
+    /// <returns>A task that completes when the test is done.</returns>
+    [Fact]
+    public async Task CheckNow_TellsWhatWasFound()
+    {
+        _updates.Enabled = false;
+        var viewModel = CreateViewModel();
+        Assert.Equal(UpdateStatus.Unknown, viewModel.UpdateStatus);
+
+        _updates.CheckAsync(Arg.Any<CancellationToken>()).Returns((UpdateInfo?)null);
+        Assert.Equal(UpdateStatus.Latest, await viewModel.CheckUpdatesNowAsync());
+        Assert.False(viewModel.HasUpdate);
+
+        // A version ignored earlier is still offered when the user asks.
+        _settings.Values[UpdateService.IGNORED_VERSION_SETTING] = "9.9.9";
+        _updates.CheckAsync(Arg.Any<CancellationToken>()).Returns(new UpdateInfo("9.9.9", null, "https://example.org/golether-9.9.9.exe", null, 0));
+        Assert.Equal(UpdateStatus.Available, await viewModel.CheckUpdatesNowAsync());
+        Assert.True(viewModel.HasUpdate);
+
+        _updates.CheckAsync(Arg.Any<CancellationToken>()).Returns<UpdateInfo?>(_ => throw new HttpRequestException("offline"));
+        Assert.Equal(UpdateStatus.Failed, await viewModel.CheckUpdatesNowAsync());
+        Assert.Equal(UpdateStatus.Failed, viewModel.UpdateStatus);
     }
 
     /// <summary>

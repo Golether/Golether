@@ -56,7 +56,9 @@
     <AvaloniaResource Include="..\Golether.UI\Assets\golether-512.png" Link="Assets\golether-512.png" />
     <AvaloniaResource Include="..\Golether.UI\Assets\Flags\*.png" Link="Assets\Flags\%(Filename)%(Extension)" />
     <AvaloniaResource Include="Assets\Reactions\*.png" />
+    <Compile Include="..\Golether.UI\Controls\AccentPartConverter.cs" Link="Controls\Desktop\AccentPartConverter.cs" />
     <Compile Include="..\Golether.UI\Controls\AspectPanel.cs" Link="Controls\Desktop\AspectPanel.cs" />
+    <Compile Include="..\Golether.UI\Controls\DialogHeader.cs" Link="Controls\Desktop\DialogHeader.cs" />
     <Compile Include="..\Golether.UI\Controls\ChromeAutoHide.cs" Link="Controls\Desktop\ChromeAutoHide.cs" />
     <Compile Include="..\Golether.UI\Controls\FallbackPanel.cs" Link="Controls\Desktop\FallbackPanel.cs" />
     <Compile Include="..\Golether.UI\Controls\FractionRange.cs" Link="Controls\Desktop\FractionRange.cs" />

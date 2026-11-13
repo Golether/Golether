@@ -1,9 +1,12 @@
 using NSubstitute;
+using Golether.Client.Enums;
 using Golether.Client.Services;
 using Golether.Client.ViewModels;
 using Golether.Core.Data.Enums;
 using Golether.Core.Data.Stores;
+using Golether.Localization;
 using Golether.Media.Conference;
+using Golether.UI.Enums;
 using Golether.UI.ViewModels.Dialogs;
 
 namespace Golether.UI.Tests;
@@ -73,6 +76,53 @@ public sealed class SettingsViewModelTests
             pickAvatar: () => Task.FromResult<AvatarSelection?>(null),
             applyAvatar: _ => Task.CompletedTask,
             openTunnels: () => Task.CompletedTask);
+
+    /// <summary>
+    /// The button of the check says "checking" while it waits and then what was found: green for the newest version,
+    /// red for a newer one; one check at a time. The box of the checks by themselves is stored only when changed.
+    /// </summary>
+    /// <returns>A task that completes when the test is done.</returns>
+    [Fact]
+    public async Task CheckNow_ShowsTheAnswerBesideTheButton()
+    {
+        var answer = new TaskCompletionSource<UpdateStatus>();
+        var stored = new List<bool>();
+        var model = new SettingsViewModel(
+            language: null,
+            devices: null,
+            conferenceAvailable: true,
+            conferenceNotice: string.Empty,
+            canChooseAvatar: false,
+            canConfigureTunnels: true,
+            avatarPreview: null,
+            pickAvatar: () => Task.FromResult<AvatarSelection?>(null),
+            applyAvatar: _ => Task.CompletedTask,
+            openTunnels: () => Task.CompletedTask,
+            canChooseUpdates: true,
+            checkUpdates: true,
+            updateStatus: UpdateStatus.Latest,
+            checkUpdatesNow: () => answer.Task,
+            applyUpdates: stored.Add);
+        Assert.Equal(Texts.Get("Settings.Updates.Latest"), model.UpdateStatusText);
+        Assert.Equal(IndicatorLevel.Good, model.UpdateStatusLevel);
+
+        var check = model.CheckNowCommand.ExecuteAsync(null);
+        Assert.Equal(Texts.Get("Settings.Updates.Checking"), model.UpdateStatusText);
+        Assert.Equal(IndicatorLevel.Neutral, model.UpdateStatusLevel);
+        Assert.False(model.CheckNowCommand.CanExecute(null));
+
+        answer.SetResult(UpdateStatus.Available);
+        await check;
+        Assert.Equal(Texts.Get("Settings.Updates.Available"), model.UpdateStatusText);
+        Assert.Equal(IndicatorLevel.Critical, model.UpdateStatusLevel);
+        Assert.True(model.CheckNowCommand.CanExecute(null));
+
+        await model.ApplyAsync();
+        Assert.Empty(stored);
+        model.CheckUpdates = false;
+        await model.ApplyAsync();
+        Assert.Equal([false], stored);
+    }
 
     /// <summary>
     /// A box that drops its selection while its list is brought up to date gets the choice back at once, so the field

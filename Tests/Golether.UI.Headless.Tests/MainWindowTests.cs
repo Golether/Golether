@@ -3,10 +3,12 @@ using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
@@ -745,8 +747,8 @@ public sealed class MainWindowTests
         var items = ((MenuFlyout)more.Flyout).Items.OfType<MenuItem>().ToArray();
         // Settings is available everywhere, so its menu item shows over the video too.
         Assert.True(items[0].IsVisible);
-        Assert.Equal(["Настройки", "Пригласить", "Отчёт для диагностики…", "Завершить"], items.Select(i => (string)i.Header!));
-        Assert.Same(fixture.ViewModel.LeaveCommand, items[3].Command);
+        Assert.Equal(["Настройки", "Пригласить", "Отчёт для диагностики", "Завершить"], items.Select(i => (string)i.Header!));
+        Assert.Same(fixture.ViewModel.EndSessionCommand, items[3].Command);
 
         // Every folded action has its sign, as its button has; ending the session is red, like its button.
         Assert.All(items[..3], i => Assert.IsType<PathIcon>(i.Icon));
@@ -756,7 +758,7 @@ public sealed class MainWindowTests
 
         // The menu of Show: a file and a folder of pictures, each with its own sign.
         var show = fixture.Window.GetVisualDescendants().OfType<Button>()
-            .Single(b => b.Flyout is MenuFlyout menu && menu.Items.OfType<MenuItem>().Any(i => i.Header as string == "Папку со снимками"));
+            .Single(b => b.Flyout is MenuFlyout menu && menu.Items.OfType<MenuItem>().Any(i => i.Header as string == "Папку с фотографиями"));
         show.Flyout!.ShowAt(show);
         await fixture.Settle();
         var choices = ((MenuFlyout)show.Flyout).Items.OfType<MenuItem>().ToArray();
@@ -768,6 +770,31 @@ public sealed class MainWindowTests
         panel.MaxWidth = double.PositiveInfinity;
         await fixture.Settle();
         Assert.False(panel.IsOverflowing);
+    });
+
+    /// <summary>
+    /// The states of the session in the top bar look like the buttons beside them: the same height and the same
+    /// slightly rounded corners, not round pills of their own.
+    /// </summary>
+    /// <returns>A task that completes when the test is done.</returns>
+    [Fact]
+    public Task TopBar_StatesMatchTheButtons() => RunAsync(async fixture =>
+    {
+        fixture.Window.Width = 1600;
+        await fixture.Settle();
+        var settings = fixture.Window.FindControl<Button>("SettingsButton")!;
+        var states = fixture.Window.GetVisualDescendants().OfType<Border>()
+            .Where(border => border.Classes.Contains("status") && border.IsEffectivelyVisible && border.Bounds.Width > 0)
+            .ToArray();
+
+        Assert.Equal(3, states.Length);
+        Assert.All(states, state =>
+        {
+            Assert.Equal(settings.Bounds.Height, state.Bounds.Height, 0.5);
+            Assert.Equal(settings.CornerRadius, state.CornerRadius);
+        });
+        Assert.Contains(states, state => state.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text == "Ведущий: Вы"));
+        SaveFrame(fixture.Window, "session-host");
     });
 
     /// <summary>
@@ -1405,7 +1432,12 @@ public sealed class MainWindowTests
                     Assert.Equal(["Deutsch", "English", "Español", "Français", "Português", "Русский"], selector.Options.Select(o => o.Name));
                     Assert.All(selector.Options, o => Assert.NotNull(o.Flag));
                     Assert.Equal("Русский", selector.Selected!.Name);
-                    Assert.Contains(fixture.Window.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Смотрим вместе, где бы вы ни были");
+                    Assert.Contains(fixture.Window.GetVisualDescendants().OfType<TextBlock>(), t => ShownText(t) == "Смотрим вместе, где бы вы ни были");
+
+                    // "Together" stands out in the accent colour, as on the project page.
+                    var accent = fixture.Window.GetVisualDescendants().OfType<TextBlock>()
+                        .SelectMany(t => t.Inlines?.OfType<Run>() ?? []).Single(r => r.Text == "вместе");
+                    Assert.Equal(((ISolidColorBrush)fixture.Window.FindResource("GoletherAccent")!).Color, ((ISolidColorBrush)accent.Foreground!).Color);
                     SaveFrame(fixture.Window, "language-ru-start");
 
                     // Picking English, as the settings window's selector does, changes every text of the window at once.
@@ -1414,9 +1446,9 @@ public sealed class MainWindowTests
                     SaveFrame(fixture.Window, "language-en-start");
 
                     Assert.Equal("en", localizer.Current.Code);
-                    Assert.Contains(fixture.Window.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Watch together, wherever you are");
+                    Assert.Contains(fixture.Window.GetVisualDescendants().OfType<TextBlock>(), t => ShownText(t) == "Watch together, wherever you are");
                     Assert.Contains(fixture.Window.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Device A249-B9CC");
-                    Assert.DoesNotContain(fixture.Window.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Смотрим вместе, где бы вы ни были");
+                    Assert.DoesNotContain(fixture.Window.GetVisualDescendants().OfType<TextBlock>(), t => ShownText(t) == "Смотрим вместе, где бы вы ни были");
                     await settings.Received().SetAsync(LanguageService.SETTING, "en", Arg.Any<CancellationToken>());
                 }
                 finally
@@ -1438,6 +1470,19 @@ public sealed class MainWindowTests
         var localizer = Golether.Localization.Texts.Localizer;
         fixture.Sessions.GetSnapshot().Returns((SessionSnapshot?)null);
         fixture.ViewModel.Refresh();
+        await fixture.Settle();
+
+        // While everything is in place the card has nothing to say and is not shown.
+        var card = fixture.Window.GetVisualDescendants().OfType<Border>()
+            .Single(border => border.Classes.Contains("card") && border.GetVisualDescendants().OfType<ItemsControl>().Any(list => list.ItemsSource == fixture.ViewModel.ComponentItems));
+        Assert.False(card.IsVisible);
+
+        // A missing component brings it back, with what to do.
+        fixture.Components.GetStatus(ComponentId.Conference)
+            .Returns(new ComponentStatus(ComponentId.Conference, ComponentSource.Missing, null, null, null));
+        fixture.Components.Installed += Raise.Event<EventHandler<ComponentId>>(fixture.Components, ComponentId.Conference);
+        await fixture.Settle();
+        Assert.True(card.IsVisible);
         try
         {
             foreach (var language in localizer.Languages)
@@ -1575,7 +1620,7 @@ public sealed class MainWindowTests
             ExpiresAt = DateTimeOffset.UtcNow + call.Arg<TimeSpan>(),
         });
         var viewModel = new Golether.UI.ViewModels.Dialogs.InviteDialogViewModel(fixture.Sessions, Substitute.For<IDialogService>());
-        viewModel.Regenerate();
+        viewModel.Open();
         var dialog = new Golether.UI.Views.Dialogs.InviteDialog { DataContext = viewModel };
         dialog.Show();
         try
@@ -1588,6 +1633,15 @@ public sealed class MainWindowTests
             Assert.StartsWith("golether://join/v1/", boxes[1].Text, StringComparison.Ordinal);
             Assert.All(dialog.GetVisualDescendants().OfType<Button>().Where(button => button.IsEffectivelyVisible), button => Assert.True(IsInside(button, dialog)));
             SaveFrame(dialog, "invite-dialog");
+
+            // An answer to a button coming or going moves nothing: its place in the bottom bar is kept.
+            var height = dialog.Bounds.Height;
+            viewModel.Message = string.Empty;
+            await fixture.Settle();
+            Assert.Equal(height, dialog.Bounds.Height);
+            viewModel.Message = Golether.Localization.Texts.Get("Invite.Dialog.Copied");
+            await fixture.Settle();
+            Assert.Equal(height, dialog.Bounds.Height);
 
             dialog.GetVisualDescendants().OfType<Expander>().Single().IsExpanded = true;
             await fixture.Settle();
@@ -1620,7 +1674,8 @@ public sealed class MainWindowTests
             pickAvatar: () => Task.FromResult<AvatarSelection?>(null),
             applyAvatar: _ => Task.CompletedTask,
             openTunnels: () => Task.CompletedTask,
-            canChooseUpdates: true);
+            canChooseUpdates: true,
+            updateStatus: Golether.UI.Enums.UpdateStatus.Latest);
         var dialog = new Golether.UI.Views.Dialogs.SettingsDialog { DataContext = viewModel, SizeToContent = SizeToContent.Manual, Height = 360 };
         dialog.Show();
         try
@@ -1635,6 +1690,13 @@ public sealed class MainWindowTests
             Assert.All(buttons, button => Assert.True(IsInside(button, dialog)));
             Assert.All(buttons, button => Assert.DoesNotContain(scroll, button.GetVisualAncestors()));
             SaveFrame(dialog, "settings-dialog-short");
+
+            // At the end: the box of the checks, the button of a check and its answer beside it.
+            scroll.ScrollToEnd();
+            await fixture.Settle();
+            var answer = dialog.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Text == viewModel.UpdateStatusText);
+            Assert.True(answer.IsEffectivelyVisible);
+            SaveFrame(dialog, "settings-dialog-updates");
         }
         finally
         {
@@ -1722,7 +1784,8 @@ public sealed class MainWindowTests
     });
 
     /// <summary>
-    /// An error can be reported from its own window; a plain message has no such button.
+    /// An error can be reported from its own window; a plain message has no such button. The title of a message stands
+    /// on a band of its own above the text, marked red for an error.
     /// </summary>
     /// <returns>A task that completes when the test is done.</returns>
     [Fact]
@@ -1730,25 +1793,47 @@ public sealed class MainWindowTests
     {
         var error = Golether.UI.Views.Dialogs.MessageDialog.ForError("Не удалось открыть видео", "Файл повреждён.");
         var message = new Golether.UI.Views.Dialogs.MessageDialog("Готово", "Отчёт сохранён.");
+        var question = new Golether.UI.Views.Dialogs.MessageDialog(
+            Golether.Localization.Texts.Get("Main.Leave.Confirm.Title"),
+            Golether.Localization.Texts.Get("Main.Leave.Confirm.HostText"),
+            Golether.Localization.Texts.Get("Main.Leave.Confirm.Accept"));
         error.Show();
         message.Show();
+        question.Show();
         try
         {
             await fixture.Settle();
 
             Assert.True(ReportButton(error).IsEffectivelyVisible);
             Assert.False(ReportButton(message).IsEffectivelyVisible);
+            Assert.Contains("error", Header(error).Classes);
+            Assert.DoesNotContain("error", Header(question).Classes);
+            var text = question.GetVisualDescendants().OfType<TextBlock>().Single(block => block.Name == "MessageText");
+            Assert.True(Header(question).TranslatePoint(new Point(0, Header(question).Bounds.Height), question)!.Value.Y <= text.TranslatePoint(default, question)!.Value.Y);
             SaveFrame(error, "error-dialog");
+            SaveFrame(question, "confirm-dialog");
         }
         finally
         {
             error.Close();
             message.Close();
+            question.Close();
         }
+
+        static DialogHeader Header(Window window)
+            => window.GetVisualDescendants().OfType<DialogHeader>().Single();
 
         static Button ReportButton(Window window)
             => window.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "ReportButton");
     });
+
+    /// <summary>
+    /// Returns the text a text block shows: its text, or its runs one after another when it is made of them.
+    /// </summary>
+    /// <param name="block">The text block.</param>
+    /// <returns>The shown text.</returns>
+    private static string? ShownText(TextBlock block)
+        => block.Inlines is { Count: > 0 } inlines ? string.Concat(inlines.OfType<Run>().Select(run => run.Text)) : block.Text;
 
     /// <summary>
     /// Saves the rendered window (or the window of an open menu) for a visual check when
@@ -1943,6 +2028,16 @@ public sealed class MainWindowTests
         await fixture.Settle();
         Assert.Equal(0, scroll.Offset.X);
         SaveFrame(fixture.Window, "gallery");
+
+        // The menu of an item: each way has its sign, one person for "only here", a group for "everybody".
+        var tile = strip.GetVisualDescendants().OfType<GalleryTile>().First();
+        var owner = tile.GetVisualDescendants().OfType<Button>().First(b => b.ContextMenu is not null);
+        var menu = owner.ContextMenu!;
+        menu.Open(owner);
+        await fixture.Settle();
+        Assert.All(menu.Items.OfType<MenuItem>(), item => Assert.NotNull(item.Icon));
+        SaveFrame(TopLevel.GetTopLevel(menu)!, "gallery-tile-menu");
+        menu.Close();
         picture.Reset();
 
         gallery.ToggleGridCommand.Execute(null);
@@ -2107,27 +2202,39 @@ public sealed class MainWindowTests
     });
 
     /// <summary>
-    /// The buttons on the right of the player bar keep their place whatever the countdown says, and a countdown that
-    /// has no room in full shows the seconds alone.
+    /// The countdown lies over the film, as on the phone, with its pulsing lamp; the player bar keeps no text of it, so
+    /// the buttons on its right keep their place whatever the countdown says. Over a picture there is no note.
     /// </summary>
     /// <returns>A task that completes when the test is done.</returns>
     [Fact]
-    public Task PlayerBar_KeepsTheRightButtonsInPlace() => RunAsync(fixture =>
+    public Task Countdown_LiesOverTheFilm() => RunAsync(fixture =>
     {
         var pen = fixture.Window.FindControl<ToggleButton>("PenButton")!;
         var before = pen.TranslatePoint(default, fixture.Window)!.Value;
+        var overlay = fixture.Window.FindControl<SessionOverlay>("VideoOverlay")!;
+        var note = overlay.FindControl<Border>("StartNote")!;
+        Assert.False(note.IsVisible);
 
         fixture.ViewModel.CountdownText = "Ждём Марину, Олега и ещё троих участников, пока у них загрузится начало фильма";
-        fixture.ViewModel.CountdownShort = "3";
 
         // The layout is run at once rather than by pumping the dispatcher: the refresh timer of the window would
         // rebuild the countdown from the session, which has none, on a slow machine before the checks.
         fixture.Window.UpdateLayout();
 
         Assert.Equal(before, pen.TranslatePoint(default, fixture.Window)!.Value);
-        var countdown = fixture.Window.GetVisualDescendants().OfType<FallbackPanel>().Single();
-        var shown = countdown.Children.Single(c => c.Opacity > 0);
-        Assert.Contains(shown.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "3");
+        Assert.True(note.IsVisible);
+        Assert.Contains("live", note.Classes);
+        Assert.Contains(note.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == fixture.ViewModel.CountdownText);
+        Assert.DoesNotContain(
+            fixture.Window.FindControl<Decorator>("PlayerBarSlot")!.GetVisualDescendants().OfType<TextBlock>(),
+            t => t.Text == fixture.ViewModel.CountdownText);
+
+        // How the note looks over a dark film, in a window of its own as the layer over the video is.
+        var film = new Window { Width = 640, Height = 200, Background = Brushes.Black, Content = new SessionOverlay { DataContext = fixture.ViewModel } };
+        film.Show();
+        film.UpdateLayout();
+        SaveFrame(film, "start-note");
+        film.Close();
         return Task.CompletedTask;
     });
 
@@ -2209,7 +2316,7 @@ public sealed class MainWindowTests
             Sessions.GetSnapshot().Returns(_ => Snapshot());
             Settings.GetAsync(MainWindowViewModel.VOICE_VOLUME_SETTING_PREFIX + _guest.Value, Arg.Any<CancellationToken>()).Returns("70");
             Sessions.RequestAsync(default!, default).ReturnsForAnyArgs(Task.CompletedTask);
-            var components = Substitute.For<IComponentService>();
+            var components = Components;
             foreach (var id in new[] { ComponentId.Video, ComponentId.Conference })
             {
                 components.GetStatus(id).Returns(new ComponentStatus(id, ComponentSource.Bundled, "x", null, null));
@@ -2237,6 +2344,11 @@ public sealed class MainWindowTests
         /// Gets the session service.
         /// </summary>
         public ISessionService Sessions { get; } = Substitute.For<ISessionService>();
+
+        /// <summary>
+        /// Gets the native components; both are shipped with the application unless a test says otherwise.
+        /// </summary>
+        public IComponentService Components { get; } = Substitute.For<IComponentService>();
 
         /// <summary>
         /// Gets the settings.

@@ -12,13 +12,10 @@
 // into the input are ignored; .NET writes the text of the field there itself, and only when the field changed on its
 // own (another field took the focus, a button filled it). The keys that change text never reach Avalonia; the others
 // (Enter, the arrows, Tab, Escape) and the shortcuts with Ctrl or Meta still do.
-//
-// Adding ?inputlog to the address shows the events of the keyboard on the page, for finding out what a keyboard sends.
 
 const AVALONIA_INPUT = 'avalonia-input-element';
 const TEXT_KEYS = new Set(['Backspace', 'Delete', 'Unidentified', 'Process']);
 const COMPOSITION_KEY_CODE = 229;
-const LOG_LINES = 40;
 const touchScreen = Boolean(window.matchMedia?.('(pointer: coarse)').matches);
 const valueProperty = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
 const setSelectionRange = HTMLInputElement.prototype.setSelectionRange;
@@ -26,7 +23,6 @@ const setSelectionRange = HTMLInputElement.prototype.setSelectionRange;
 let callbacks = null;
 let mirror = null;
 let avaloniaKey = false;
-let logElement = null;
 
 /** Tells whether an event is about the hidden input of Avalonia. */
 function isAvaloniaInput(target) {
@@ -71,9 +67,6 @@ export function bind(softKeyboardCallbacks) {
   if (!touchScreen) {
     return;
   }
-  if (new URLSearchParams(location.search).has('inputlog')) {
-    startLog();
-  }
 
   window.addEventListener('focusin', (e) => {
     if (isAvaloniaInput(e.target)) {
@@ -84,7 +77,6 @@ export function bind(softKeyboardCallbacks) {
     if (!isAvaloniaInput(e.target)) {
       return;
     }
-    log(`key ${e.key} code=${e.code} ${e.keyCode}`);
     if (isTextKey(e)) {
       // The browser changes the input as the key asks; the change is read on input.
       e.stopImmediatePropagation();
@@ -100,7 +92,6 @@ export function bind(softKeyboardCallbacks) {
   for (const type of ['compositionstart', 'compositionupdate', 'compositionend', 'beforeinput']) {
     window.addEventListener(type, (e) => {
       if (isAvaloniaInput(e.target)) {
-        log(`${type} ${e.inputType ?? ''} ${JSON.stringify(e.data ?? '')}`);
         e.stopImmediatePropagation();
       }
     }, { capture: true });
@@ -127,8 +118,6 @@ export function bind(softKeyboardCallbacks) {
 
 /** Puts the page back at its top after the browser scrolled it. */
 function keepPagePut() {
-  const viewport = window.visualViewport;
-  log(`viewport ${window.innerWidth}x${window.innerHeight} visual ${Math.round(viewport?.height ?? 0)} at ${Math.round(viewport?.offsetTop ?? 0)} scroll ${window.scrollY}`);
   if (window.scrollX !== 0 || window.scrollY !== 0) {
     window.scrollTo(0, 0);
   }
@@ -137,7 +126,6 @@ function keepPagePut() {
 /** Hands .NET the change the keyboard made to the input, so the field makes the same one. */
 function onInput(input) {
   const now = stateOf(input);
-  log(`input ${JSON.stringify(now.value)} [${now.start},${now.end}]`);
   const before = mirror;
   mirror = now;
   if (avaloniaKey) {
@@ -164,7 +152,6 @@ function onSelectionChange(input) {
     return;
   }
   mirror = now;
-  log(`select [${now.start},${now.end}]`);
   callbacks.OnSelect(now.start, now.end);
 }
 
@@ -187,7 +174,6 @@ export function sync(text, start, end) {
   }
   if (now.value !== text || now.start !== start || now.end !== end) {
     setSelectionRange.call(input, start, end);
-    log(`sync ${JSON.stringify(text)} [${start},${end}]`);
   }
   mirror = { value: text, start, end };
 }
@@ -212,21 +198,4 @@ export function textEdit(before, after) {
   const to = old.length - suffix - before.start;
   const text = after.slice(prefix, after.length - suffix);
   return from === to && text === '' ? null : { from, to, text };
-}
-
-/** Shows the log of the keyboard over the page. */
-function startLog() {
-  logElement = document.createElement('pre');
-  logElement.style.cssText = 'position:fixed;left:0;right:0;top:0;max-height:40vh;overflow:auto;margin:0;padding:4px;'
-    + 'background:rgba(0,0,0,0.8);color:#9f9;font:11px monospace;z-index:10;pointer-events:none;white-space:pre-wrap';
-  document.body.appendChild(logElement);
-}
-
-/** Adds a line to the log of the keyboard, when it is shown. */
-function log(line) {
-  if (!logElement) {
-    return;
-  }
-  const lines = (logElement.textContent + line + '\n').split('\n');
-  logElement.textContent = lines.slice(Math.max(0, lines.length - LOG_LINES - 1)).join('\n');
 }

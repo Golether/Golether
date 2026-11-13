@@ -212,7 +212,7 @@ public sealed partial record Invite
         {
             HostPeerId = host,
             HostName = Core.Session.ParticipantInfo.NormalizeDisplayName(payload.Name),
-            SessionName = Core.Session.ParticipantInfo.NormalizeDisplayName(payload.Session),
+            SessionName = Core.Session.ParticipantInfo.NormalizeSessionName(payload.Session),
             Endpoints = endpoints,
             Token = payload.Token!,
             ExpiresAt = DateTimeOffset.FromUnixTimeSeconds(payload.Expires),

@@ -35,9 +35,9 @@ public sealed class DrawingViewModelTests
     private readonly TestTime _time = new();
 
     /// <summary>
-    /// The paid features; the pen is bought.
+    /// The features of the applications; the pen is offered.
     /// </summary>
-    private readonly SwitchableFeatures _features = new(PaidFeature.Drawing);
+    private readonly SwitchableFeatures _features = new(AppOnlyFeature.Drawing);
 
     /// <summary>
     /// The model.
@@ -258,13 +258,13 @@ public sealed class DrawingViewModelTests
     }
 
     /// <summary>
-    /// Without the paid pen it is not picked up and nothing is sent.
+    /// Without the pen it is not picked up and nothing is sent.
     /// </summary>
     /// <returns>A task that completes when the test is done.</returns>
     [Fact]
-    public async Task Unpaid_PenDoesNotTurnOn()
+    public async Task Unavailable_PenDoesNotTurnOn()
     {
-        _features.Set(PaidFeature.Drawing, false);
+        _features.Set(AppOnlyFeature.Drawing, false);
 
         _drawing.TogglePenCommand.Execute(null);
         _drawing.BeginStroke(0.5, 0.5);
@@ -275,13 +275,13 @@ public sealed class DrawingViewModelTests
     }
 
     /// <summary>
-    /// Without the paid pen a view that binds the pen state directly cannot pick it up either, and nothing is sent.
+    /// Without the pen a view that binds the pen state directly cannot pick it up either, and nothing is sent.
     /// </summary>
     /// <returns>A task that completes when the test is done.</returns>
     [Fact]
-    public async Task Unpaid_BoundPenStaysDown()
+    public async Task Unavailable_BoundPenStaysDown()
     {
-        _features.Set(PaidFeature.Drawing, false);
+        _features.Set(AppOnlyFeature.Drawing, false);
 
         _drawing.IsPenActive = true;
         _drawing.BeginStroke(0.5, 0.5);
@@ -292,12 +292,12 @@ public sealed class DrawingViewModelTests
     }
 
     /// <summary>
-    /// Without the paid pen the strokes of the others are still shown.
+    /// Without the pen the strokes of the others are still shown.
     /// </summary>
     [Fact]
-    public void Unpaid_ReceivedStrokesAreShown()
+    public void Unavailable_ReceivedStrokesAreShown()
     {
-        _features.Set(PaidFeature.Drawing, false);
+        _features.Set(AppOnlyFeature.Drawing, false);
 
         _drawing.Apply(new StrokeUpdate(_guest, "AB12", StrokePhase.Start, [new StrokePoint(0.1f, 0.1f)], false));
 
@@ -305,31 +305,31 @@ public sealed class DrawingViewModelTests
     }
 
     /// <summary>
-    /// A purchase in the middle of a session makes the pen available at once.
+    /// A pen offered in the middle of a session is available at once.
     /// </summary>
     [Fact]
-    public void Purchase_PenTurnsOn()
+    public void Opened_PenTurnsOn()
     {
-        _features.Set(PaidFeature.Drawing, false);
+        _features.Set(AppOnlyFeature.Drawing, false);
         _drawing.TogglePenCommand.Execute(null);
         Assert.False(_drawing.IsPenActive);
 
-        _features.Set(PaidFeature.Drawing, true);
+        _features.Set(AppOnlyFeature.Drawing, true);
         _drawing.TogglePenCommand.Execute(null);
 
         Assert.True(_drawing.IsPenActive);
     }
 
     /// <summary>
-    /// A pen that stops being available (a refund) is put down.
+    /// A pen that stops being available is put down.
     /// </summary>
     [Fact]
-    public void Refund_PutsThePenDown()
+    public void Closed_PutsThePenDown()
     {
         _drawing.TogglePenCommand.Execute(null);
         Assert.True(_drawing.IsPenActive);
 
-        _features.Set(PaidFeature.Drawing, false);
+        _features.Set(AppOnlyFeature.Drawing, false);
 
         Assert.False(_drawing.IsPenActive);
     }

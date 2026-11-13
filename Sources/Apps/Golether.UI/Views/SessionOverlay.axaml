@@ -15,6 +15,21 @@
   <Panel>
     <clientControls:StrokeCanvas x:Name="Strokes" Source="{Binding Drawing}" Aspect="{Binding VideoAspect}"
                                  Zoom="{Binding $parent[views:SessionOverlay].Zoom}" Center="{Binding $parent[views:SessionOverlay].Center}" />
+    <!--
+      What the start of the film waits for, over the film itself as on the phone: the bar under it has little room,
+      least of all under the strip of a shown folder. The lamp pulses only while the note is there.
+    -->
+    <!-- A little below the edge, so it reads as part of the picture and not of the bar above it. -->
+    <Border x:Name="StartNote" Classes="overFilm" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="16,48,16,0"
+            Padding="16,8" IsHitTestVisible="False" Classes.live="{Binding ShowStartNote}" IsVisible="{Binding ShowStartNote}">
+      <!-- A dock, not a stack: the text gets what is left of the width and ends with "…" on a narrow film. -->
+      <DockPanel>
+        <Ellipse DockPanel.Dock="Left" Classes="pulse" Width="9" Height="9" Margin="0,0,10,0" Fill="{StaticResource GoletherAccent}"
+                 VerticalAlignment="Center" />
+        <TextBlock Classes="mono" Foreground="#FFFFFF" FontSize="14" VerticalAlignment="Center" MaxWidth="620"
+                   TextTrimming="CharacterEllipsis" Text="{Binding CountdownText}" />
+      </DockPanel>
+    </Border>
     <Border Width="280" Height="360" Background="Transparent" IsHitTestVisible="False"
             HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,18,18">
       <ItemsControl ItemsSource="{Binding Chat.Reactions}">

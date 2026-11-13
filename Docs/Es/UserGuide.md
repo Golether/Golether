@@ -33,8 +33,8 @@ pantalla es *owl · lighthouse · wind · 47* en la otra. Compara el significado
 
 1. Escribe tu nombre y el nombre de la sesión y pulsa **Crear una sesión**. El puerto de tu equipo (47800 por defecto)
    y la petición al router están en **Avanzado**: cámbialos solo si el puerto está ocupado o lo redirigiste a mano.
-2. Pulsa **Mostrar** → **Archivo** y elige un vídeo. El archivo se queda contigo: los participantes lo reciben pieza a
-   pieza mientras ven y lo guardan solo en memoria.
+2. Pulsa **Mostrar** → **Película o foto** y elige un vídeo. El archivo se queda contigo: los participantes lo reciben
+   pieza a pieza mientras ven y lo guardan solo en memoria.
 3. Pulsa **Invitar**, copia el **enlace** y envíaselo a tus invitados como prefieras. Un clic en él abre Golether en el
    equipo del invitado y pregunta si quiere unirse. El enlace vale 15 minutos. Si a un invitado el enlace no le abre la
    aplicación, envíale la **clave** desde la misma ventana: se pega en Golether a mano y vale 15 minutos o una hora.
@@ -163,7 +163,7 @@ apagado, los clics en el vídeo funcionan como siempre: pausa y pantalla complet
 
 ### Mostrar las fotos y los vídeos de una carpeta (anfitrión)
 
-**Mostrar** → **Carpeta de imágenes** (Ctrl+Shift+O) abre una ventana que muestra lo que hay en una carpeta: sus
+**Mostrar** → **Carpeta de fotos** (Ctrl+Shift+O) abre una ventana que muestra lo que hay en una carpeta: sus
 subcarpetas, sus imágenes con miniaturas y sus vídeos. Abre la carpeta que necesitas y pulsa **Mostrar**. Debajo, la
 ventana cuenta lo que se enviará (imágenes, vídeos, el tamaño de las imágenes) y lo que se omite: archivos RAW de
 cámaras e imágenes de más de 64 MB. La acompañan dos interruptores:
@@ -178,7 +178,8 @@ cámaras e imágenes de más de 64 MB. La acompañan dos interruptores:
 En la ventana, **Atrás** y **Adelante** funcionan como en un explorador de archivos, también con Alt+← y Alt+→,
 Retroceso y los botones laterales del ratón.
 
-Se muestran como mucho 2000 archivos a la vez. Una sola imagen elegida con **Mostrar** → **Archivo** se muestra sola:
+Se muestran como mucho 2000 archivos a la vez. Una sola imagen elegida con **Mostrar** → **Película o foto** se muestra
+sola:
 nada más de su carpeta se envía y sus metadatos se quedan contigo.
 
 Mientras se muestra una carpeta, bajo la pantalla hay una tira de miniaturas. Un clic en un elemento lo pone en la
@@ -201,7 +202,7 @@ tira de lado.
 La película se pausa cuando aparece una imagen en pantalla y espera bajo las imágenes; los botones de sonido y
 subtítulos están inactivos mientras se muestra una imagen. Un vídeo de la carpeta puesto en pantalla sustituye a la
 película. **Cerrar las imágenes** (anfitrión) termina la muestra para todos, y la película vuelve al punto donde se
-interrumpió. Elegir una película con **Mostrar** → **Archivo** también la termina.
+interrumpió. Elegir una película con **Mostrar** → **Película o foto** también la termina.
 
 ### Esperar a que todos estén listos
 
@@ -246,7 +247,7 @@ El mismo menú (clic derecho en el recuadro de un participante) tiene **Expulsar
 confirmación, y entonces el participante sale de la sesión al momento y ve un mensaje de que el anfitrión lo expulsó.
 No es un bloqueo: puede volver, pero solo con una invitación nueva tuya; ni las invitaciones anteriores ni la
 reconexión automática lo dejan entrar. Las invitaciones anteriores siguen funcionando para tus otros invitados: se
-expulsa a la persona, no el enlace. Abre **Invitar**, pulsa **Nueva invitación** y envía el enlace nuevo a esa persona
+expulsa a la persona, no el enlace. Abre **Invitar**, pulsa **Renovar invitación** y envía el enlace nuevo a esa persona
 en privado. La misma regla vale para alguien a quien rechazaste en la ventana del código de verificación.
 
 ### Inicio, final de la película y la barra espaciadora
@@ -275,13 +276,13 @@ recibió y se dio se muestra en la barra de estado de la parte inferior de la ve
 
 ## Si algo salió mal
 
-**⋯ → Informe de diagnóstico…** guarda un archivo de texto en `data/logs` (el botón **⋯** aparece arriba a la derecha
+**⋯ → Informe de diagnóstico** guarda un archivo de texto en `data/logs` (el botón **⋯** aparece arriba a la derecha
 cuando la ventana es tan estrecha que los botones de la barra superior ya no caben): la versión, el estado de los
 componentes, información sobre la sesión (sin el nombre de la película) y las últimas líneas del registro. Las claves,
 los tokens y las contraseñas se quitan del informe, así que el archivo se puede enviar a quien te ayude.
 
 Con cualquier ancho de la ventana, el mismo informe se guarda desde **Ajustes → Acerca de Golether → Informe de
-diagnóstico…**. Al lado, **Informar de un problema** abre en su programa de correo una carta a los desarrolladores
+diagnóstico**. Al lado, **Informar de un problema** abre en su programa de correo una carta a los desarrolladores
 (project.golether@gmail.com) con la versión y el sistema ya rellenados; la ventana de cualquier error ofrece lo mismo.
 Adjunte el informe a la carta: no se envía nada hasta que usted la envíe.
 
@@ -308,8 +309,8 @@ descarga**: tu navegador abre la página con los enlaces para tu sistema. No se 
 tú. La casilla **Ignorar esta versión**, marcada antes de cerrar la barra, desactiva el aviso de esa versión; Golether te
 avisará de la siguiente. Una actualización no toca los datos personales.
 
-En **Ajustes**, sección **Actualizaciones**, puedes desactivar la comprobación o indicar tu propio origen (la dirección
-de un archivo con la lista de versiones, `https://…`); solo hace falta para compilaciones propias.
+En **Ajustes**, sección **Actualizaciones**, puedes desactivar la comprobación automática. **Buscar actualizaciones**
+pregunta en el acto, y la respuesta aparece junto al botón: «Tienes la última versión» o «Hay una versión más reciente».
 
 ## Servidor de encuentro
 

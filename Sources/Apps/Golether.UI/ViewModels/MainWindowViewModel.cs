@@ -184,6 +184,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
     private byte[]? _ownAvatar;
 
     /// <summary>
+    /// Whether <see cref="_ownAvatar"/> holds what the store has: it was read, or the user has just chosen it.
+    /// </summary>
+    private bool _ownAvatarLoaded;
+
+    /// <summary>
     /// Whether a refresh is already queued.
     /// </summary>
     private int _refreshQueued;
@@ -313,7 +318,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
         _tunnelDialogFactory = tunnelDialogFactory ?? throw new ArgumentNullException(nameof(tunnelDialogFactory));
         _conference = conference ?? throw new ArgumentNullException(nameof(conference));
 
-        // The desktop application has no paid features.
+        // The desktop application is free and has every feature.
         var features = new AllFeaturesAccess();
         _playerControls = playerControls;
         Volume = playerControls is null ? null : new VolumeViewModel(playerControls, _settings);
@@ -344,6 +349,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
                 OnPropertyChanged(nameof(ShowPlaceholder));
                 OnPropertyChanged(nameof(CanPickFirstFile));
                 OnPropertyChanged(nameof(IsFilmOnScreen));
+                OnPropertyChanged(nameof(ShowStartNote));
                 OnPropertyChanged(nameof(ShowVideoOverlay));
             }
         };
@@ -859,8 +865,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
     /// </summary>
     /// <returns>A task that completes when the window is closed.</returns>
     [RelayCommand]
-    private Task OpenSettingsAsync()
+    private async Task OpenSettingsAsync()
     {
+        await LoadOwnAvatarAsync();
         var settings = new Dialogs.SettingsViewModel(
             Language,
             Devices,
@@ -878,8 +885,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
             SetAlwaysShowBars,
             canChooseUpdates: _updates is not null,
             ChecksUpdates,
-            UpdateUrl,
-            SetUpdateSource,
+            UpdateStatus,
+            CheckUpdatesNowAsync,
+            SetUpdateChecks,
             OpenAboutAsync,
             canChooseSounds: _chatSound is not null,
             chatSound: _chatSound?.Enabled ?? false,
@@ -888,7 +896,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
         // Reading the device lists asks the media backend and takes a moment, so it runs while the window is already
         // on screen. Refilling the lists empties the boxes, so the choice is put back once the lists are complete.
         _ = RefreshDevicesAsync(settings);
-        return _dialogs.ShowSettingsAsync(settings);
+        await _dialogs.ShowSettingsAsync(settings);
     }
 
     /// <summary>
@@ -958,6 +966,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
         }
 
         _ownAvatar = selection.Avatar;
+        _ownAvatarLoaded = true;
         if (_session.IsActive)
         {
             await _session.SetAvatarAsync(selection.Avatar, CancellationToken.None);
@@ -992,10 +1001,26 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
     /// <returns>A task that completes when the avatar was sent.</returns>
     private async Task SendStoredAvatarAsync(CancellationToken cancellationToken)
     {
-        if (_ownAvatar is { Length: > 0 } png)
+        if (await LoadOwnAvatarAsync() is { Length: > 0 } png)
         {
             await _session.SetAvatarAsync(png, cancellationToken);
         }
+    }
+
+    /// <summary>
+    /// Reads this device's avatar from the store the first time it is needed. A session may start before the start
+    /// of the application has read everything (the cameras take seconds to list), and it must still get the avatar.
+    /// </summary>
+    /// <returns>The PNG bytes, or <see langword="null"/> when no avatar was chosen.</returns>
+    private async Task<byte[]?> LoadOwnAvatarAsync()
+    {
+        if (!_ownAvatarLoaded && _avatarStore is not null)
+        {
+            _ownAvatar = await _avatarStore.LoadCurrentAsync();
+            _ownAvatarLoaded = true;
+        }
+
+        return _ownAvatar;
     }
 
     /// <summary>
@@ -1143,6 +1168,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
     /// Gets or sets the invitation link to join.
     /// </summary>
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(JoinCommand))]
     public partial string InviteLink { get; set; } = string.Empty;
 
     /// <summary>
@@ -1390,16 +1416,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
     public string PlayButtonText => Texts.Get(IsEnded ? "Main.Play.Again" : IsWaiting ? "Main.Play.CancelStart" : IsPlaying ? "Main.Play.Pause" : "Main.Play.Play");
 
     /// <summary>
-    /// Gets or sets the countdown text of a scheduled start.
+    /// Gets or sets the countdown text of a scheduled start, or whom the start waits for.
     /// </summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowStartNote))]
     public partial string CountdownText { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the countdown in a word: the seconds alone, shown when the whole text has no room.
+    /// Gets a value indicating whether the note about the start lies over the film: there is a countdown or a wait,
+    /// and the film, not a picture, is on the screen.
     /// </summary>
-    [ObservableProperty]
-    public partial string CountdownShort { get; set; } = string.Empty;
+    public bool ShowStartNote => CountdownText.Length > 0 && IsFilmOnScreen;
+
 
     /// <summary>
     /// Gets or sets the notice about the player backend.
@@ -1414,16 +1442,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
     public partial string SharingText { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the status bar text about the clock.
+    /// Gets or sets the status bar text about the way to the host in plain words, or an empty string for the host.
     /// </summary>
     [ObservableProperty]
-    public partial string ClockText { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the latest event.
-    /// </summary>
-    [ObservableProperty]
-    public partial string LastEvent { get; set; } = string.Empty;
+    public partial string HostLinkText { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets a value indicating whether libmpv renders the video.
@@ -1511,6 +1533,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
             DisplayName = name;
         }
 
+        // The avatar belongs with the name: both go to the first session, however soon it starts.
+        await LoadOwnAvatarAsync();
+
         OpenRouterPort = await _settings.GetAsync(OPEN_ROUTER_PORT_SETTING, CancellationToken.None) != "false";
         RendezvousServer = await _settings.GetAsync(RENDEZVOUS_SERVER_SETTING, CancellationToken.None) ?? string.Empty;
 
@@ -1559,11 +1584,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
         if (Devices is not null)
         {
             await Devices.RefreshAsync();
-        }
-
-        if (_avatarStore is not null)
-        {
-            _ownAvatar = await _avatarStore.LoadCurrentAsync();
         }
     }
 
@@ -1790,7 +1810,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
         CountdownText = IsWaiting
             ? DescribeWaiting(snapshot, duration)
             : seconds is not null ? Texts.Format("Main.StartsIn", seconds) : string.Empty;
-        CountdownShort = seconds ?? string.Empty;
         UpdateResume(snapshot, position, duration);
         var buffered = ComputeBufferedRanges(snapshot, duration);
         if (!buffered.SequenceEqual(BufferedRanges))
@@ -1822,11 +1841,35 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
         SharingText = own is { BytesFromPeers: > 0 } or { BytesToPeers: > 0 }
             ? Texts.Format("Main.Sharing", DisplayFormat.Size(own.BytesFromPeers), DisplayFormat.Size(own.BytesToPeers))
             : string.Empty;
-        ClockText = snapshot.IsHost
-            ? Texts.Get("Main.Clock.Host")
-            : snapshot.ClockUncertainty is { } uncertainty
-                ? Texts.Format("Main.Clock.Participant", ((int)uncertainty.TotalMilliseconds).ToString(CultureInfo.InvariantCulture), DisplayFormat.Ping((int?)snapshot.RoundTrip?.TotalMilliseconds))
-                : Texts.Get("Main.Clock.Syncing");
+        HostLinkText = DescribeHostLink(snapshot);
+    }
+
+    /// <summary>
+    /// Words the way of this device to the host for anybody: good, weak or poor, with the round trip beside it.
+    /// </summary>
+    /// <param name="snapshot">The session snapshot.</param>
+    /// <returns>The text, or an empty string for the host, who has nobody to reach.</returns>
+    private static string DescribeHostLink(SessionSnapshot snapshot)
+    {
+        if (snapshot.IsHost)
+        {
+            return string.Empty;
+        }
+
+        // Until the clock is set the round trip is not known well enough to judge.
+        var roundTrip = (int?)snapshot.RoundTrip?.TotalMilliseconds;
+        if (snapshot.ClockUncertainty is null || roundTrip is null)
+        {
+            return Texts.Get("Main.HostLink.Checking");
+        }
+
+        var quality = DisplayFormat.PingLevel(roundTrip) switch
+        {
+            IndicatorLevel.Good => Texts.Get("Main.HostLink.Good"),
+            IndicatorLevel.Warning => Texts.Get("Main.HostLink.Weak"),
+            _ => Texts.Get("Main.HostLink.Poor"),
+        };
+        return Texts.Format("Main.HostLink", quality, DisplayFormat.Ping(roundTrip));
     }
 
     /// <summary>
@@ -1954,56 +1997,97 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
     public bool HasUpdate => UpdateText.Length > 0;
 
     /// <summary>
-    /// Gets a value indicating whether new versions are looked for.
+    /// Gets a value indicating whether new versions are looked for by themselves.
     /// </summary>
     public bool ChecksUpdates => _updates?.Enabled == true;
 
     /// <summary>
-    /// Gets the address of the update source typed by the user, or an empty string for the project page.
+    /// Gets what the last look for a newer version found; the settings window shows it.
     /// </summary>
-    public string UpdateUrl => _updates?.ManifestUrl ?? string.Empty;
+    public UpdateStatus UpdateStatus { get; private set; }
 
     /// <summary>
-    /// Stores the choices of the settings window about updates and looks for a new version at once.
+    /// Stores the choice of the settings window whether to look for new versions by themselves, and looks at once.
     /// </summary>
-    /// <param name="enabled">Whether new versions are looked for.</param>
-    /// <param name="url">The address of the update source, or an empty string for the project page.</param>
-    public void SetUpdateSource(bool enabled, string url)
+    /// <param name="enabled">Whether new versions are looked for by themselves.</param>
+    public void SetUpdateChecks(bool enabled)
     {
-        ArgumentNullException.ThrowIfNull(url);
         if (_updates is null)
         {
             return;
         }
 
         _updates.Enabled = enabled;
-        _updates.ManifestUrl = url.Trim();
         _ = _settings.SetAsync(UpdateService.ENABLED_SETTING, enabled ? "true" : "false", CancellationToken.None);
-        _ = _settings.SetAsync(UpdateService.URL_SETTING, _updates.ManifestUrl, CancellationToken.None);
         _ = CheckUpdatesAsync();
     }
 
     /// <summary>
-    /// Asks the update source whether a newer version exists. A version the user chose to ignore is not offered.
+    /// Looks for a newer version by itself, as the user allowed: a version the user chose to ignore is not offered,
+    /// and with the checks switched off an offer on the screen goes away.
     /// </summary>
     /// <returns>A task that completes when the answer is shown.</returns>
     public async Task CheckUpdatesAsync()
     {
-        if (_updates is not { } updates)
+        if (_updates is not { Enabled: true })
         {
+            OfferUpdate(null);
             return;
         }
 
-        var found = await updates.CheckAsync(CancellationToken.None);
-        if (found is not null && found.Version == await _settings.GetAsync(UpdateService.IGNORED_VERSION_SETTING, CancellationToken.None))
+        await LookForUpdateAsync(automatic: true);
+    }
+
+    /// <summary>
+    /// Looks for a newer version because the user asked: whatever the checks by themselves, and a newer version is
+    /// offered even when it was ignored before.
+    /// </summary>
+    /// <returns>What was found.</returns>
+    public Task<UpdateStatus> CheckUpdatesNowAsync() => LookForUpdateAsync(automatic: false);
+
+    /// <summary>
+    /// Asks the update source whether a newer version exists and offers it.
+    /// </summary>
+    /// <param name="automatic">Whether nobody asked: a version the user chose to ignore is then not offered.</param>
+    /// <returns>What was found.</returns>
+    private async Task<UpdateStatus> LookForUpdateAsync(bool automatic)
+    {
+        if (_updates is not { } updates)
         {
-            found = null;
+            return UpdateStatus.Unknown;
         }
 
-        _update = found;
+        UpdateInfo? found;
+        try
+        {
+            found = await updates.CheckAsync(CancellationToken.None);
+        }
+        catch (HttpRequestException)
+        {
+            // Not knowing is not "the newest": the settings window says the check failed.
+            UpdateStatus = UpdateStatus.Failed;
+            return UpdateStatus;
+        }
+
+        UpdateStatus = found is null ? UpdateStatus.Latest : UpdateStatus.Available;
+
+        var ignored = automatic &&
+            found is not null &&
+            found.Version == await _settings.GetAsync(UpdateService.IGNORED_VERSION_SETTING, CancellationToken.None);
+        OfferUpdate(ignored ? null : found);
+        return UpdateStatus;
+    }
+
+    /// <summary>
+    /// Shows the offer of a newer version, or takes it away.
+    /// </summary>
+    /// <param name="release">The newer version, or <see langword="null"/> for none.</param>
+    private void OfferUpdate(UpdateInfo? release)
+    {
+        _update = release;
         IgnoreUpdate = false;
-        UpdateText = found is null ? string.Empty : Texts.Format("Main.Update.Available", found.Version);
-        UpdateNotes = found?.Notes ?? string.Empty;
+        UpdateText = release is null ? string.Empty : Texts.Format("Main.Update.Available", release.Version);
+        UpdateNotes = release?.Notes ?? string.Empty;
     }
 
     /// <summary>
@@ -2106,7 +2190,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
     /// Joins a session. The wait for the host can be cancelled with <see cref="CancelJoinCommand"/>.
     /// </summary>
     /// <returns>A task that completes when the host admitted this device or the user cancelled.</returns>
-    [RelayCommand(CanExecute = nameof(CanStart))]
+    [RelayCommand(CanExecute = nameof(CanJoin))]
     private async Task JoinAsync()
     {
         using var cancellation = new CancellationTokenSource();
@@ -2120,7 +2204,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
                 await _session.JoinAsync(InviteLink, DisplayName, token);
                 await SendStoredAvatarAsync(token);
                 InviteLink = string.Empty;
-            }, cancellation.Token);
+            }, cancellation.Token, "Main.Error.JoinFailed");
         }
         finally
         {
@@ -2291,7 +2375,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
     private async Task InviteAsync()
     {
         var dialog = new InviteDialogViewModel(_session, _dialogs);
-        dialog.Regenerate();
+        dialog.Open();
         await _dialogs.ShowInviteAsync(dialog);
     }
 
@@ -2318,8 +2402,38 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
         _joinCancellation?.Cancel();
         await _session.LeaveAsync();
         Events.Clear();
-        LastEvent = string.Empty;
         Refresh();
+    }
+
+    /// <summary>
+    /// Leaves or ends the session after the user confirmed it: the "End" button of the top bar.
+    /// </summary>
+    /// <returns>A task that completes when the session is closed or the user changed their mind.</returns>
+    [RelayCommand]
+    private async Task EndSessionAsync()
+    {
+        if (await ConfirmLeaveAsync())
+        {
+            await LeaveAsync();
+        }
+    }
+
+    /// <summary>
+    /// Asks the user whether to leave the session. The host is told that the others lose what is shown, a participant
+    /// that the way back stays open.
+    /// </summary>
+    /// <returns><see langword="true"/> when the user agreed, or when there is no session to leave.</returns>
+    public async Task<bool> ConfirmLeaveAsync()
+    {
+        if (!IsInSession)
+        {
+            return true;
+        }
+
+        return await _dialogs.ConfirmAsync(
+            Texts.Get("Main.Leave.Confirm.Title"),
+            Texts.Get(IsHost ? "Main.Leave.Confirm.HostText" : "Main.Leave.Confirm.ParticipantText"),
+            Texts.Get("Main.Leave.Confirm.Accept"));
     }
 
     /// <summary>
@@ -2327,6 +2441,25 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
     /// </summary>
     /// <returns><see langword="true"/> when idle.</returns>
     private bool CanStart() => !IsBusy;
+
+    /// <summary>
+    /// Determines whether there is something to join with.
+    /// </summary>
+    /// <returns><see langword="true"/> when idle and an invitation is typed in.</returns>
+    private bool CanJoin() => !IsBusy && InviteLink.Length > 0;
+
+    /// <summary>
+    /// Drops the spaces an invitation never starts with, so a field of spaces stays empty and the join button off.
+    /// </summary>
+    /// <param name="value">The typed text.</param>
+    partial void OnInviteLinkChanged(string value)
+    {
+        var trimmed = value.TrimStart();
+        if (trimmed.Length != value.Length)
+        {
+            InviteLink = trimmed;
+        }
+    }
 
     /// <summary>
     /// Sends a playback intent and reports failures.
@@ -2353,8 +2486,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
     /// <param name="text">The progress text.</param>
     /// <param name="operation">The operation.</param>
     /// <param name="cancellationToken">Cancels the operation.</param>
+    /// <param name="errorTitleKey">The key of the title a failure is shown under; a general one when not given.</param>
     /// <returns>A task that completes when the operation finished.</returns>
-    private async Task RunAsync(string text, Func<CancellationToken, Task> operation, CancellationToken cancellationToken = default)
+    private async Task RunAsync(string text, Func<CancellationToken, Task> operation, CancellationToken cancellationToken = default,
+        string errorTitleKey = "Main.Error.Failed")
     {
         IsBusy = true;
         BusyText = text;
@@ -2370,7 +2505,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
         {
             // This is where a command of the user ends: a failure of any kind (a bad link, the network, the player,
             // the disk) is shown instead of ending the whole application.
-            await _dialogs.ShowErrorAsync(Texts.Get("Main.Error.Failed"), ex.Message);
+            await _dialogs.ShowErrorAsync(Texts.Get(errorTitleKey), ex.Message);
         }
         finally
         {
@@ -2402,19 +2537,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
     }
 
     /// <summary>
-    /// Adds an event feed entry.
+    /// Adds an event feed entry at the end, as the chat does: the feed reads from the top down, the oldest entry leaves
+    /// first.
     /// </summary>
     /// <param name="sessionEvent">The event.</param>
     private void AddEvent(SessionEvent sessionEvent)
     {
         var text = $"{sessionEvent.Time.ToString("HH:mm:ss", CultureInfo.InvariantCulture)}  {sessionEvent.Text}";
-        Events.Insert(0, text);
+        Events.Add(text);
         while (Events.Count > MAX_EVENTS)
         {
-            Events.RemoveAt(Events.Count - 1);
+            Events.RemoveAt(0);
         }
-
-        LastEvent = sessionEvent.Text;
     }
 
     /// <summary>
@@ -2556,6 +2690,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
         {
             SyncText = Texts.Get(snapshot.Playback?.State == PlayState.Playing ? "Main.Sync.Syncing" : IsEnded ? "Main.Sync.Ended" : "Main.Sync.Paused");
             SyncLevel = IndicatorLevel.Neutral;
+            return;
+        }
+
+        // Alone there is nobody to be in sync with: the drift of this player from the clock of the session is its own
+        // business, and the sync engine evens it out.
+        if (!snapshot.Participants.Any(p => !p.IsLocal && p.Status?.Position is not null))
+        {
+            SyncText = Texts.Get("Main.Sync.Playing");
+            SyncLevel = IndicatorLevel.Good;
             return;
         }
 

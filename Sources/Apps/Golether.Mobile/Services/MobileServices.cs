@@ -136,7 +136,7 @@ public sealed class MobileServices : IMobileServices
     /// Prepares the data folder, migrates the database, loads the device key and creates the player.
     /// </summary>
     /// <param name="platform">The system.</param>
-    /// <param name="features">The paid features: without subtitles the player does not show those of a file.</param>
+    /// <param name="features">The features of the applications: without subtitles the player does not show those of a file.</param>
     /// <returns>The services.</returns>
     /// <exception cref="InvalidOperationException">The player could not start; the message explains why.</exception>
     public static async Task<MobileServices> CreateAsync(IMobilePlatform platform, IFeatureAccess features)
@@ -169,7 +169,7 @@ public sealed class MobileServices : IMobileServices
             HardwareDecoding = "mediacodec,mediacodec-copy",
             LowPower = true,
             DemuxerCacheSize = "64MiB",
-            SubtitlesAtStart = features.IsAvailable(PaidFeature.Subtitles),
+            SubtitlesAtStart = features.IsAvailable(AppOnlyFeature.Subtitles),
         };
         if (!MpvPlayer.TryCreate(options, provider.GetRequiredService<ILogger<MpvPlayer>>(), out var player, out var error))
         {

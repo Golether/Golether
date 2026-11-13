@@ -34,8 +34,8 @@ quando o anfitrião usa outro idioma, as palavras dele são traduções das suas
 1. Escreva o seu nome e o nome da sessão e prima **Criar uma sessão**. A porta do seu computador (47800 por
    predefinição) e o pedido ao router estão em **Avançado**: altere-os apenas se a porta estiver ocupada ou tiver sido
    reencaminhada à mão.
-2. Prima **Mostrar** → **Ficheiro** e escolha um vídeo. O ficheiro fica consigo: os participantes recebem-no parte a parte
-   enquanto veem e guardam-no apenas na memória.
+2. Prima **Mostrar** → **Filme ou fotografia** e escolha um vídeo. O ficheiro fica consigo: os participantes recebem-no
+   parte a parte enquanto veem e guardam-no apenas na memória.
 3. Prima **Convidar**, copie a **ligação** e envie-a aos seus convidados como preferir. Um clique nela abre o Golether
    no computador do convidado e pergunta se quer entrar. A ligação é válida durante 15 minutos. Se a ligação não abrir a
    aplicação num convidado, envie a **chave** a partir da mesma janela: é colada à mão no Golether e é válida durante
@@ -166,7 +166,7 @@ desligada, os cliques no vídeo funcionam como de costume: pausa e ecrã inteiro
 
 ### Mostrar as fotos e os vídeos de uma pasta (anfitrião)
 
-**Mostrar** → **Pasta de imagens** (Ctrl+Shift+O) abre uma janela que mostra o que há numa pasta: as suas subpastas,
+**Mostrar** → **Pasta de fotografias** (Ctrl+Shift+O) abre uma janela que mostra o que há numa pasta: as suas subpastas,
 as suas imagens com miniaturas e os seus vídeos. Abra a pasta de que precisa e prima **Mostrar**. Por baixo, a janela
 conta o que vai sair (imagens, vídeos, o tamanho das imagens) e o que fica de fora: ficheiros RAW de câmaras e imagens
 com mais de 64 MB. Acompanham-na dois interruptores:
@@ -181,8 +181,8 @@ com mais de 64 MB. Acompanham-na dois interruptores:
 Na janela, **Anterior** e **Seguinte** funcionam como num explorador de ficheiros, também com Alt+← e Alt+→,
 Retrocesso e os botões laterais do rato.
 
-São mostrados no máximo 2000 ficheiros de cada vez. Uma única imagem escolhida com **Mostrar** → **Ficheiro** é
-mostrada sozinha: nada mais da sua pasta sai, e os seus metadados ficam consigo.
+São mostrados no máximo 2000 ficheiros de cada vez. Uma única imagem escolhida com **Mostrar** → **Filme ou fotografia**
+é mostrada sozinha: nada mais da sua pasta sai, e os seus metadados ficam consigo.
 
 Enquanto uma pasta é mostrada, há por baixo do ecrã uma faixa de miniaturas. Um clique num elemento põe-no no ecrã de
 todos, como um salto no filme: qualquer participante o pode fazer, o anfitrião decide. ← e → passam ao elemento
@@ -202,7 +202,7 @@ Por baixo de cada elemento estão as marcas de quem o está a ver. A roda do rat
 O filme fica em pausa quando aparece uma imagem no ecrã e espera por baixo das imagens; os botões de som e de legendas
 ficam inativos enquanto é mostrada uma imagem. Um vídeo da pasta posto no ecrã substitui o filme. **Fechar as
 imagens** (anfitrião) termina a apresentação para todos, e o filme volta ao ponto onde foi interrompido. Escolher um
-filme com **Mostrar** → **Ficheiro** também a termina.
+filme com **Mostrar** → **Filme ou fotografia** também a termina.
 
 ### Esperar que todos estejam prontos
 
@@ -246,7 +246,7 @@ O mesmo menu (clique com o botão direito no quadro de um participante) tem **Re
 confirmação, e depois o participante sai de imediato da sessão e vê uma mensagem a dizer que o anfitrião o removeu. Não
 é um bloqueio: pode voltar, mas só com um convite novo seu; nem os convites anteriores nem a religação automática o
 deixam entrar. Os convites anteriores continuam a funcionar para os seus outros convidados: é a pessoa que é removida,
-não a ligação. Abra **Convidar**, prima **Novo convite** e envie a nova ligação a essa pessoa em privado. A mesma regra
+não a ligação. Abra **Convidar**, prima **Renovar convite** e envie a nova ligação a essa pessoa em privado. A mesma regra
 aplica-se a alguém que recusou na janela do código de verificação.
 
 ### Início, fim do filme e a barra de espaço
@@ -276,13 +276,13 @@ recebido e dado aparece na barra de estado no fundo da janela.
 
 ## Se algo correu mal
 
-**⋯ → Relatório de diagnóstico…** guarda um ficheiro de texto em `data/logs` (o botão **⋯** aparece no canto superior
+**⋯ → Relatório de diagnóstico** guarda um ficheiro de texto em `data/logs` (o botão **⋯** aparece no canto superior
 direito quando a janela é tão estreita que os botões da barra superior já não cabem): a versão, o estado dos
 componentes, informações sobre a sessão (sem o nome do filme) e as últimas linhas do registo. As chaves, os tokens e as
 palavras-passe são retirados do relatório, por isso o ficheiro pode ser enviado a quem o estiver a ajudar.
 
 Com qualquer largura da janela, o mesmo relatório guarda-se em **Definições → Acerca do Golether → Relatório de
-diagnóstico…**. Ao lado, **Comunicar um problema** abre no seu programa de correio uma carta aos programadores
+diagnóstico**. Ao lado, **Comunicar um problema** abre no seu programa de correio uma carta aos programadores
 (project.golether@gmail.com) com a versão e o sistema já preenchidos; a janela de qualquer erro oferece o mesmo. Anexe
 o relatório à carta: nada é enviado antes de a enviar.
 
@@ -309,8 +309,8 @@ navegador abre a página com as ligações para o seu sistema. Nada é transferi
 decide. A caixa **Ignorar esta versão**, marcada antes de fechar a barra, desliga o aviso dessa versão; o Golether
 avisá-lo-á da seguinte. Uma atualização não toca nos dados pessoais.
 
-Nas **Definições**, secção **Atualizações**, pode desligar a verificação ou indicar a sua própria origem (o endereço de
-um ficheiro com a lista de versões, `https://…`); só é preciso para compilações próprias.
+Nas **Definições**, secção **Atualizações**, pode desligar a verificação automática. **Procurar atualizações** pergunta
+de imediato, e a resposta aparece ao lado do botão: “Tem a versão mais recente” ou “Existe uma versão mais recente”.
 
 ## Servidor de encontro
 

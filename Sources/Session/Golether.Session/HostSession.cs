@@ -305,7 +305,7 @@ public sealed class HostSession : IAsyncDisposable
         loggerFactory ??= NullLoggerFactory.Instance;
         _logger = loggerFactory.CreateLogger<HostSession>();
 
-        SessionName = ParticipantInfo.NormalizeDisplayName(sessionName);
+        SessionName = ParticipantInfo.NormalizeSessionName(sessionName);
         DisplayName = ParticipantInfo.NormalizeDisplayName(displayName);
         _clock = new HostSessionClock(clock ?? throw new ArgumentNullException(nameof(clock)));
         _authority = new PlaybackAuthority(_localPeer, _clock, options.Authority);

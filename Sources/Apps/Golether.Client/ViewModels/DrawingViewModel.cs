@@ -64,7 +64,7 @@ public sealed partial class DrawingViewModel : ObservableObject
     private readonly IUiDispatcher _dispatcher;
 
     /// <summary>
-    /// The paid features: drawing is one of them, seeing the strokes of the others is not.
+    /// The features of the applications: drawing is one of them, seeing the strokes of the others is not.
     /// </summary>
     private readonly IFeatureAccess _features;
 
@@ -103,7 +103,7 @@ public sealed partial class DrawingViewModel : ObservableObject
     /// </summary>
     /// <param name="session">The session service.</param>
     /// <param name="dispatcher">The UI dispatcher.</param>
-    /// <param name="features">The paid features.</param>
+    /// <param name="features">The features of the applications this client offers.</param>
     /// <param name="timeProvider">The time source, or <see langword="null"/> for the system clock.</param>
     public DrawingViewModel(ISessionMessages session, IUiDispatcher dispatcher, IFeatureAccess features, TimeProvider? timeProvider = null)
     {
@@ -112,14 +112,14 @@ public sealed partial class DrawingViewModel : ObservableObject
         _features = features ?? throw new ArgumentNullException(nameof(features));
         _timeProvider = timeProvider ?? TimeProvider.System;
         _session.DrawReceived += (_, update) => _dispatcher.Post(() => Apply(update));
-        _features.Changed += (_, _) => _dispatcher.Post(PutDownUnpaidPen);
+        _features.Changed += (_, _) => _dispatcher.Post(PutDownClosedPen);
         Strokes.CollectionChanged += (_, _) => HasStrokes = Strokes.Count > 0;
     }
 
     /// <summary>
-    /// Gets a value indicating whether drawing is paid for on this device.
+    /// Gets a value indicating whether this client offers drawing.
     /// </summary>
-    private bool DrawingPaid => _features.IsAvailable(PaidFeature.Drawing);
+    private bool DrawingAllowed => _features.IsAvailable(AppOnlyFeature.Drawing);
 
     /// <summary>
     /// Gets the strokes shown over the video, oldest first.
@@ -161,18 +161,18 @@ public sealed partial class DrawingViewModel : ObservableObject
             return;
         }
 
-        if (CanDraw && DrawingPaid)
+        if (CanDraw && DrawingAllowed)
         {
             IsPenActive = true;
         }
     }
 
     /// <summary>
-    /// Puts the pen down when drawing stopped being paid for (a refund); the strokes stay.
+    /// Puts the pen down when drawing stopped being offered; the strokes stay.
     /// </summary>
-    private void PutDownUnpaidPen()
+    private void PutDownClosedPen()
     {
-        if (DrawingPaid)
+        if (DrawingAllowed)
         {
             return;
         }
@@ -188,7 +188,7 @@ public sealed partial class DrawingViewModel : ObservableObject
     /// <param name="y">The vertical share of the picture, 0–1.</param>
     public void BeginStroke(double x, double y)
     {
-        if (!IsPenActive || !CanDraw || !DrawingPaid)
+        if (!IsPenActive || !CanDraw || !DrawingAllowed)
         {
             return;
         }
@@ -445,13 +445,13 @@ public sealed partial class DrawingViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Finishes the stroke being drawn when the pen is put down, and keeps an unpaid pen down whoever picks it up (a
-    /// view may bind the state directly).
+    /// Finishes the stroke being drawn when the pen is put down, and keeps a pen that is not offered down whoever picks
+    /// it up (a view may bind the state directly).
     /// </summary>
     /// <param name="value">The new value.</param>
     partial void OnIsPenActiveChanged(bool value)
     {
-        if (value && !DrawingPaid)
+        if (value && !DrawingAllowed)
         {
             IsPenActive = false;
             return;

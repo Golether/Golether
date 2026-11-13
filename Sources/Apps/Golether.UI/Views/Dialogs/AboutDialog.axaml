@@ -13,11 +13,6 @@
     is too small for it; the scroll bar hides itself until needed.
   -->
   <Window.Styles>
-    <!-- The headings of the parts: a step above the text, below the titles of the settings. -->
-    <Style Selector="TextBlock.heading">
-      <Setter Property="FontSize" Value="15" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-    </Style>
     <Style Selector="Border.separator">
       <Setter Property="Height" Value="1" />
       <Setter Property="Background" Value="{StaticResource GoletherLine}" />
@@ -83,7 +78,8 @@
                     AutomationProperties.Name="{loc:Loc About.Feedback.CopyName}" />
             <SelectableTextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding FeedbackEmail}" />
           </DockPanel>
-          <WrapPanel Margin="0,4,0,0">
+          <!-- Set apart from the address and its button, so the two rows do not read as one. -->
+          <WrapPanel Margin="0,16,0,0">
             <Button Classes="accent" Margin="0,0,8,8" Content="{loc:Loc Problem.Report}"
                     ToolTip.Tip="{loc:Loc Problem.ReportTip}" Command="{Binding ReportProblemCommand}" />
             <Button Classes="ghost" Margin="0,0,8,8" Content="{loc:Loc Main.Report}" ToolTip.Tip="{loc:Loc Main.ReportTip}"

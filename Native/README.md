@@ -25,6 +25,12 @@ them into the data folder of the user (`components/`) without administrator righ
 | Video (libmpv) | the `mpv-dev-*.7z` archive (shinchiro/mpv-winbuild-cmake), unpacked with the built-in `tar.exe` | a package of the distribution (`libmpv2`, `mpv-libs`); the application suggests the command | `brew install mpv` |
 | Cameras and voice (GStreamer) | the official 1.28.7 installer: a silent installation into a temporary folder, the needed files are picked, the temporary installation is removed. A complete GStreamer that is already installed is used without a download | the `gstreamer1.0-plugins-{base,good,bad}` and `gstreamer1.0-nice` packages | `brew install gstreamer` |
 
+The official GStreamer for Windows is built with Visual C++ and needs its runtime (`vcruntime140.dll`,
+`vcruntime140_1.dll`, `msvcp140.dll`), which neither Windows nor the GStreamer installer brings. The bundle takes it
+from the system folder of the computer that prepares it and puts it next to GStreamer in `gstreamer/bin`; preparing the
+bundle fails with a clear message when the computer has no Visual C++ Redistributable. A bundle without the runtime on
+a computer without it is not called available, so the start screen offers to install the component instead.
+
 An explicit path to libmpv can still be given with the `GOLETHER_LIBMPV` variable.
 
 ## Android

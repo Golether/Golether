@@ -58,7 +58,7 @@ Sources/
   Tunnels/Golether.Tunnels.AmneziaWG       X25519 keys, obfuscation, .conf, signed packages, control through the CLI
   Session/Golether.Session                 HostSession and ParticipantSession
   Session/Golether.Session.Hosting         a hosted session on its network: listener, TURN relay, rendezvous room, router ports, invitations
-  Apps/Golether.Client                     shared client layer: services, view models and controls without windows, the colours of the theme, paid features
+  Apps/Golether.Client                     shared client layer: services, view models and controls without windows, the colours of the theme, the features only the applications have (not the browser)
   Apps/Golether.Mobile                     the screens of the mobile client: Avalonia, one view instead of windows, its own theme and icons
   Apps/Golether.Mobile.Android             the Android package: activity, foreground service of a session, native components
   Apps/Golether.Browser                    the browser version (a prototype): the sessions in WebAssembly over WebRTC, the screens of the desktop drawn by Avalonia

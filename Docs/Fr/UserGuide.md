@@ -34,8 +34,8 @@ l'hôte utilise une autre langue, ses mots sont des traductions des vôtres. *hi
 1. Saisissez votre nom et celui de la séance, puis appuyez sur **Créer une séance**. Le port de votre ordinateur (47800
    par défaut) et la demande au routeur se trouvent sous **Avancé** : ne les changez que si le port est occupé ou a été
    redirigé à la main.
-2. Appuyez sur **Montrer** → **Fichier** et choisissez une vidéo. Le fichier reste chez vous : les participants le reçoivent
-   morceau par morceau pendant le visionnage et ne le gardent qu'en mémoire.
+2. Appuyez sur **Montrer** → **Film ou photo** et choisissez une vidéo. Le fichier reste chez vous : les participants le
+   reçoivent morceau par morceau pendant le visionnage et ne le gardent qu'en mémoire.
 3. Appuyez sur **Inviter**, copiez le **lien** et envoyez-le à vos invités comme vous voulez. Un clic dessus ouvre
    Golether sur l'ordinateur de l'invité et lui demande s'il veut rejoindre. Le lien est valable 15 minutes. Si le lien
    n'ouvre pas l'application chez un invité, envoyez la **clé** depuis la même fenêtre : elle se colle à la main dans
@@ -168,7 +168,7 @@ désactivé, les clics sur la vidéo fonctionnent comme d'habitude : pause et pl
 
 ### Montrer les photos et les vidéos d'un dossier (hôte)
 
-**Montrer** → **Dossier d'images** (Ctrl+Shift+O) ouvre une fenêtre qui montre ce que contient un dossier : ses
+**Montrer** → **Dossier de photos** (Ctrl+Shift+O) ouvre une fenêtre qui montre ce que contient un dossier : ses
 sous-dossiers, ses images avec des miniatures et ses vidéos. Ouvrez le dossier voulu et appuyez sur **Montrer**. En
 dessous, la fenêtre compte ce qui part (images, vidéos, taille des images) et ce qui est laissé de côté : les fichiers
 RAW des appareils photo et les images de plus de 64 Mo. Deux interrupteurs l'accompagnent :
@@ -183,7 +183,7 @@ RAW des appareils photo et les images de plus de 64 Mo. Deux interrupteurs l'acc
 Dans la fenêtre, **Précédent** et **Suivant** fonctionnent comme dans un gestionnaire de fichiers, ainsi qu'Alt+← et
 Alt+→, la touche Retour arrière et les boutons latéraux de la souris.
 
-Au plus 2000 fichiers sont montrés à la fois. Une seule image choisie avec **Montrer** → **Fichier** est montrée
+Au plus 2000 fichiers sont montrés à la fois. Une seule image choisie avec **Montrer** → **Film ou photo** est montrée
 seule : rien d'autre de son dossier ne part, et ses métadonnées restent chez vous.
 
 Tant qu'un dossier est montré, un bandeau de miniatures se trouve sous l'écran. Un clic sur un élément le met sur
@@ -205,7 +205,7 @@ fait défiler le bandeau sur le côté.
 Le film se met en pause quand une image arrive à l'écran et attend sous les images ; les boutons du son et des
 sous-titres sont inactifs tant qu'une image est montrée. Une vidéo du dossier mise à l'écran remplace le film.
 **Fermer les images** (hôte) termine la présentation pour tous, et le film reprend là où il a été interrompu. Choisir
-un film avec **Montrer** → **Fichier** la termine aussi.
+un film avec **Montrer** → **Film ou photo** la termine aussi.
 
 ### Attendre que tout le monde soit prêt
 
@@ -250,7 +250,7 @@ confirmation, puis le participant quitte aussitôt la séance et voit un message
 n'est pas un bannissement : il peut revenir, mais seulement avec une nouvelle invitation de votre part ; ni les
 invitations précédentes ni la reconnexion automatique ne le laissent entrer. Les invitations précédentes restent
 valables pour vos autres invités : c'est la personne qui est retirée, pas le lien. Ouvrez **Inviter**, appuyez sur
-**Nouvelle invitation** et envoyez le nouveau lien à cette personne en privé. La même règle s'applique à quelqu'un que
+**Renouveler l'invitation** et envoyez le nouveau lien à cette personne en privé. La même règle s'applique à quelqu'un que
 vous avez refusé dans la fenêtre du code de vérification.
 
 ### Départ, fin du film et barre d'espace
@@ -280,13 +280,13 @@ et donné s'affiche dans la barre d'état en bas de la fenêtre.
 
 ## Si quelque chose ne va pas
 
-**⋯ → Rapport de diagnostic…** enregistre un fichier texte dans `data/logs` (le bouton **⋯** apparaît en haut à droite
+**⋯ → Rapport de diagnostic** enregistre un fichier texte dans `data/logs` (le bouton **⋯** apparaît en haut à droite
 quand la fenêtre est trop étroite pour les boutons de la barre du haut) : la version, l'état des composants, des
 informations sur la séance (sans le nom du film) et les dernières lignes du journal. Les clés, jetons et mots de passe
 sont retirés du rapport, donc le fichier peut être envoyé à la personne qui vous aide.
 
 Quelle que soit la largeur de la fenêtre, le même rapport s'enregistre depuis **Réglages → À propos de Golether →
-Rapport de diagnostic…**. À côté, **Signaler un problème** ouvre dans votre messagerie une lettre aux développeurs
+Rapport de diagnostic**. À côté, **Signaler un problème** ouvre dans votre messagerie une lettre aux développeurs
 (project.golether@gmail.com), avec la version et le système déjà remplis ; la fenêtre de chaque erreur propose la même
 chose. Joignez le rapport à la lettre : rien n'est envoyé tant que vous ne l'envoyez pas vous-même.
 
@@ -314,8 +314,9 @@ téléchargement** : votre navigateur ouvre la page avec les liens pour votre sy
 tout seul : c'est vous qui décidez. La case **Ignorer cette version**, cochée avant de fermer la barre, désactive le
 rappel pour cette version ; Golether vous signalera la suivante. Une mise à jour ne touche pas aux données personnelles.
 
-Dans **Réglages**, section **Mises à jour**, vous pouvez désactiver la vérification ou indiquer votre propre source
-(l'adresse d'un fichier avec la liste des versions, `https://…`) ; ce n'est utile que pour vos propres versions.
+Dans **Réglages**, section **Mises à jour**, vous pouvez désactiver la vérification automatique. **Rechercher les mises
+à jour** pose la question tout de suite, et la réponse s'affiche à côté du bouton : « Vous avez la dernière version » ou
+« Une version plus récente existe ».
 
 ## Serveur de rendez-vous
 

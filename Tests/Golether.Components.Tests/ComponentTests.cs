@@ -301,6 +301,190 @@ public sealed class ComponentTests : IDisposable
     }
 
     /// <summary>
+    /// A GStreamer built with Visual C++ goes into the bundle with the whole Visual C++ runtime, taken from the system
+    /// folder: the GStreamer installer does not carry it, and a computer without it could not load even GLib.
+    /// </summary>
+    [Fact]
+    public void Bundle_CarriesTheVisualCppRuntime()
+    {
+        var install = CreateMsvcGStreamer();
+        var system = CreateSystemFolder(GStreamerBundle.CompilerRuntime);
+        var bundle = Path.Combine(_directory.FullName, "bundle");
+
+        GStreamerBundle.Copy(install, bundle, system);
+
+        Assert.All(GStreamerBundle.CompilerRuntime, name => Assert.True(File.Exists(Path.Combine(bundle, "bin", name)), name));
+        Assert.True(File.Exists(Path.Combine(bundle, "bin", "intl-8.dll")), "The libraries of GStreamer itself are copied as before.");
+        Assert.False(File.Exists(Path.Combine(bundle, "bin", "KERNEL32.dll")), "Windows itself is not copied.");
+        Assert.Null(GStreamerBundle.FindMissingCompilerRuntime(bundle, CreateSystemFolder([])));
+        Assert.True(GStreamerBundle.CarriesCompilerRuntime(bundle));
+        Assert.False(GStreamerBundle.CarriesCompilerRuntime(install), "The installation itself lacks the runtime.");
+
+        // Without the runtime on the computer that builds the bundle, the bundle is not made, and the reason is told.
+        var error = Assert.Throws<FileNotFoundException>(() =>
+            GStreamerBundle.Copy(install, Path.Combine(_directory.FullName, "bundle-2"), CreateSystemFolder(["vcruntime140.dll"])));
+        Assert.Contains("vcruntime140_1.dll", error.Message, StringComparison.Ordinal);
+        Assert.Contains("Visual C++", error.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A bundle of Visual C++ without its runtime, on a computer without it either, is not called available: cameras
+    /// and voice would fail to start. A runtime of Windows serves as well, and a build of another compiler needs none.
+    /// </summary>
+    [Fact]
+    public void Locator_DoesNotOfferABundleThatCannotRun()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The Visual C++ runtime matters on Windows only.");
+        var native = Path.Combine(_directory.FullName, "native");
+        var bundle = Path.Combine(native, "gstreamer");
+        Directory.CreateDirectory(native);
+        Directory.Move(CreateMsvcGStreamer(), bundle);
+        var empty = CreateSystemFolder([]);
+        var components = Path.Combine(_directory.FullName, "components");
+
+        Assert.Equal("vcruntime140.dll", GStreamerBundle.FindMissingCompilerRuntime(bundle, empty));
+        Assert.Equal(ComponentSource.Missing, new ComponentLocator(native, components, _ => false, systemDirectory: empty).GetStatus(ComponentId.Conference).Source);
+
+        var system = CreateSystemFolder(GStreamerBundle.CompilerRuntime);
+        Assert.Equal(ComponentSource.Bundled, new ComponentLocator(native, components, _ => false, systemDirectory: system).GetStatus(ComponentId.Conference).Source);
+
+        foreach (var name in GStreamerBundle.CompilerRuntime)
+        {
+            File.WriteAllBytes(Path.Combine(bundle, "bin", name), FakeLibrary());
+        }
+
+        Assert.Equal(ComponentSource.Bundled, new ComponentLocator(native, components, _ => false, systemDirectory: empty).GetStatus(ComponentId.Conference).Source);
+
+        // A build of another compiler needs no Visual C++ at all.
+        foreach (var name in GStreamerBundle.CompilerRuntime)
+        {
+            File.Delete(Path.Combine(bundle, "bin", name));
+        }
+
+        File.WriteAllBytes(Path.Combine(bundle, "bin", "glib-2.0-0.dll"), FakeLibrary("KERNEL32.dll"));
+        Assert.Null(GStreamerBundle.FindMissingCompilerRuntime(bundle, empty));
+    }
+
+    /// <summary>
+    /// Builds a fake GStreamer installation of Visual C++: GLib imports the runtime, a plugin the C++ library, and
+    /// everything imports Windows.
+    /// </summary>
+    /// <returns>The installation root.</returns>
+    private string CreateMsvcGStreamer()
+    {
+        var root = Path.Combine(_directory.FullName, "gstreamer-msvc-" + Guid.NewGuid().ToString("N"));
+        void Put(string relative, params string[] imports)
+        {
+            var path = Path.Combine(root, relative);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllBytes(path, FakeLibrary(imports));
+        }
+
+        foreach (var plugin in GStreamerBundle.Plugins)
+        {
+            Put(Path.Combine(GStreamerBundle.PluginDirectory, plugin + ".dll"), "KERNEL32.dll", plugin == "gstwebrtcdsp" ? "MSVCP140.dll" : "glib-2.0-0.dll");
+        }
+
+        foreach (var library in GStreamerBundle.CoreLibraries)
+        {
+            Put(Path.Combine("bin", library), library == "glib-2.0-0.dll" ? ["VCRUNTIME140.dll", "intl-8.dll", "KERNEL32.dll"] : ["glib-2.0-0.dll"]);
+        }
+
+        Put(Path.Combine("bin", "intl-8.dll"), "VCRUNTIME140.dll");
+        Put(GStreamerBundle.ScannerPath, "KERNEL32.dll");
+        return root;
+    }
+
+    /// <summary>
+    /// Makes a stand-in for the system folder of Windows with the given files.
+    /// </summary>
+    /// <param name="names">The files.</param>
+    /// <returns>The folder.</returns>
+    private string CreateSystemFolder(IEnumerable<string> names)
+    {
+        var folder = Path.Combine(_directory.FullName, "system-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        foreach (var name in names)
+        {
+            File.WriteAllBytes(Path.Combine(folder, name), FakeLibrary());
+        }
+
+        return folder;
+    }
+
+    /// <summary>
+    /// Makes the smallest 64-bit Windows library that imports the given libraries: the headers, one section with the
+    /// import descriptors and the names. Nothing runs it; it is read the way <see cref="PeImports"/> reads a real one.
+    /// </summary>
+    /// <param name="imports">The names of the imported libraries.</param>
+    /// <returns>The bytes of the file.</returns>
+    private static byte[] FakeLibrary(params string[] imports)
+    {
+        const int FILE_ALIGNMENT = 0x200;
+        const int SECTION_RVA = 0x1000;
+        const int OPTIONAL_HEADER_SIZE = 240;
+        const int DESCRIPTOR_SIZE = 20;
+
+        var image = new byte[FILE_ALIGNMENT * 2];
+        using var writer = new BinaryWriter(new MemoryStream(image));
+
+        // The DOS header points at the PE header.
+        writer.Write((ushort)0x5A4D);
+        writer.Seek(0x3C, SeekOrigin.Begin);
+        writer.Write(0x40);
+
+        // The PE signature and the file header: x64, one section, a DLL.
+        writer.Seek(0x40, SeekOrigin.Begin);
+        writer.Write(0x00004550);
+        writer.Write((ushort)0x8664);
+        writer.Write((ushort)1);
+        writer.Write(0L);
+        writer.Write(0);
+        writer.Write((ushort)OPTIONAL_HEADER_SIZE);
+        writer.Write((ushort)0x2022);
+
+        // The optional header of PE32+, with the import directory as the only data directory.
+        var optional = 0x40 + 4 + 20;
+        writer.Write((ushort)0x20B);
+        writer.Seek(optional + 24, SeekOrigin.Begin);
+        writer.Write(0x180000000L);
+        writer.Write(SECTION_RVA);
+        writer.Write(FILE_ALIGNMENT);
+        writer.Seek(optional + 56, SeekOrigin.Begin);
+        writer.Write(SECTION_RVA * 2);
+        writer.Write(FILE_ALIGNMENT);
+        writer.Seek(optional + 108, SeekOrigin.Begin);
+        writer.Write(16);
+        writer.Seek(optional + 112 + 8, SeekOrigin.Begin);
+        writer.Write(imports.Length == 0 ? 0 : SECTION_RVA);
+        writer.Write((imports.Length + 1) * DESCRIPTOR_SIZE);
+
+        // The one section, which holds the imports.
+        writer.Seek(optional + OPTIONAL_HEADER_SIZE, SeekOrigin.Begin);
+        writer.Write(".idata\0\0"u8);
+        writer.Write(FILE_ALIGNMENT);
+        writer.Write(SECTION_RVA);
+        writer.Write(FILE_ALIGNMENT);
+        writer.Write(FILE_ALIGNMENT);
+        writer.Write(0L);
+        writer.Write(0);
+        writer.Write(0xC0000040);
+
+        // The descriptors, ended by an empty one, and the names after them.
+        var name = (imports.Length + 1) * DESCRIPTOR_SIZE;
+        for (var i = 0; i < imports.Length; i++)
+        {
+            writer.Seek(FILE_ALIGNMENT + i * DESCRIPTOR_SIZE + 12, SeekOrigin.Begin);
+            writer.Write(SECTION_RVA + name);
+            writer.Seek(FILE_ALIGNMENT + name, SeekOrigin.Begin);
+            writer.Write(System.Text.Encoding.ASCII.GetBytes(imports[i] + "\0"));
+            name += imports[i].Length + 1;
+        }
+
+        return image;
+    }
+
+    /// <summary>
     /// Copies a file, creating the directory.
     /// </summary>
     /// <param name="source">The source.</param>
