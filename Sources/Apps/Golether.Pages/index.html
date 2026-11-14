@@ -17,7 +17,7 @@
   <meta name="description" content="Golether is a free app for watching movies and photos together: everyone sees the same frame at the same moment. Webcams, voice, chat, reactions and drawing over the picture.">
   <meta property="og:title" content="Golether: share the moment together">
   <meta property="og:description" content="Movies and photos: the same frame for everyone at the same moment, even a thousand miles apart. Webcams, voice, reactions and drawing over the picture, all in one window.">
-  <meta property="og:image" content="https://golether.github.io/assets/screenshot.jpg">
+  <meta property="og:image" content="https://golether.github.io/assets/shot-desktop.jpg">
   <link rel="icon" href="assets/golether.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/site.css">
 </head>
@@ -52,14 +52,24 @@
         </div>
         <div class="version"><span data-t="hero.free">Free and open source · Windows, Linux, macOS and the browser · Android soon</span></div>
 
+        <!--
+          One session on two devices, taken at the same moment: the window of a computer on a monitor and, in front of
+          it, a phone. The frames are drawn here, not in the pictures, so they stay sharp and the pictures can change.
+        -->
         <div class="shot">
-          <img src="assets/screenshot.jpg" width="1600" height="1000" alt="The Golether window: a film in the player, the participants and the chat on the right" data-t-alt="hero.shot">
+          <div class="monitor">
+            <img src="assets/shot-desktop.jpg" width="1600" height="968" alt="Golether on a computer: a film in the player, the participants and the chat on the right" data-t-alt="hero.shot">
+          </div>
+          <div class="phone">
+            <p class="same"><i></i><span data-t="hero.same">One frame on every screen</span></p>
+            <img src="assets/shot-android.jpg" width="1000" height="462" alt="Golether on an Android phone: the same frame of the same film at the same moment" data-t-alt="hero.shot.phone">
+          </div>
         </div>
 
-        <!-- Two viewers, one moment: the playheads run together. -->
+        <!-- Two viewers, one moment: the playheads of Mike and Kate of the pictures above run together. -->
         <div class="sync" aria-hidden="true">
           <div class="sync-rows">
-            <span class="who who-a">J</span>
+            <span class="who who-a">M</span>
             <span class="who who-b">K</span>
           </div>
           <div class="sync-rows track-rows">
