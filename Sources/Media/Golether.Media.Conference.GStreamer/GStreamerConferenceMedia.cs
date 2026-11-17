@@ -20,8 +20,10 @@ namespace Golether.Media.Conference.GStreamer;
 /// economy encoder (320×180@10) runs only while a participant with a weak connection needs it.</item>
 /// <item>Audio capture: microphone → echo cancellation and noise suppression (<c>webrtcdsp</c>) → one Opus encoder.</item>
 /// <item>One pipeline with <c>webrtcbin</c> per remote participant (at most four).</item>
-/// <item>Playback: the voices of all peers are mixed and pass <c>webrtcechoprobe</c>, the reference of the echo
-/// canceller, before reaching the speakers.</item>
+/// <item>Echo reference: what the loudspeakers play, the film included, is captured back from the output and passes
+/// <c>webrtcechoprobe</c>, the reference of the echo canceller.</item>
+/// <item>Playback: the voices of all peers are mixed before reaching the speakers; where the output cannot be
+/// captured, they pass the probe themselves.</item>
 /// </list>
 /// </remarks>
 public sealed class GStreamerConferenceMedia : IConferenceMedia, IPeerHost
@@ -40,6 +42,64 @@ public sealed class GStreamerConferenceMedia : IConferenceMedia, IPeerHost
     /// The pause before a failed microphone is started again.
     /// </summary>
     private static readonly TimeSpan _microphoneRestartDelay = TimeSpan.FromSeconds(1);
+
+    /// <summary>
+    /// How many times in a row the sound output (or its echo reference) that stopped by itself is started again before
+    /// the user is told (or the voices become the only reference).
+    /// </summary>
+    private const int MAX_PLAYBACK_RESTARTS = 3;
+
+    /// <summary>
+    /// The pause before a stopped sound output or echo reference is started again: a device being switched
+    /// (headphones plugged in or out) needs a moment before the system offers the new one.
+    /// </summary>
+    private static readonly TimeSpan _playbackRestartDelay = TimeSpan.FromSeconds(1);
+
+    /// <summary>
+    /// How long the sound output or the echo reference must have run for its next stop to count as a new failure, not
+    /// one of a series.
+    /// </summary>
+    private static readonly TimeSpan _playbackSettled = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// How often the camera and the microphone are checked for giving nothing.
+    /// </summary>
+    private static readonly TimeSpan _stallCheckInterval = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    /// The last state of the connection with each participant that was reported, so each change is reported once.
+    /// </summary>
+    private readonly Dictionary<PeerId, MediaLinkState> _links = [];
+
+    /// <summary>
+    /// When the camera last gave a frame, or its pipeline started (a timestamp of <see cref="TimeProvider.System"/>).
+    /// </summary>
+    private long _videoAlive;
+
+    /// <summary>
+    /// When the microphone last gave sound, or its pipeline started (a timestamp of <see cref="TimeProvider.System"/>).
+    /// </summary>
+    private long _audioAlive;
+
+    /// <summary>
+    /// Whether the running microphone pipeline cancels the echo, so a stall restarts it the way an error would.
+    /// </summary>
+    private bool _audioEchoCancellation;
+
+    /// <summary>
+    /// How many times in a row the sound output was started again.
+    /// </summary>
+    private int _playbackRestarts;
+
+    /// <summary>
+    /// When the running sound output started (a timestamp of <see cref="TimeProvider.System"/>).
+    /// </summary>
+    private long _playbackStarted;
+
+    /// <summary>
+    /// Checks the camera and the microphone for giving nothing, or <see langword="null"/> when that is not checked.
+    /// </summary>
+    private readonly Timer? _stallTimer;
 
     /// <summary>
     /// The options.
@@ -90,6 +150,21 @@ public sealed class GStreamerConferenceMedia : IConferenceMedia, IPeerHost
     /// The playback pipeline.
     /// </summary>
     private GstPipeline? _playback;
+
+    /// <summary>
+    /// The pipeline that captures what the loudspeakers play for the echo canceller, or <see langword="null"/>.
+    /// </summary>
+    private GstPipeline? _echoReference;
+
+    /// <summary>
+    /// The automatic restarts of the echo reference since capture was started. Guarded by <see cref="_gate"/>.
+    /// </summary>
+    private int _echoReferenceRestarts;
+
+    /// <summary>
+    /// The timestamp at which the echo reference was last started (<see cref="TimeProvider.System"/>).
+    /// </summary>
+    private long _echoReferenceStarted;
 
     /// <summary>
     /// Whether the microphone is muted.
@@ -178,6 +253,12 @@ public sealed class GStreamerConferenceMedia : IConferenceMedia, IPeerHost
         {
             _qualityTimer = new Timer(_ => UpdateVideoQuality(), null, options.QualityInterval, options.QualityInterval);
         }
+
+        if (options.CaptureStallTimeout > TimeSpan.Zero)
+        {
+            _stallTimer = new Timer(_ => CheckCaptureStalls(), null, _stallCheckInterval, _stallCheckInterval);
+        }
+
         IsAvailable = GstRuntime.TryInitialize(options.BundleRoot, options.RegistryFile, out var error);
         _audioOrigin = IsAvailable ? GstPipeline.SystemTime() : 0;
         UnavailableReason = error;
@@ -201,6 +282,12 @@ public sealed class GStreamerConferenceMedia : IConferenceMedia, IPeerHost
 
     /// <inheritdoc />
     public event EventHandler? CameraFailed;
+
+    /// <inheritdoc />
+    public event EventHandler? PlaybackFailed;
+
+    /// <inheritdoc />
+    public event EventHandler<MediaLinkChange>? MediaLinkChanged;
 
     /// <inheritdoc />
     public event EventHandler<VideoQualityChange>? VideoQualityChanged;
@@ -342,10 +429,14 @@ public sealed class GStreamerConferenceMedia : IConferenceMedia, IPeerHost
                 _microphone = microphone;
                 _captureRequested = true;
 
-                // The playback pipeline owns the echo probe the canceller of the microphone looks up on start.
+                // The echo reference, or the playback without it, owns the probe the canceller of the microphone looks
+                // up on start.
                 if (_options.EnablePlayback && _playback is null)
                 {
-                    _playback = TryStart("playback", PipelineDescriptions.Playback(_sources, MAX_REMOTE_PEERS), pipeline => pipeline.UseTimeline(_audioOrigin));
+                    _playbackRestarts = 0;
+                    _echoReferenceRestarts = 0;
+                    _echoReference ??= TryStartEchoReference();
+                    _playback = TryStartPlayback();
                     keepsMicrophone = keepsMicrophone && _playback is null;
                 }
 
@@ -423,6 +514,7 @@ public sealed class GStreamerConferenceMedia : IConferenceMedia, IPeerHost
             SetEconomyEncoder(pipeline, _peers.Values.Any(p => p.VideoQuality == VideoQuality.Low));
             pipeline.Failed += (_, _) => OnCameraFailed(pipeline);
         });
+        Interlocked.Exchange(ref _videoAlive, TimeProvider.System.GetTimestamp());
 
         if (_videoCapture is null && !_cameraOff)
         {
@@ -460,7 +552,7 @@ public sealed class GStreamerConferenceMedia : IConferenceMedia, IPeerHost
     private void RestartAudio()
     {
         _microphoneRestarts = 0;
-        StartAudio(echoCancellation: _playback is not null);
+        StartAudio(echoCancellation: _echoReference is not null || _playback is not null);
     }
 
     /// <summary>
@@ -481,7 +573,203 @@ public sealed class GStreamerConferenceMedia : IConferenceMedia, IPeerHost
             _audioCapture = TryStartMicrophone(echoCancellation: true);
         }
 
+        _audioEchoCancellation = _audioCapture is not null;
         _audioCapture ??= TryStartMicrophone(echoCancellation: false);
+        Interlocked.Exchange(ref _audioAlive, TimeProvider.System.GetTimestamp());
+    }
+
+    /// <summary>
+    /// Starts the pipeline that plays the voices of the others and reports its own failure. Call under
+    /// <see cref="_gate"/>.
+    /// </summary>
+    /// <returns>The pipeline, or <see langword="null"/> when it could not start.</returns>
+    private GstPipeline? TryStartPlayback()
+    {
+        var playback = TryStart("playback", PipelineDescriptions.Playback(_sources, MAX_REMOTE_PEERS, echoProbe: _echoReference is null), pipeline =>
+        {
+            pipeline.UseTimeline(_audioOrigin);
+            pipeline.Failed += (_, _) => OnPlaybackFailed(pipeline);
+        });
+        _playbackStarted = TimeProvider.System.GetTimestamp();
+        return playback;
+    }
+
+    /// <summary>
+    /// Starts the sound output again after it stopped by itself (most often the device was switched), and tells the
+    /// user when it does not come back: otherwise the voices of the others would go silent for the rest of the
+    /// session without a word.
+    /// </summary>
+    /// <param name="failed">The pipeline that failed.</param>
+    private void OnPlaybackFailed(GstPipeline failed)
+        => _ = Task.Run(async () =>
+        {
+            lock (_gate)
+            {
+                if (!_captureRequested || !ReferenceEquals(_playback, failed))
+                {
+                    return;
+                }
+
+                // A sound output that played for a while and then stopped starts a new series of attempts.
+                if (TimeProvider.System.GetElapsedTime(_playbackStarted) >= _playbackSettled)
+                {
+                    _playbackRestarts = 0;
+                }
+
+                failed.Dispose();
+                _playback = null;
+            }
+
+            while (true)
+            {
+                await Task.Delay(_playbackRestartDelay).ConfigureAwait(false);
+                lock (_gate)
+                {
+                    if (!_captureRequested || _playback is not null)
+                    {
+                        return;
+                    }
+
+                    if (_playbackRestarts >= MAX_PLAYBACK_RESTARTS)
+                    {
+                        _logger.LogWarning("The sound output keeps failing; the voices of the others are not played");
+
+                        // Without the echo reference the canceller has nothing to listen to now and is dropped with it.
+                        if (_echoReference is null)
+                        {
+                            RestartAudio();
+                        }
+
+                        break;
+                    }
+
+                    _playbackRestarts++;
+                    _logger.LogWarning("The sound output stopped; starting it again ({Attempt} of {Limit})", _playbackRestarts, MAX_PLAYBACK_RESTARTS);
+                    _playback = TryStartPlayback();
+                    if (_playback is not null)
+                    {
+                        // The echo canceller of the microphone finds the probe of the sound output when it starts;
+                        // the probe of the echo reference did not go anywhere.
+                        if (_echoReference is null)
+                        {
+                            RestartAudio();
+                        }
+
+                        return;
+                    }
+                }
+            }
+
+            PlaybackFailed?.Invoke(this, EventArgs.Empty);
+        });
+
+    /// <summary>
+    /// Starts the pipeline that captures what the loudspeakers play for the echo canceller. Call under
+    /// <see cref="_gate"/>.
+    /// </summary>
+    /// <returns>The pipeline, or <see langword="null"/> when the platform has none or it could not start.</returns>
+    private GstPipeline? TryStartEchoReference()
+    {
+        if (PipelineDescriptions.EchoReference(_sources) is not { } description)
+        {
+            return null;
+        }
+
+        var reference = TryStart("echo reference", description, pipeline =>
+        {
+            // The canceller compares the timestamps of what was heard and what was recorded.
+            pipeline.UseTimeline(_audioOrigin);
+            pipeline.Failed += (_, _) => OnEchoReferenceFailed(pipeline);
+        });
+        _echoReferenceStarted = TimeProvider.System.GetTimestamp();
+
+        return reference;
+    }
+
+    /// <summary>
+    /// Starts the echo reference again after it stopped by itself (most often the output device was switched), and
+    /// falls back to the voices as the only reference when it does not come back: the film then reaches the others
+    /// again, but nothing else breaks.
+    /// </summary>
+    /// <param name="failed">The pipeline that failed.</param>
+    private void OnEchoReferenceFailed(GstPipeline failed)
+        => _ = Task.Run(async () =>
+        {
+            lock (_gate)
+            {
+                if (!_captureRequested || !ReferenceEquals(_echoReference, failed))
+                {
+                    return;
+                }
+
+                // A reference that worked for a while and then stopped starts a new series of attempts.
+                if (TimeProvider.System.GetElapsedTime(_echoReferenceStarted) >= _playbackSettled)
+                {
+                    _echoReferenceRestarts = 0;
+                }
+
+                failed.Dispose();
+                _echoReference = null;
+            }
+
+            await Task.Delay(_playbackRestartDelay).ConfigureAwait(false);
+
+            lock (_gate)
+            {
+                if (!_captureRequested || _echoReference is not null)
+                {
+                    return;
+                }
+
+                if (_echoReferenceRestarts < MAX_PLAYBACK_RESTARTS)
+                {
+                    _echoReferenceRestarts++;
+                    _logger.LogWarning("The echo reference stopped; starting it again ({Attempt} of {Limit})", _echoReferenceRestarts, MAX_PLAYBACK_RESTARTS);
+                    _echoReference = TryStartEchoReference();
+                }
+
+                if (_echoReference is null && _playback is not null)
+                {
+                    // The voices become the reference again: the sound output carries the probe.
+                    _logger.LogWarning("The sound of the loudspeakers cannot be captured; only the voices are taken out of the microphone");
+                    _playback.Dispose();
+                    _playback = TryStartPlayback();
+                }
+
+                // The canceller of the microphone finds the new probe only when it starts.
+                RestartAudio();
+            }
+        });
+
+    /// <summary>
+    /// Treats a camera or a microphone that gave nothing for <see cref="GStreamerConferenceOptions.CaptureStallTimeout"/>
+    /// as failed: another application took the device, or its driver hung, and no error came.
+    /// </summary>
+    internal void CheckCaptureStalls()
+    {
+        var timeout = _options.CaptureStallTimeout;
+        if (timeout <= TimeSpan.Zero)
+        {
+            return;
+        }
+
+        lock (_gate)
+        {
+            var now = TimeProvider.System.GetTimestamp();
+            if (_videoCapture is { } video && !_cameraOff && TimeProvider.System.GetElapsedTime(Interlocked.Read(ref _videoAlive), now) >= timeout)
+            {
+                _logger.LogWarning("The camera gave no frame for {Seconds:0} s", timeout.TotalSeconds);
+                Interlocked.Exchange(ref _videoAlive, now);
+                OnCameraFailed(video);
+            }
+
+            if (_audioCapture is { } audio && !_microphoneMuted && TimeProvider.System.GetElapsedTime(Interlocked.Read(ref _audioAlive), now) >= timeout)
+            {
+                _logger.LogWarning("The microphone gave no sound for {Seconds:0} s", timeout.TotalSeconds);
+                Interlocked.Exchange(ref _audioAlive, now);
+                OnMicrophoneFailed(audio, _audioEchoCancellation);
+            }
+        }
     }
 
     /// <summary>
@@ -635,6 +923,12 @@ public sealed class GStreamerConferenceMedia : IConferenceMedia, IPeerHost
                 removed.Dispose();
                 _logger.LogInformation("Disconnected from {Peer}", peer.ToShortString());
             }
+
+            // A participant who left is no lost connection; one who comes back starts afresh.
+            lock (_links)
+            {
+                _links.Remove(peer);
+            }
         });
 
     /// <inheritdoc />
@@ -653,7 +947,8 @@ public sealed class GStreamerConferenceMedia : IConferenceMedia, IPeerHost
                 _videoCapture?.Dispose();
                 _audioCapture?.Dispose();
                 _playback?.Dispose();
-                _videoCapture = _audioCapture = _playback = null;
+                _echoReference?.Dispose();
+                _videoCapture = _audioCapture = _playback = _echoReference = null;
             }
         }).ConfigureAwait(false);
     }
@@ -667,6 +962,12 @@ public sealed class GStreamerConferenceMedia : IConferenceMedia, IPeerHost
         {
             await _qualityTimer.DisposeAsync().ConfigureAwait(false);
         }
+
+        if (_stallTimer is not null)
+        {
+            await _stallTimer.DisposeAsync().ConfigureAwait(false);
+        }
+
         if (_self.IsAllocated)
         {
             _self.Free();
@@ -758,6 +1059,9 @@ public sealed class GStreamerConferenceMedia : IConferenceMedia, IPeerHost
     /// </remarks>
     void IPeerHost.ReportFailure(WebRtcPeer peer, string reason)
     {
+        // Until the connection is back neither side sees or hears the other: the application says so.
+        ReportLink(peer, MediaLinkState.Lost);
+
         if (!peer.IsOfferer)
         {
             _logger.LogWarning("The media connection of {Peer} failed ({Reason}); waiting for a new offer", peer.Peer.ToShortString(), reason);
@@ -774,11 +1078,52 @@ public sealed class GStreamerConferenceMedia : IConferenceMedia, IPeerHost
             {
                 peer.Recovered();
                 _logger.LogInformation("The media connection of {Peer} recovered", peer.Peer.ToShortString());
+                ReportLink(peer, MediaLinkState.Connected);
                 return;
             }
 
             ReplacePeer(peer, isOfferer: true, attempt: peer.IsVerified ? 0 : peer.Attempt + 1);
         });
+    }
+
+    /// <inheritdoc />
+    void IPeerHost.ReportConnected(WebRtcPeer peer) => ReportLink(peer, MediaLinkState.Connected);
+
+    /// <summary>
+    /// Reports the state of the connection with a participant when it changed, and only for the connection that is
+    /// still the current one: a replaced connection that fails on its way out says nothing about the new one.
+    /// </summary>
+    /// <param name="peer">The connection.</param>
+    /// <param name="state">The new state.</param>
+    private void ReportLink(WebRtcPeer peer, MediaLinkState state)
+    {
+        MediaLinkChange change;
+        lock (_links)
+        {
+            if (!_peers.TryGetValue(peer.Peer, out var current) || !ReferenceEquals(current, peer))
+            {
+                return;
+            }
+
+            var known = _links.TryGetValue(peer.Peer, out var previous);
+            if (known && previous == state)
+            {
+                return;
+            }
+
+            _links[peer.Peer] = state;
+            change = new MediaLinkChange(peer.Peer, state, known && previous == MediaLinkState.Lost);
+        }
+
+        try
+        {
+            MediaLinkChanged?.Invoke(this, change);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            // Raised from native callbacks too: an exception must not leave them.
+            _logger.LogWarning(ex, "A connection state subscriber failed");
+        }
     }
 
     /// <inheritdoc />
@@ -806,6 +1151,7 @@ public sealed class GStreamerConferenceMedia : IConferenceMedia, IPeerHost
     {
         if (From(data) is { } media)
         {
+            Interlocked.Exchange(ref media._videoAlive, TimeProvider.System.GetTimestamp());
             Samples.Pull(sink, (pixels, caps) =>
             {
                 var (width, height) = Samples.VideoSize(caps);
@@ -1004,6 +1350,7 @@ public sealed class GStreamerConferenceMedia : IConferenceMedia, IPeerHost
     {
         if (From(data) is { } media)
         {
+            Interlocked.Exchange(ref media._audioAlive, TimeProvider.System.GetTimestamp());
             Samples.Pull(sink, (pcm, _) =>
             {
                 if (!media._microphoneMuted)

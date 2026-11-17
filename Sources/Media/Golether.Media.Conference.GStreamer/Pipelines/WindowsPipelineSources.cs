@@ -8,6 +8,11 @@ internal sealed class WindowsPipelineSources : IPipelineSources
     /// <inheritdoc />
     public string AudioSink => "wasapi2sink low-latency=true";
 
+    /// <summary>
+    /// Gets the loopback capture of the default output device, the one the film and the voices play on.
+    /// </summary>
+    public string EchoReference => "wasapi2src loopback=true low-latency=true";
+
     /// <inheritdoc />
     public string VideoSource(CaptureDevice? camera)
         => "mfvideosrc" + (camera is null ? string.Empty : " device-path=" + PipelineText.Quote(camera.Id));

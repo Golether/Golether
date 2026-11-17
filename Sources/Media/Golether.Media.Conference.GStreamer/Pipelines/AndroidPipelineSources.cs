@@ -23,6 +23,12 @@ internal sealed class AndroidPipelineSources : IPipelineSources
     /// <inheritdoc />
     public string AudioSink => "openslessink stream-type=media";
 
+    /// <summary>
+    /// Gets nothing: the echo canceller of the phone, turned on by the voice preset of the microphone, already hears
+    /// everything the phone plays, the film included.
+    /// </summary>
+    public string? EchoReference => null;
+
     /// <inheritdoc />
     public string VideoSource(CaptureDevice? camera)
     {

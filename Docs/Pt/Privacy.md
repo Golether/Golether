@@ -22,6 +22,9 @@ As mensagens do chat e os desenhos não são guardados em lado nenhum: quando a 
 relatório de diagnóstico só é guardado quando o pede; contém o registo e as definições, por isso veja-o antes de o
 enviar a alguém.
 
+Para retirar o filme da sua voz, o Golether no Windows e no Linux ouve o que as suas colunas reproduzem durante uma
+sessão com câmaras e voz. Esse som vai apenas para o cancelador de eco do seu computador: não é gravado nem enviado.
+
 ## O que recebem os outros participantes
 
 Os participantes da sua sessão veem o seu nome, o seu avatar, o seu endereço de rede (uma ligação direta precisa

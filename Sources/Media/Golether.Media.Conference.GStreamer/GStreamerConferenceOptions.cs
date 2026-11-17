@@ -56,4 +56,11 @@ public sealed record GStreamerConferenceOptions
     /// <see cref="TimeSpan.Zero"/> keeps the full quality for everybody.
     /// </summary>
     public TimeSpan QualityInterval { get; init; } = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    /// Gets how long the camera or the microphone may give nothing before it counts as failed (default 8 s), so a
+    /// device another application took or a driver that hung is reported instead of going silent;
+    /// <see cref="TimeSpan.Zero"/> never counts it (a phone loses the camera whenever it leaves the screen).
+    /// </summary>
+    public TimeSpan CaptureStallTimeout { get; init; } = TimeSpan.FromSeconds(8);
 }

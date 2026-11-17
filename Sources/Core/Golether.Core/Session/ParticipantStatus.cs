@@ -69,6 +69,24 @@ public sealed record ParticipantStatus
     public int? GalleryView { get; init; }
 
     /// <summary>
+    /// Gets how fast the host may send the file to the participant, in bytes per second, or <see langword="null"/>
+    /// for the speed of the line. The participant measures how much its line can take before the voices and cameras
+    /// start waiting behind the file; an earlier version sends nothing.
+    /// </summary>
+    public long? TransferRate { get; init; }
+
+    /// <summary>
+    /// The smallest transfer rate accepted from the network, in bytes per second: a smaller one would hold the film of
+    /// the participant for good.
+    /// </summary>
+    public const long MIN_TRANSFER_RATE = 64 * 1024;
+
+    /// <summary>
+    /// The largest transfer rate accepted from the network, in bytes per second.
+    /// </summary>
+    public const long MAX_TRANSFER_RATE = 1024L * 1024 * 1024;
+
+    /// <summary>
     /// The largest time accepted in a status that came from the network. Larger values (up to the limits of
     /// <see cref="TimeSpan"/>) would overflow as soon as they are compared, negated or subtracted.
     /// </summary>
@@ -93,6 +111,7 @@ public sealed record ParticipantStatus
         BytesFromPeers = Math.Max(0, BytesFromPeers),
         BytesToPeers = Math.Max(0, BytesToPeers),
         GalleryView = GalleryView is >= 0 and < Media.GalleryItem.MAX_ITEMS ? GalleryView : null,
+        TransferRate = TransferRate is { } rate ? Math.Clamp(rate, MIN_TRANSFER_RATE, MAX_TRANSFER_RATE) : null,
     };
 
     /// <summary>

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Golether.Core.Data.Enums;
 using Golether.Core.Media;
+using Golether.Media.Streaming.Pacing;
 
 namespace Golether.Media.Streaming.Protocol;
 
@@ -12,6 +13,11 @@ namespace Golether.Media.Streaming.Protocol;
 /// </summary>
 public sealed class ChunkServer
 {
+    /// <summary>
+    /// The size of the parts a piece is written in when a pacer spaces them out.
+    /// </summary>
+    public const int PACED_SLICE = 16 * 1024;
+
     /// <summary>
     /// The shared media.
     /// </summary>
@@ -84,7 +90,17 @@ public sealed class ChunkServer
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task that completes when the stream ends.</returns>
     /// <exception cref="InvalidDataException">The peer sent an unknown operation.</exception>
-    public async Task ServeAsync(Stream stream, CancellationToken cancellationToken)
+    public Task ServeAsync(Stream stream, CancellationToken cancellationToken) => ServeAsync(stream, null, cancellationToken);
+
+    /// <summary>
+    /// Answers requests until the peer closes the stream, writing the pieces no faster than a pacer lets.
+    /// </summary>
+    /// <param name="stream">The authenticated data stream.</param>
+    /// <param name="pacer">The pacer of the participant, or <see langword="null"/> to write at the speed of the line.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task that completes when the stream ends.</returns>
+    /// <exception cref="InvalidDataException">The peer sent an unknown operation.</exception>
+    public async Task ServeAsync(Stream stream, TransferPacer? pacer, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stream);
         var request = new byte[ChunkProtocol.REQUEST_SIZE];
@@ -187,7 +203,15 @@ public sealed class ChunkServer
                     continue;
                 }
 
-                await WriteAsync(stream, header, payload, cancellationToken).ConfigureAwait(false);
+                if (pacer is null)
+                {
+                    await WriteAsync(stream, header, payload, cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    await WritePacedAsync(stream, header, payload, pacer, cancellationToken).ConfigureAwait(false);
+                }
+
                 Interlocked.Increment(ref _chunksServed);
             }
         }
@@ -233,6 +257,32 @@ public sealed class ChunkServer
         if (!payload.IsEmpty)
         {
             await stream.WriteAsync(payload, cancellationToken).ConfigureAwait(false);
+        }
+
+        await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Writes a response in parts spaced out by a pacer. A piece written whole leaves the computer as one burst at the
+    /// speed of the network card and waits in the queue of the router in front of the voices and cameras; written in
+    /// small parts at the rate of the participant it never builds such a queue.
+    /// </summary>
+    /// <param name="stream">The data stream.</param>
+    /// <param name="header">The response header.</param>
+    /// <param name="payload">The payload.</param>
+    /// <param name="pacer">The pacer of the participant.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task that completes when the response is written.</returns>
+    private static async Task WritePacedAsync(Stream stream, byte[] header, ReadOnlyMemory<byte> payload, TransferPacer pacer, CancellationToken cancellationToken)
+    {
+        await stream.WriteAsync(header, cancellationToken).ConfigureAwait(false);
+
+        for (var offset = 0; offset < payload.Length; offset += PACED_SLICE)
+        {
+            var slice = payload.Slice(offset, Math.Min(PACED_SLICE, payload.Length - offset));
+            await pacer.WaitAsync(slice.Length, cancellationToken).ConfigureAwait(false);
+            await stream.WriteAsync(slice, cancellationToken).ConfigureAwait(false);
+            await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
         }
 
         await stream.FlushAsync(cancellationToken).ConfigureAwait(false);

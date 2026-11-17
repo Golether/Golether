@@ -1152,6 +1152,7 @@ internal sealed partial class MainViewModel : ObservableObject
             item.CanModerate = IsHost && !item.IsLocal;
             var speaking = _app.Session?.IsSpeaking(views[i].IsLocal ? default : item.PeerId) == true;
             item.IsSpeaking = speaking && !(item.IsLocal ? MicrophoneMuted : item.MicrophoneOff);
+            item.MediaLost = !item.IsLocal && _app.Session?.IsMediaLost(item.PeerId) == true;
             if (item.IsLocal)
             {
                 item.CameraOff = CameraOff;

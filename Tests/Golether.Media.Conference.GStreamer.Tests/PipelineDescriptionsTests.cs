@@ -179,7 +179,7 @@ public sealed class PipelineDescriptionsTests
             "pulsesrc device=\"mic\" ! audioconvert ! audioresample ! audio/x-raw,format=S16LE,rate=48000,channels=1 ! " +
             "webrtcdsp probe=golether-echo echo-cancel=true noise-suppression=true gain-control=true ! " +
             "audioconvert ! audio/x-raw,format=S16LE,rate=48000,channels=1 ! tee name=mic " +
-            "mic. ! queue max-size-buffers=50 leaky=downstream ! opusenc bitrate=32000 frame-size=20 ! " +
+            "mic. ! queue max-size-buffers=50 leaky=downstream ! opusenc bitrate=32000 frame-size=20 inband-fec=true packet-loss-percentage=10 ! " +
             "appsink name=aenc emit-signals=true sync=false max-buffers=50 drop=true " +
             "mic. ! queue max-size-buffers=10 leaky=downstream ! appsink name=alevel emit-signals=true sync=false max-buffers=10 drop=true",
             description);
@@ -196,29 +196,85 @@ public sealed class PipelineDescriptionsTests
         Assert.Equal(
             "autoaudiosrc ! audioconvert ! audioresample ! audio/x-raw,format=S16LE,rate=48000,channels=1 ! " +
             "audioconvert ! audio/x-raw,format=S16LE,rate=48000,channels=1 ! tee name=mic " +
-            "mic. ! queue max-size-buffers=50 leaky=downstream ! opusenc bitrate=32000 frame-size=20 ! " +
+            "mic. ! queue max-size-buffers=50 leaky=downstream ! opusenc bitrate=32000 frame-size=20 inband-fec=true packet-loss-percentage=10 ! " +
             "appsink name=aenc emit-signals=true sync=false max-buffers=50 drop=true " +
             "mic. ! queue max-size-buffers=10 leaky=downstream ! appsink name=alevel emit-signals=true sync=false max-buffers=10 drop=true",
             description);
     }
 
     /// <summary>
-    /// The playback pipeline: one mixer input per remote peer, the echo probe before the loudspeaker.
+    /// The playback pipeline without an echo reference: one mixer input per remote peer, the echo probe before the
+    /// loudspeaker.
     /// </summary>
     [Fact]
-    public void Playback_IsPinned()
+    public void Playback_WithEchoProbe_IsPinned()
     {
-        var description = PipelineDescriptions.Playback(new WindowsPipelineSources(), GStreamerConferenceMedia.MAX_REMOTE_PEERS);
+        var description = PipelineDescriptions.Playback(new WindowsPipelineSources(), GStreamerConferenceMedia.MAX_REMOTE_PEERS, echoProbe: true);
 
-        const string SLOT = " is-live=true do-timestamp=true format=time " +
-                            "caps=\"audio/x-raw,format=S16LE,rate=48000,channels=1,layout=interleaved\" ! queue ! mix.";
         Assert.Equal(
             "audiomixer name=mix latency=60000000 ! audioconvert ! audioresample ! webrtcechoprobe name=golether-echo ! " +
-            "audioconvert ! audioresample ! wasapi2sink low-latency=true" +
-            " appsrc name=slot0" + SLOT +
-            " appsrc name=slot1" + SLOT +
-            " appsrc name=slot2" + SLOT +
-            " appsrc name=slot3" + SLOT,
+            "audioconvert ! audioresample ! wasapi2sink low-latency=true" + Slots(),
             description);
+    }
+
+    /// <summary>
+    /// The playback pipeline next to an echo reference leaves the probe to it: two probes of one name would confuse
+    /// the canceller.
+    /// </summary>
+    [Fact]
+    public void Playback_WithoutEchoProbe_IsPinned()
+    {
+        var description = PipelineDescriptions.Playback(new WindowsPipelineSources(), GStreamerConferenceMedia.MAX_REMOTE_PEERS, echoProbe: false);
+
+        Assert.Equal(
+            "audiomixer name=mix latency=60000000 ! audioconvert ! audioresample ! wasapi2sink low-latency=true" + Slots(),
+            description);
+    }
+
+    /// <summary>
+    /// The echo reference of Windows records the default output device back and passes it through the probe.
+    /// </summary>
+    [Fact]
+    public void EchoReference_OnWindows_IsPinned()
+    {
+        var description = PipelineDescriptions.EchoReference(new WindowsPipelineSources());
+
+        Assert.Equal(
+            "wasapi2src loopback=true low-latency=true ! audioconvert ! audioresample ! audio/x-raw,format=S16LE,rate=48000,channels=1 ! " +
+            "webrtcechoprobe name=golether-echo ! fakesink sync=true",
+            description);
+    }
+
+    /// <summary>
+    /// The echo reference of Linux records the monitor of the default output.
+    /// </summary>
+    [Fact]
+    public void EchoReference_OnLinux_UsesTheMonitorOfTheOutput()
+    {
+        var description = PipelineDescriptions.EchoReference(new LinuxPipelineSources());
+
+        Assert.StartsWith("pulsesrc device=@DEFAULT_MONITOR@ ! ", description, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Systems that cannot record their output, or cancel the echo themselves, have no echo reference.
+    /// </summary>
+    [Fact]
+    public void EchoReference_IsMissing_WhereTheOutputCannotBeRecorded()
+    {
+        Assert.Null(PipelineDescriptions.EchoReference(new MacPipelineSources()));
+        Assert.Null(PipelineDescriptions.EchoReference(new AndroidPipelineSources()));
+    }
+
+    /// <summary>
+    /// Builds the mixer inputs of all remote peers, as the playback descriptions end with them.
+    /// </summary>
+    /// <returns>The inputs.</returns>
+    private static string Slots()
+    {
+        const string SLOT = " is-live=true do-timestamp=true format=time " +
+                            "caps=\"audio/x-raw,format=S16LE,rate=48000,channels=1,layout=interleaved\" ! queue ! mix.";
+
+        return string.Concat(Enumerable.Range(0, GStreamerConferenceMedia.MAX_REMOTE_PEERS).Select(i => $" appsrc name=slot{i}{SLOT}"));
     }
 }

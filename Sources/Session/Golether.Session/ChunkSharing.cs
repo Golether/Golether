@@ -1,5 +1,6 @@
 using Golether.Core.Media;
 using Golether.Media.Conference;
+using Golether.Media.Streaming.Pacing;
 using Golether.Media.Streaming.Sharing;
 
 namespace Golether.Session;
@@ -30,12 +31,16 @@ internal sealed class ChunkSharing : IAsyncDisposable
     /// <param name="media">The media.</param>
     /// <param name="conference">The conferencing backend.</param>
     /// <param name="file">The local copy; the sharing owns it.</param>
+    /// <param name="uploadPacer">The pacer of the chunks sent to participants.</param>
     /// <param name="logger">The logger.</param>
-    public ChunkSharing(MediaDescriptor media, IConferenceMedia conference, Stream file, Microsoft.Extensions.Logging.ILogger logger)
+    public ChunkSharing(MediaDescriptor media, IConferenceMedia conference, Stream file, TransferPacer uploadPacer, Microsoft.Extensions.Logging.ILogger logger)
     {
         _transport = new ConferenceMessageTransport(conference);
         _file = file;
-        Exchange = new PeerChunkExchange(media, _transport, index => ReadChunk(media, index), _ => [(0, media.ChunkCount)], logger: logger);
+        Exchange = new PeerChunkExchange(media, _transport, index => ReadChunk(media, index), _ => [(0, media.ChunkCount)], logger: logger)
+        {
+            UploadPacer = uploadPacer,
+        };
     }
 
     /// <summary>
@@ -44,11 +49,15 @@ internal sealed class ChunkSharing : IAsyncDisposable
     /// <param name="media">The media.</param>
     /// <param name="conference">The conferencing backend.</param>
     /// <param name="cache">The chunk cache.</param>
+    /// <param name="uploadPacer">The pacer of the chunks sent to participants.</param>
     /// <param name="logger">The logger.</param>
-    public ChunkSharing(MediaDescriptor media, IConferenceMedia conference, Media.Streaming.Caching.ChunkCache cache, Microsoft.Extensions.Logging.ILogger logger)
+    public ChunkSharing(MediaDescriptor media, IConferenceMedia conference, Media.Streaming.Caching.ChunkCache cache, TransferPacer uploadPacer, Microsoft.Extensions.Logging.ILogger logger)
     {
         _transport = new ConferenceMessageTransport(conference);
-        Exchange = new PeerChunkExchange(media, _transport, cache.Peek, cache.GetRanges, logger: logger);
+        Exchange = new PeerChunkExchange(media, _transport, cache.Peek, cache.GetRanges, logger: logger)
+        {
+            UploadPacer = uploadPacer,
+        };
     }
 
     /// <summary>

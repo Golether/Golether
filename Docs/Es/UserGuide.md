@@ -429,5 +429,7 @@ registro la entrada de desinstalación y el manejador de los enlaces de invitaci
 - **No hay cámaras.** Comprueba que el componente «Cámaras y voz» está instalado (pantalla de inicio) y que Windows
   permite a las aplicaciones usar la cámara y el micrófono («Configuración → Privacidad»). Un recuadro negro suele
   significar una tapa de objetivo cerrada.
-- **La otra persona se oye a sí misma.** La cancelación de eco funciona para el sonido que reproduce Golether; unos
-  auriculares eliminan el problema por completo.
+- **La otra persona se oye a sí misma o su película.** La cancelación de eco quita de su micrófono las voces de los
+  demás y, en Windows y Linux, también la película y todo lo demás que reproducen los altavoces; en macOS solo las
+  voces. Unos altavoces muy fuertes junto al micrófono aún se cuelan un poco; unos auriculares eliminan el problema por
+  completo.

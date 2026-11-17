@@ -143,6 +143,37 @@ public interface IConferenceMedia : IAsyncDisposable
     event EventHandler? CameraFailed;
 
     /// <summary>
+    /// Raised when the voices of the others could not be played (the sound output stopped and did not come back), so
+    /// this device hears nobody. May be raised on any thread. A backend that cannot tell never raises it.
+    /// </summary>
+    event EventHandler? PlaybackFailed
+    {
+        add
+        {
+        }
+
+        remove
+        {
+        }
+    }
+
+    /// <summary>
+    /// Raised when the connection that carries the camera and voice of a participant breaks or comes up, so the
+    /// application can say that the others do not see or hear each other instead of going silent. May be raised on
+    /// any thread. A backend that cannot tell never raises it.
+    /// </summary>
+    event EventHandler<MediaLinkChange>? MediaLinkChanged
+    {
+        add
+        {
+        }
+
+        remove
+        {
+        }
+    }
+
+    /// <summary>
     /// Starts media with a peer.
     /// </summary>
     /// <param name="peer">The peer.</param>

@@ -169,6 +169,13 @@ Uma resposta, 45 bytes e os dados: o estado (`0` OK, `1` fora do ficheiro, `2` o
 O tamanho da parte é de 256 KiB por predefinição (são permitidos 64 KiB – 16 MiB). O identificador rápido =
 SHA-256(comprimento int64 LE, o primeiro MiB, o MiB do meio, o último MiB).
 
+O anfitrião escreve as partes a um participante não mais depressa do que o `transferRate` do seu estado (bytes por
+segundo, limitado a 64 KiB/s – 1 GiB/s), em pedaços de 16 KiB. O participante escolhe a velocidade por si a partir dos
+tempos de ida e volta das suas sondas `ping` (a cada 0,5 s): o menor dos últimos dez minutos é a linha, tudo o que o
+excede é uma fila, e a velocidade desce assim que a fila passa de 80 ms (um controlo baseado no atraso à maneira do
+LEDBAT, RFC 6817). Assim o ficheiro nunca enche a fila de um router à frente das câmaras e das vozes. Um participante de
+uma versão anterior não envia `transferRate` e recebe as partes à velocidade da linha.
+
 ## Relay
 
 O fluxo transporta TURN (RFC 5766 em tramas TCP) sem alterações: o mesmo que o cliente enviaria para a porta do relé do

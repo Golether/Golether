@@ -241,6 +241,14 @@ Der Zustand der Sitzung (`PlaybackState`): „Im Moment `ReferenceTime` nach der
   `SwarmChunkSource` nimmt ein Stück von einem Teilnehmer, prüft sein SHA-256 gegen den Hash, den der Gastgeber ohne
   Daten liefert (die Operation GetHash), und lädt das Stück bei jedem Fehler vom Gastgeber. So gibt der Gastgeber jedes
   Stück einmal aus, nicht an jeden Zuschauer.
+- **Die Datei lässt Kameras und Stimmen den Vortritt.** Eine Übertragung, die nur auf Verluste reagiert, füllt zuerst
+  die Warteschlange des Routers, und Sprachpakete, die später als der Jitterpuffer (300 ms) ankommen, werden verworfen:
+  Der Film läuft, während sich die Teilnehmer weder sehen noch hören. Deshalb wartet jedes Stück, das ein Teilnehmer
+  anfordert (beim Gastgeber oder bei einem anderen Teilnehmer) oder einem anderen Teilnehmer sendet, auf
+  `TransferPacer`; dessen Rate setzt `TransferRateController` nach den Umlaufzeiten der Uhrproben (alle 0,5 s) und hält
+  die Warteschlange auf der Leitung unter 80 ms. Der Teilnehmer meldet die Rate in seinem Status, und der Gastgeber
+  schreibt ihm die Stücke in Teilen von 16 KiB mit dieser Rate, sodass sie den Computer gleichmäßig verlassen statt in
+  Schüben von 256 KiB.
 
 ## Sicherheit
 
@@ -592,6 +600,18 @@ dotnet publish Sources/Apps/Golether.Browser -c Release -o artifacts/browser
   wechselt das Paar erst nach einer Neuverbindung der Kameras zum Relay.
 - Die ICE-Zustände jeder Verbindung werden ins Protokoll geschrieben (`ICE to …: checking / connected / failed`): Sie
   zeigen, ob ein Netzwerkweg für die Kameras gefunden wurde.
+- Kameras und Stimmen melden Störungen, statt zu verstummen: Eine abgebrochene Verbindung zu einem Teilnehmer wird auf
+  seiner Kachel und in der Ereignisliste markiert (ebenso ihre Rückkehr); eine stehen gebliebene Tonausgabe wird bis zu
+  dreimal neu gestartet und danach gemeldet; eine Kamera oder ein Mikrofon, die 8 Sekunden lang nichts liefern, gelten
+  als ausgefallen (nicht auf einem Telefon, das die Kamera außerhalb des Bildschirms verliert). Die Stimme trägt
+  Opus-In-Band-FEC, sodass ein einzelnes verlorenes Paket aus dem nächsten wiederhergestellt wird.
+- Aus dem Mikrofon wird nicht nur die Stimme der anderen herausgerechnet, sondern auch der Film: Der Echounterdrücker
+  (`webrtcdsp`) erhält alles, was die Lautsprecher abspielen, als Referenz. Unter Windows ist das die Loopback-Aufnahme
+  des Standard-Ausgabegeräts (`wasapi2src loopback=true`), unter Linux der Monitor der Standardausgabe von
+  PulseAudio/PipeWire; Film und Stimmen laufen dort, die Referenz enthält also beides. Unter macOS sind nur die Stimmen
+  der anderen die Referenz: Core Audio lässt eine Anwendung die Ausgabe ohne virtuelles Gerät nicht aufnehmen. Ein
+  Telefon unterdrückt das Echo selbst (der Sprachmodus des Mikrofons). Schlägt die Aufnahme der Ausgabe immer wieder
+  fehl (dreimal in Folge), sind wieder nur die Stimmen die Referenz.
 - Das Ausschalten der Geräte eines Teilnehmers führt das Programm des Teilnehmers aus; ein veränderter Client kann es
   ignorieren.
 - Wer spricht, bestimmt jeder Teilnehmer selbst aus dem Pegel (`VoiceActivityDetector`: −42 dBFS, 60 ms bis zum Beginn,

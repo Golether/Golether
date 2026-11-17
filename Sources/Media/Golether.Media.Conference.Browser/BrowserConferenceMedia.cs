@@ -66,6 +66,12 @@ public sealed class BrowserConferenceMedia : IConferenceMedia
     private readonly Lock _gate = new();
 
     /// <summary>
+    /// The last state of the connection with each participant that was reported, so each change is reported once.
+    /// Guarded by <see cref="_gate"/>.
+    /// </summary>
+    private readonly Dictionary<PeerId, MediaLinkState> _links = [];
+
+    /// <summary>
     /// The connections by participant.
     /// </summary>
     private readonly Dictionary<PeerId, BrowserPeer> _peers = [];
@@ -181,6 +187,9 @@ public sealed class BrowserConferenceMedia : IConferenceMedia
 
     /// <inheritdoc />
     public event EventHandler? CameraFailed;
+
+    /// <inheritdoc />
+    public event EventHandler<MediaLinkChange>? MediaLinkChanged;
 
     /// <inheritdoc />
     public IReadOnlyCollection<PeerId> DataPeers
@@ -389,6 +398,9 @@ public sealed class BrowserConferenceMedia : IConferenceMedia
         lock (_gate)
         {
             _peers.Remove(peer, out removed);
+
+            // A participant who left is no lost connection; one who comes back starts afresh.
+            _links.Remove(peer);
             _volumes.Remove(peer);
         }
 
@@ -411,6 +423,7 @@ public sealed class BrowserConferenceMedia : IConferenceMedia
         {
             peers = [.. _peers.Values];
             _peers.Clear();
+            _links.Clear();
             _volumes.Clear();
             _started = false;
             _voiceTimer?.Dispose();
@@ -486,6 +499,7 @@ public sealed class BrowserConferenceMedia : IConferenceMedia
         if (state == PeerLinkState.Connected)
         {
             _logger.LogInformation("Cameras connected with {Peer}", peer.ToShortString());
+            ReportLink(known, MediaLinkState.Connected);
         }
         else if (state == PeerLinkState.Failed)
         {
@@ -767,6 +781,35 @@ public sealed class BrowserConferenceMedia : IConferenceMedia
     }
 
     /// <summary>
+    /// Reports the state of the connection with a participant when it changed, and only for the connection that is
+    /// still the current one: a replaced connection says nothing about the new one.
+    /// </summary>
+    /// <param name="peer">The connection.</param>
+    /// <param name="state">The new state.</param>
+    private void ReportLink(BrowserPeer peer, MediaLinkState state)
+    {
+        MediaLinkChange change;
+        lock (_gate)
+        {
+            if (!_peers.TryGetValue(peer.Id, out var current) || current != peer)
+            {
+                return;
+            }
+
+            var known = _links.TryGetValue(peer.Id, out var previous);
+            if (known && previous == state)
+            {
+                return;
+            }
+
+            _links[peer.Id] = state;
+            change = new MediaLinkChange(peer.Id, state, known && previous == MediaLinkState.Lost);
+        }
+
+        MediaLinkChanged?.Invoke(this, change);
+    }
+
+    /// <summary>
     /// Handles a failed connection as the applications do: the answering side waits for a new offer, the offering
     /// side makes the connection again after a pause that grows with every failure in a row.
     /// </summary>
@@ -784,6 +827,9 @@ public sealed class BrowserConferenceMedia : IConferenceMedia
             peer.Failing = true;
             peer.DataOpen = false;
         }
+
+        // Until the connection is back neither side sees or hears the other: the page says so.
+        ReportLink(peer, MediaLinkState.Lost);
 
         if (!peer.IsOfferer)
         {

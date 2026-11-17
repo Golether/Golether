@@ -366,6 +366,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
         });
         conference.MicrophoneFailed += (_, _) => _dispatcher.Post(
             () => _ = _dialogs.ShowErrorAsync(Texts.Get("Main.Error.MicrophoneFailed.Title"), Texts.Get("Main.Error.MicrophoneFailed.Text")));
+        conference.CameraFailed += (_, _) => _dispatcher.Post(OnCameraFailed);
+        conference.PlaybackFailed += (_, _) => _dispatcher.Post(
+            () => _ = _dialogs.ShowErrorAsync(Texts.Get("Main.Error.PlaybackFailed.Title"), Texts.Get("Main.Error.PlaybackFailed.Text")));
+        conference.MediaLinkChanged += (_, change) => _dispatcher.Post(() => ShowMediaLink(change));
         conference.SpeakingChanged += (_, change) => _dispatcher.Post(() => ShowSpeaking(change));
         conference.VideoQualityChanged += (_, change) => _dispatcher.Post(() =>
         {
@@ -852,6 +856,53 @@ public sealed partial class MainWindowViewModel : ObservableObject, ICameraTiles
         if (CameraOff && Participants.FirstOrDefault(p => p.IsLocal) is { } local)
         {
             local.CameraImage = null;
+        }
+    }
+
+    /// <summary>
+    /// Switches off a camera that stopped or did not start. The backend keeps it shown as on (a phone gets its camera
+    /// back with the screen); on a computer it would stay on in the switch and in the status the others see while
+    /// nothing is sent, and the own tile would show the avatar with no word why. A computer that has no camera at all
+    /// is only switched off: it is told nothing at every session.
+    /// </summary>
+    private void OnCameraFailed()
+    {
+        if (CameraOff)
+        {
+            return;
+        }
+
+        CameraOff = true;
+        _conference.SetMuted(MicrophoneMuted, CameraOff);
+        if (Participants.FirstOrDefault(p => p.IsLocal) is { } local)
+        {
+            local.CameraImage = null;
+        }
+
+        if (_conference.GetDevices().Any(d => d.Kind == CaptureDeviceKind.Camera))
+        {
+            _ = _dialogs.ShowErrorAsync(Texts.Get("Main.Error.CameraFailed.Title"), Texts.Get("Main.Error.CameraFailed.Text"));
+        }
+    }
+
+    /// <summary>
+    /// Marks the tile of a participant whose camera and voice connection broke or came back, and writes it to the
+    /// event feed: a connection that is being made again must not look like a participant who went silent.
+    /// </summary>
+    /// <param name="change">The change.</param>
+    private void ShowMediaLink(MediaLinkChange change)
+    {
+        if (Participants.FirstOrDefault(p => p.PeerId == change.Peer) is not { } participant)
+        {
+            return;
+        }
+
+        var lost = change.State == MediaLinkState.Lost;
+        participant.MediaLost = lost;
+        if (lost || change.WasLost)
+        {
+            var key = lost ? "Main.Event.MediaLinkLost" : "Main.Event.MediaLinkRestored";
+            AddEvent(new SessionEvent(_timeProvider.GetLocalNow(), change.Peer, Texts.Format(key, participant.Name)));
         }
     }
 

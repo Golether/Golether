@@ -8,6 +8,11 @@ internal sealed class MacPipelineSources : IPipelineSources
     /// <inheritdoc />
     public string AudioSink => "autoaudiosink";
 
+    /// <summary>
+    /// Gets nothing: Core Audio does not let an application record the output without a virtual device installed.
+    /// </summary>
+    public string? EchoReference => null;
+
     /// <inheritdoc />
     public string VideoSource(CaptureDevice? camera)
         => "avfvideosrc" + (camera is null ? string.Empty : " device-unique-id=" + PipelineText.Quote(camera.Id));

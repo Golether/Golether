@@ -22,6 +22,10 @@ Chatnachrichten und Zeichnungen werden nirgends gespeichert: Wenn die Sitzung ge
 Diagnosebericht wird nur gespeichert, wenn Sie ihn anfordern; er enthält das Protokoll und die Einstellungen, also
 sehen Sie ihn an, bevor Sie ihn jemandem schicken.
 
+Um den Film aus Ihrer Stimme zu entfernen, hört Golether unter Windows und Linux während einer Sitzung mit Kameras und
+Sprache mit, was Ihre Lautsprecher abspielen. Dieser Ton geht nur an den Echounterdrücker auf Ihrem Rechner: Er wird
+weder aufgezeichnet noch gesendet.
+
 ## Was die anderen Teilnehmer erhalten
 
 Die Teilnehmer Ihrer Sitzung sehen Ihren Namen, Ihren Avatar, Ihre Netzwerkadresse (eine direkte Verbindung braucht

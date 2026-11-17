@@ -233,6 +233,13 @@ O estado da sessão (`PlaybackState`): “no momento `ReferenceTime` segundo o r
   cache na memória ou uma cópia local inteira) e passam-nas por um canal de dados WebRTC. O `SwarmChunkSource` obtém uma
   parte de um participante, verifica o seu SHA-256 com o hash que o anfitrião dá sem os dados (a operação GetHash) e, em
   caso de erro, transfere a parte do anfitrião. Assim, o anfitrião entrega cada parte uma vez, não a cada espectador.
+- **O ficheiro dá passagem às câmaras e às vozes.** Uma transferência que só reage a perdas enche primeiro a fila do
+  router, e os pacotes de voz que chegam depois do buffer de jitter (300 ms) são descartados: o filme continua enquanto
+  os participantes não se veem nem se ouvem. Por isso cada parte que um participante pede (ao anfitrião ou a outro
+  participante) e cada parte que envia a outro participante espera pelo `TransferPacer`; a sua velocidade é definida
+  pelo `TransferRateController` a partir dos tempos de ida e volta das sondas do relógio (a cada 0,5 s), mantendo a fila
+  da linha abaixo de 80 ms. O participante indica a velocidade no seu estado, e o anfitrião escreve-lhe as partes em
+  pedaços de 16 KiB a essa velocidade, para que saiam do computador de forma regular e não em rajadas de 256 KiB.
 
 ## Segurança
 
@@ -567,6 +574,17 @@ dotnet publish Sources/Apps/Golether.Browser -c Release -o artifacts/browser
   câmaras voltarem a ligar-se.
 - Os estados ICE de cada ligação são escritos no registo (`ICE to …: checking / connected / failed`): mostram se foi
   encontrado um caminho de rede para as câmaras.
+- As câmaras e as vozes avisam das falhas em vez de se calarem: uma ligação cortada com um participante é marcada no seu
+  quadro e no registo de eventos (tal como o seu regresso); uma saída de som parada é reiniciada até três vezes e depois
+  avisada; uma câmara ou um microfone que nada dão durante 8 segundos contam como avariados (não num telemóvel, que
+  perde a câmara fora do ecrã). A voz leva FEC na banda do Opus, por isso um pacote perdido isolado é recuperado a
+  partir do seguinte.
+- Do microfone é retirada não só a voz dos outros, mas também o filme: o cancelador de eco (`webrtcdsp`) recebe como
+  referência tudo o que as colunas reproduzem. No Windows é a captura em loopback do dispositivo de saída predefinido
+  (`wasapi2src loopback=true`), no Linux o monitor da saída predefinida do PulseAudio/PipeWire; o filme e as vozes tocam
+  aí, por isso a referência contém ambos. No macOS a referência são só as vozes dos outros: o Core Audio não deixa uma
+  aplicação gravar a saída sem um dispositivo virtual. Um telemóvel cancela o eco por si (o modo de voz do microfone).
+  Se a captura da saída continuar a falhar (três vezes seguidas), as vozes voltam a ser a única referência.
 - Desligar os dispositivos de um participante é executado pelo programa do participante; um cliente modificado pode
   ignorá-lo.
 - Quem está a falar é determinado por cada participante a partir do nível de som (`VoiceActivityDetector`: −42 dBFS,

@@ -53,7 +53,12 @@ internal sealed class BrowserSession : ISessionMessages, IAsyncDisposable
     private readonly HashSet<PeerId> _speaking = [];
 
     /// <summary>
-    /// Guards <see cref="_speaking"/>: the levels come from the conference.
+    /// The participants whose camera and voice connection is lost and being made again.
+    /// </summary>
+    private readonly HashSet<PeerId> _lostLinks = [];
+
+    /// <summary>
+    /// Guards <see cref="_speaking"/> and <see cref="_lostLinks"/>: both come from the conference.
     /// </summary>
     private readonly Lock _speakingGate = new();
 
@@ -77,6 +82,7 @@ internal sealed class BrowserSession : ISessionMessages, IAsyncDisposable
         _conference.MuteChanged += OnMuteChanged;
         _conference.CameraFailed += OnCameraFailed;
         _conference.MicrophoneFailed += OnMicrophoneFailed;
+        _conference.MediaLinkChanged += OnMediaLinkChanged;
 
         if (host is not null)
         {
@@ -310,6 +316,7 @@ internal sealed class BrowserSession : ISessionMessages, IAsyncDisposable
         _conference.MuteChanged -= OnMuteChanged;
         _conference.CameraFailed -= OnCameraFailed;
         _conference.MicrophoneFailed -= OnMicrophoneFailed;
+        _conference.MediaLinkChanged -= OnMediaLinkChanged;
 
         if (_host is not null)
         {
@@ -395,6 +402,51 @@ internal sealed class BrowserSession : ISessionMessages, IAsyncDisposable
     /// <param name="e">Nothing.</param>
     private void OnCameraFailed(object? sender, EventArgs e)
         => EventRaised?.Invoke(this, new SessionEvent(TimeProvider.System.GetLocalNow(), null, Texts.Get("Browser.Camera.Failed")));
+
+    /// <summary>
+    /// Remembers whose camera and voice connection is lost and writes the change to the event feed: a connection that
+    /// is being made again must not look like a participant who went silent.
+    /// </summary>
+    /// <param name="sender">The conference.</param>
+    /// <param name="change">The change.</param>
+    private void OnMediaLinkChanged(object? sender, MediaLinkChange change)
+    {
+        var lost = change.State == MediaLinkState.Lost;
+        lock (_speakingGate)
+        {
+            if (lost)
+            {
+                _lostLinks.Add(change.Peer);
+            }
+            else
+            {
+                _lostLinks.Remove(change.Peer);
+            }
+        }
+
+        if (lost || change.WasLost)
+        {
+            var name = GetSnapshot().Participants.FirstOrDefault(p => p.Info.PeerId == change.Peer)?.Info.DisplayName ??
+                Texts.Get("Session.DefaultParticipantName");
+            var key = lost ? "Main.Event.MediaLinkLost" : "Main.Event.MediaLinkRestored";
+            EventRaised?.Invoke(this, new SessionEvent(TimeProvider.System.GetLocalNow(), change.Peer, Texts.Format(key, name)));
+        }
+
+        OnChanged(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Tells whether the camera and voice connection with a participant is lost and being made again.
+    /// </summary>
+    /// <param name="peer">The participant.</param>
+    /// <returns><see langword="true"/> while the participant is neither seen nor heard.</returns>
+    public bool IsMediaLost(PeerId peer)
+    {
+        lock (_speakingGate)
+        {
+            return _lostLinks.Contains(peer);
+        }
+    }
 
     /// <summary>
     /// Tells that the microphone does not work.

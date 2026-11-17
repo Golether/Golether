@@ -46,6 +46,12 @@ internal interface IPeerHost
     void ReportFailure(WebRtcPeer peer, string reason);
 
     /// <summary>
+    /// Learns that a connection came up and was checked: the camera and voice flow.
+    /// </summary>
+    /// <param name="peer">The peer.</param>
+    void ReportConnected(WebRtcPeer peer);
+
+    /// <summary>
     /// Delivers a data channel message of a verified peer.
     /// </summary>
     /// <param name="peer">The peer.</param>

@@ -230,6 +230,13 @@ and the rate `Rate`". Every node computes the needed position itself: `Position 
   piece from a participant, checks its SHA-256 against the hash the host gives without the data (the GetHash
   operation), and on any error downloads the piece from the host. So the host gives every piece once, not to every
   viewer.
+- **The file yields to the cameras and voices.** A transfer that only reacts to losses fills the queue of the router
+  first, and voice packets that come later than the jitter buffer (300 ms) are thrown away: the film plays while the
+  participants neither see nor hear each other. So every piece a participant asks for (from the host or from another
+  participant) and every piece it sends to another participant waits for `TransferPacer`; `TransferRateController` sets
+  its rate from the round trips of the clock probes (every 0.5 s) and keeps the queue on the line below 80 ms. The
+  participant reports the rate in its status, and the host writes the pieces to it in parts of 16 KiB at that rate, so
+  they leave the computer evenly instead of in bursts of 256 KiB.
 
 ## Security
 
@@ -561,6 +568,18 @@ dotnet publish Sources/Apps/Golether.Browser -c Release -o artifacts/browser
   only after the cameras reconnect.
 - The ICE states of every connection are written to the log (`ICE to …: checking / connected / failed`): they show
   whether a network path for the cameras was found.
+- Cameras and voices say when they fail instead of going silent: a broken connection with a participant is marked on
+  their tile and in the event feed (and so is its return); a sound output that stopped is started again up to three
+  times and then reported; a camera or microphone that gives nothing for 8 seconds counts as failed (not on a phone,
+  which loses the camera off the screen). The voice carries Opus in-band FEC, so a single lost packet is restored from
+  the next one.
+- The film is taken out of the microphone, not only the voices: the echo canceller (`webrtcdsp`) gets everything the
+  loudspeakers play as its reference. On Windows it is the loopback capture of the default output device (`wasapi2src
+  loopback=true`), on Linux the monitor of the default PulseAudio/PipeWire output; the film and the voices play there,
+  so the reference holds both. On macOS only the voices of the others are the reference: Core Audio does not let an
+  application record the output without a virtual device. A phone cancels the echo itself (the voice preset of the
+  microphone). When the capture of the output keeps failing (three times in a row), the voices are the only reference
+  again.
 - Switching a participant's devices off is carried out by the participant's program; a modified client can ignore it.
 - Who is speaking is determined by each participant themselves from the sound level (`VoiceActivityDetector`:
   −42 dBFS, 60 ms to start, 450 ms hold): their own voice from a separate branch of the microphone pipeline, the

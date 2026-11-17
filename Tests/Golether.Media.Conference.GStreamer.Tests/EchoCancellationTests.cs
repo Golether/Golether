@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using Microsoft.Extensions.Logging.Abstractions;
 using Golether.Media.Conference.GStreamer.Native;
+using Golether.Media.Conference.GStreamer.Pipelines;
 
 namespace Golether.Media.Conference.GStreamer.Tests;
 
@@ -32,7 +33,28 @@ public sealed class EchoCancellationTests
     /// </summary>
     /// <returns>A task that completes when the test is done.</returns>
     [Fact]
-    public async Task Echo_IsRemoved_WhenThePipelinesShareATimeline()
+    public Task Echo_IsRemoved_WhenThePipelinesShareATimeline()
+        => AssertEchoRemovedAsync(
+            $"appsrc name=src is-live=true format=time caps=\"{FORMAT}\" ! queue ! webrtcechoprobe name=golether-test-echo ! fakesink sync=true",
+            "golether-test-echo");
+
+    /// <summary>
+    /// The echo reference pipeline, fed here instead of the loopback capture of the output, is a reference the
+    /// canceller can use: the film it hears is taken out of the microphone.
+    /// </summary>
+    /// <returns>A task that completes when the test is done.</returns>
+    [Fact]
+    public Task Echo_IsRemoved_WithTheEchoReferenceOfTheOutput()
+        => AssertEchoRemovedAsync(PipelineDescriptions.EchoReference(new RecordedOutput())!, "golether-echo");
+
+    /// <summary>
+    /// Plays sound through the reference pipeline, lets a microphone pipeline started later hear it after the room
+    /// delay and checks that its canceller takes the echo out.
+    /// </summary>
+    /// <param name="reference">The pipeline with the echo probe; its <c>src</c> takes what is played.</param>
+    /// <param name="probe">The name of the probe in it.</param>
+    /// <returns>A task that completes when the check is done.</returns>
+    private static async Task AssertEchoRemovedAsync(string reference, string probe)
     {
         var bundle = TestBundle.Find();
         Assert.SkipWhen(bundle is null && OperatingSystem.IsWindows(), "The GStreamer bundle is not prepared (run golether-components fetch).");
@@ -41,10 +63,7 @@ public sealed class EchoCancellationTests
         var token = TestContext.Current.CancellationToken;
         var origin = GstPipeline.SystemTime();
 
-        using var playback = new GstPipeline(
-            "playback",
-            $"appsrc name=src is-live=true format=time caps=\"{FORMAT}\" ! queue ! webrtcechoprobe name=golether-test-echo ! fakesink sync=true",
-            NullLogger.Instance);
+        using var playback = new GstPipeline("playback", reference, NullLogger.Instance);
         playback.UseTimeline(origin);
         playback.Play();
 
@@ -56,7 +75,7 @@ public sealed class EchoCancellationTests
         using var recording = new GstPipeline(
             "microphone",
             $"appsrc name=src is-live=true format=time caps=\"{FORMAT}\" ! queue ! " +
-            "webrtcdsp probe=golether-test-echo echo-cancel=true noise-suppression=false gain-control=false ! " +
+            $"webrtcdsp probe={probe} echo-cancel=true noise-suppression=false gain-control=false ! " +
             "appsink name=out sync=false max-buffers=200 drop=false",
             NullLogger.Instance);
         recording.UseTimeline(origin);
@@ -127,5 +146,23 @@ public sealed class EchoCancellationTests
 
             await Task.Delay(5, CancellationToken.None).ConfigureAwait(false);
         }
+    }
+
+    /// <summary>
+    /// A platform whose recorded output is what the test pushes: no audio device is needed.
+    /// </summary>
+    private sealed class RecordedOutput : IPipelineSources
+    {
+        /// <inheritdoc />
+        public string AudioSink => "fakesink";
+
+        /// <inheritdoc />
+        public string? EchoReference => $"appsrc name=src is-live=true format=time caps=\"{FORMAT}\" ! queue";
+
+        /// <inheritdoc />
+        public string VideoSource(CaptureDevice? camera) => "videotestsrc is-live=true";
+
+        /// <inheritdoc />
+        public string AudioSource(CaptureDevice? microphone) => "audiotestsrc is-live=true";
     }
 }

@@ -441,5 +441,7 @@ Windows n'ajoute au registre que l'entrée de désinstallation et le gestionnair
 - **Pas de caméras.** Vérifiez que le composant « Caméras et voix » est installé (écran d'accueil) et que Windows permet
   aux applications d'utiliser la caméra et le micro (« Paramètres → Confidentialité »). Une vignette noire signifie
   généralement un cache d'objectif fermé.
-- **L'autre personne s'entend elle-même.** L'annulation d'écho agit sur le son que joue Golether ; un casque supprime
-  complètement le problème.
+- **L'autre personne s'entend elle-même ou entend votre film.** L'annulation d'écho retire de votre micro les voix des
+  autres et, sous Windows et Linux, aussi le film et tout ce que jouent les haut-parleurs ; sous macOS, seulement les
+  voix. Des haut-parleurs très forts tout près du micro passent encore un peu ; un casque supprime complètement le
+  problème.

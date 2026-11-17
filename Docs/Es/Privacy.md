@@ -22,6 +22,9 @@ Los mensajes del chat y los dibujos no se guardan en ninguna parte: al cerrar la
 diagnóstico se guarda solo cuando usted lo pide; contiene el registro y los ajustes, así que revíselo antes de
 enviarlo a alguien.
 
+Para quitar la película de su voz, Golether en Windows y Linux escucha lo que reproducen sus altavoces durante una
+sesión con cámaras y voz. Ese sonido solo va al cancelador de eco de su ordenador: no se graba ni se envía.
+
 ## Lo que reciben los demás participantes
 
 Los participantes de su sesión ven su nombre, su avatar, su dirección de red (una conexión directa la necesita) y la

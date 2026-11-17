@@ -6,6 +6,11 @@ namespace Golether.Media.Conference.GStreamer.Pipelines;
 internal static class PipelineDescriptions
 {
     /// <summary>
+    /// The name of the echo probe the canceller of the microphone looks up when it starts.
+    /// </summary>
+    private const string ECHO_PROBE = "golether-echo";
+
+    /// <summary>
     /// Builds the video capture description: a preview, the usual encoder and the economy encoder behind a valve.
     /// </summary>
     /// <param name="sources">The elements of the platform.</param>
@@ -31,7 +36,8 @@ internal static class PipelineDescriptions
     }
 
     /// <summary>
-    /// Builds the audio capture description.
+    /// Builds the audio capture description. Every voice frame carries a coarse copy of the previous one (Opus in-band
+    /// FEC), so a lost packet is restored from the next one instead of becoming a gap.
     /// </summary>
     /// <param name="sources">The elements of the platform.</param>
     /// <param name="microphone">The microphone or <see langword="null"/> for the default.</param>
@@ -40,13 +46,33 @@ internal static class PipelineDescriptions
     public static string AudioCapture(IPipelineSources sources, CaptureDevice? microphone, bool echoCancellation)
     {
         var source = sources.AudioSource(microphone);
-        var dsp = echoCancellation ? "webrtcdsp probe=golether-echo echo-cancel=true noise-suppression=true gain-control=true ! " : string.Empty;
+        var dsp = echoCancellation ? $"webrtcdsp probe={ECHO_PROBE} echo-cancel=true noise-suppression=true gain-control=true ! " : string.Empty;
 
         return $"{source} ! audioconvert ! audioresample ! audio/x-raw,format=S16LE,rate=48000,channels=1 ! {dsp}" +
                "audioconvert ! audio/x-raw,format=S16LE,rate=48000,channels=1 ! tee name=mic " +
-               "mic. ! queue max-size-buffers=50 leaky=downstream ! opusenc bitrate=32000 frame-size=20 ! " +
+               "mic. ! queue max-size-buffers=50 leaky=downstream ! opusenc bitrate=32000 frame-size=20 inband-fec=true packet-loss-percentage=10 ! " +
                "appsink name=aenc emit-signals=true sync=false max-buffers=50 drop=true " +
                "mic. ! queue max-size-buffers=10 leaky=downstream ! appsink name=alevel emit-signals=true sync=false max-buffers=10 drop=true";
+    }
+
+    /// <summary>
+    /// Builds the description of the echo reference: what the loudspeakers play passes the echo probe, so the
+    /// canceller of the microphone takes the film out of the voice, not only the voices of the others.
+    /// </summary>
+    /// <param name="sources">The elements of the platform.</param>
+    /// <returns>The description, or <see langword="null"/> when the platform cannot capture its output.</returns>
+    public static string? EchoReference(IPipelineSources sources)
+    {
+        if (sources.EchoReference is not { } reference)
+        {
+            return null;
+        }
+
+        // The probe places a sound at its timestamp plus the latency of the pipeline, and only a sink that keeps to
+        // the clock makes the pipeline count it: with the loopback capture of WASAPI and a sink that ignores the
+        // clock, the canceller took nothing out.
+        return $"{reference} ! audioconvert ! audioresample ! audio/x-raw,format=S16LE,rate=48000,channels=1 ! " +
+               $"webrtcechoprobe name={ECHO_PROBE} ! fakesink sync=true";
     }
 
     /// <summary>
@@ -54,14 +80,17 @@ internal static class PipelineDescriptions
     /// </summary>
     /// <param name="sources">The elements of the platform.</param>
     /// <param name="remotePeers">The number of mixer inputs.</param>
+    /// <param name="echoProbe">Whether the voices pass the echo probe: without an echo reference of the whole output
+    /// they are the only reference the canceller gets.</param>
     /// <returns>The description.</returns>
-    public static string Playback(IPipelineSources sources, int remotePeers)
+    public static string Playback(IPipelineSources sources, int remotePeers, bool echoProbe)
     {
         var slots = string.Concat(Enumerable.Range(0, remotePeers).Select(i =>
             $" appsrc name=slot{i} is-live=true do-timestamp=true format=time " +
             "caps=\"audio/x-raw,format=S16LE,rate=48000,channels=1,layout=interleaved\" ! queue ! mix."));
 
-        return "audiomixer name=mix latency=60000000 ! audioconvert ! audioresample ! webrtcechoprobe name=golether-echo ! " +
-               $"audioconvert ! audioresample ! {sources.AudioSink}{slots}";
+        var probe = echoProbe ? $"webrtcechoprobe name={ECHO_PROBE} ! audioconvert ! audioresample ! " : string.Empty;
+
+        return $"audiomixer name=mix latency=60000000 ! audioconvert ! audioresample ! {probe}{sources.AudioSink}{slots}";
     }
 }

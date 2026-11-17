@@ -379,6 +379,10 @@
                       </Border>
                       <!-- Both devices may be off at once, so each has a mark of its own. -->
                       <StackPanel Margin="0,5,5,0" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Top">
+                        <!-- The camera and voice connection broke and is being made again. -->
+                        <Border Classes="badge" Padding="4,1" IsVisible="{Binding MediaLost}" AutomationProperties.Name="{loc:Loc Main.Participant.MediaLostTip}">
+                          <TextBlock FontSize="10" Foreground="{StaticResource GoletherBad}" Text="{loc:Loc Main.Participant.MediaLost}" VerticalAlignment="Center" />
+                        </Border>
                         <Border Classes="badge" Padding="3" IsVisible="{Binding MicrophoneOff}" AutomationProperties.Name="{loc:Loc Main.Participant.MicrophoneOffTip}">
                           <controls:StrokeIcon Width="12" Height="12" Thickness="2.4" Foreground="{StaticResource GoletherBad}" Data="{StaticResource IconMicrophoneOff}" />
                         </Border>
@@ -544,6 +548,10 @@
                     </Border>
                     <!-- Both devices may be off at once, so each has a mark of its own. -->
                     <StackPanel Margin="0,5,5,0" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Top">
+                      <!-- The camera and voice connection broke and is being made again. -->
+                      <Border Classes="badge" Padding="4,1" IsVisible="{Binding MediaLost}" AutomationProperties.Name="{loc:Loc Main.Participant.MediaLostTip}">
+                        <TextBlock FontSize="10" Foreground="{StaticResource GoletherBad}" Text="{loc:Loc Main.Participant.MediaLost}" VerticalAlignment="Center" />
+                      </Border>
                       <Border Classes="badge" Padding="3" IsVisible="{Binding MicrophoneOff}" AutomationProperties.Name="{loc:Loc Main.Participant.MicrophoneOffTip}">
                         <controls:StrokeIcon Width="12" Height="12" Thickness="2.4" Foreground="{StaticResource GoletherBad}" Data="{StaticResource IconMicrophoneOff}" />
                       </Border>

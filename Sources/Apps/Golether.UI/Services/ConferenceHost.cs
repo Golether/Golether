@@ -162,6 +162,8 @@ public sealed class ConferenceHost : IConferenceMedia, Golether.Client.ViewModel
             MicrophoneFailed?.Invoke(this, EventArgs.Empty);
         };
         media.CameraFailed += (_, _) => CameraFailed?.Invoke(this, EventArgs.Empty);
+        media.PlaybackFailed += (_, _) => PlaybackFailed?.Invoke(this, EventArgs.Empty);
+        media.MediaLinkChanged += (_, change) => MediaLinkChanged?.Invoke(this, change);
         media.SetMuted(_microphoneMuted, _cameraOff);
         media.SetRelay(_relay);
         media.SetStunServer(_stunServer);
@@ -214,6 +216,12 @@ public sealed class ConferenceHost : IConferenceMedia, Golether.Client.ViewModel
 
     /// <inheritdoc />
     public event EventHandler? CameraFailed;
+
+    /// <inheritdoc />
+    public event EventHandler? PlaybackFailed;
+
+    /// <inheritdoc />
+    public event EventHandler<MediaLinkChange>? MediaLinkChanged;
 
     /// <inheritdoc />
     public Task ConnectAsync(PeerId peer, bool isOfferer, CancellationToken cancellationToken) => _current.ConnectAsync(peer, isOfferer, cancellationToken);

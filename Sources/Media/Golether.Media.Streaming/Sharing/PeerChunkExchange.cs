@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Golether.Core.Identity;
 using Golether.Core.Media;
+using Golether.Media.Streaming.Pacing;
 using Golether.Media.Streaming.Protocol;
 
 namespace Golether.Media.Streaming.Sharing;
@@ -164,6 +165,12 @@ public sealed class PeerChunkExchange : IAsyncDisposable
     /// Gets the chunk bytes sent to participants.
     /// </summary>
     public long BytesSent => Interlocked.Read(ref _bytesSent);
+
+    /// <summary>
+    /// Gets the pacer the chunks sent to participants wait for, or <see langword="null"/> to send them at the speed
+    /// of the line.
+    /// </summary>
+    public TransferPacer? UploadPacer { get; init; }
 
     /// <summary>
     /// Returns the participants that announced a chunk recently.
@@ -452,6 +459,21 @@ public sealed class PeerChunkExchange : IAsyncDisposable
             var size = Math.Min(_options.FragmentSize, chunk.Length - offset);
             BinaryPrimitives.WriteUInt32BigEndian(buffer.AsSpan(5), (uint)offset);
             chunk.AsSpan(offset, size).CopyTo(buffer.AsSpan(DATA_HEADER_SIZE));
+
+            // The parts share the encrypted transport with the voices and cameras of this device: sent at the speed
+            // of the line they would queue in front of them in the router.
+            if (UploadPacer is { } pacer)
+            {
+                try
+                {
+                    await pacer.WaitAsync(size, _stop.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+            }
+
             var waitedSince = _timeProvider.GetUtcNow();
             while (!_transport.TrySend(peer, buffer.AsSpan(0, DATA_HEADER_SIZE + size)))
             {

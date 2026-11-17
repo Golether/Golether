@@ -12,6 +12,7 @@ using Golether.Localization;
 using Golether.Media.Conference;
 using Golether.Media.Streaming.Caching;
 using Golether.Media.Streaming.Files;
+using Golether.Media.Streaming.Pacing;
 using Golether.Media.Streaming.Protocol;
 using Golether.Media.Streaming.Sharing;
 using Golether.Security.Invites;
@@ -62,7 +63,23 @@ public sealed class ParticipantSession : IAsyncDisposable
     /// <summary>
     /// The clock offset estimator.
     /// </summary>
-    private readonly ClockOffsetEstimator _estimator = new();
+    private readonly ClockOffsetEstimator _estimator;
+
+    /// <summary>
+    /// Chooses how fast the file may move from the round trips of the clock probes, so that the voices and cameras keep
+    /// room on the line.
+    /// </summary>
+    private readonly TransferRateController _transferRate;
+
+    /// <summary>
+    /// Spaces out the pieces asked for from the host and the other participants.
+    /// </summary>
+    private readonly TransferPacer _downloads;
+
+    /// <summary>
+    /// Spaces out the pieces sent to the other participants.
+    /// </summary>
+    private readonly TransferPacer _uploads;
 
     /// <summary>
     /// The session clock.
@@ -366,6 +383,10 @@ public sealed class ParticipantSession : IAsyncDisposable
         _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
         _logger = _loggerFactory.CreateLogger<ParticipantSession>();
         DisplayName = ParticipantInfo.NormalizeDisplayName(displayName);
+        _estimator = new ClockOffsetEstimator(EstimatorWindow(options.ClockProbeInterval));
+        _transferRate = new TransferRateController(timeProvider);
+        _downloads = new TransferPacer(timeProvider) { Rate = _transferRate.Rate };
+        _uploads = new TransferPacer(timeProvider) { Rate = _transferRate.Rate };
         _clock = new ParticipantSessionClock(clock, _estimator);
         _follower = new PlaybackFollower(player, _clock, new DriftCorrector(options.DriftCorrection), _loggerFactory.CreateLogger<PlaybackFollower>());
         _conferenceMedia = conference;
@@ -623,7 +644,7 @@ public sealed class ParticipantSession : IAsyncDisposable
             if (_conferenceMedia is { IsAvailable: true } conference)
             {
                 // A local copy is served to the other participants in full.
-                _sharing = new ChunkSharing(media, conference, MediaFiles.OpenRead(path), _loggerFactory.CreateLogger<PeerChunkExchange>());
+                _sharing = new ChunkSharing(media, conference, MediaFiles.OpenRead(path), _uploads, _loggerFactory.CreateLogger<PeerChunkExchange>());
             }
         }
         finally
@@ -814,7 +835,9 @@ public sealed class ParticipantSession : IAsyncDisposable
         };
         await using (source.ConfigureAwait(false))
         {
-            var chunks = await Task.WhenAll(Enumerable.Range(0, (int)media.ChunkCount).Select(i => source.GetChunkAsync(i, cancellationToken).AsTask()))
+            // A picture of a folder shares the line with the voices just as the film does.
+            var paced = new PacedChunkSource(source, _downloads);
+            var chunks = await Task.WhenAll(Enumerable.Range(0, (int)media.ChunkCount).Select(i => paced.GetChunkAsync(i, cancellationToken).AsTask()))
                 .ConfigureAwait(false);
             var bytes = new byte[media.Length];
             var offset = 0;
@@ -1197,7 +1220,9 @@ public sealed class ParticipantSession : IAsyncDisposable
                     case null:
                         return;
                     case ClockPongMessage pong:
-                        _estimator.AddSample(pong.ClientSendTime, pong.HostReceiveTime, pong.HostSendTime, _monotonic.NowMicroseconds);
+                        var received = _monotonic.NowMicroseconds;
+                        _estimator.AddSample(pong.ClientSendTime, pong.HostReceiveTime, pong.HostSendTime, received);
+                        AdjustTransferRate(pong, received);
                         break;
                     case PlaybackStateMessage { State: not null } stateMessage:
                         OnState(stateMessage.State);
@@ -1567,7 +1592,7 @@ public sealed class ParticipantSession : IAsyncDisposable
         if (_conferenceMedia is { IsAvailable: true } conference)
         {
             // Other participants may already have chunks; they are checked against the host's hashes.
-            var sharing = new ChunkSharing(media, conference, cache, _loggerFactory.CreateLogger<PeerChunkExchange>());
+            var sharing = new ChunkSharing(media, conference, cache, _uploads, _loggerFactory.CreateLogger<PeerChunkExchange>());
             var swarm = new SwarmChunkSource(source, sharing.Exchange, _loggerFactory.CreateLogger<SwarmChunkSource>());
             lock (_gate)
             {
@@ -1578,6 +1603,8 @@ public sealed class ParticipantSession : IAsyncDisposable
             chunks = swarm;
         }
 
+        // Every piece that comes over the network waits for the rate the line can take beside the voices.
+        chunks = new PacedChunkSource(chunks, _downloads);
         var reader = new CachedMediaReader(chunks, cache, ReadAheadOptions.For(_mediaStreams, media.ChunkSize), _loggerFactory.CreateLogger<CachedMediaReader>());
         var uri = _uriRegistry.Register(() => new MediaReadStream(reader));
         lock (_gate)
@@ -1699,7 +1726,54 @@ public sealed class ParticipantSession : IAsyncDisposable
             BytesFromPeers = _swarm?.BytesFromPeers ?? 0,
             BytesToPeers = _sharing?.Exchange.BytesSent ?? 0,
             GalleryView = galleryView,
+            TransferRate = _transferRate.Rate,
         };
+    }
+
+    /// <summary>
+    /// Takes the round trip of a clock probe as a measurement of the queue on the line and sets the rate of the file
+    /// from it.
+    /// </summary>
+    /// <param name="pong">The answer of the host.</param>
+    /// <param name="received">When the answer arrived, on the local monotonic clock in microseconds.</param>
+    private void AdjustTransferRate(ClockPongMessage pong, long received)
+    {
+        // The time the host held the probe is not on the line.
+        var held = Math.Max(0, pong.HostSendTime - pong.HostReceiveTime);
+        var roundTrip = received - pong.ClientSendTime - held;
+        if (roundTrip <= 0)
+        {
+            return;
+        }
+
+        var (_, downloadsLimited) = _downloads.TakeUsage();
+        var (_, uploadsLimited) = _uploads.TakeUsage();
+        if (_transferRate.Update(TimeSpan.FromMicroseconds(roundTrip), downloadsLimited || uploadsLimited))
+        {
+            _downloads.Rate = _transferRate.Rate;
+            _uploads.Rate = _transferRate.Rate;
+            _logger.LogDebug(
+                "File rate {Rate} KiB/s (queue {Queue:0} ms)",
+                _transferRate.Rate / 1024,
+                _transferRate.QueueDelay?.TotalMilliseconds ?? 0);
+        }
+    }
+
+    /// <summary>
+    /// Chooses how many clock probes the estimator keeps, so that its window spans about half a minute whatever the
+    /// interval of the probes.
+    /// </summary>
+    /// <param name="probeInterval">The interval of the probes.</param>
+    /// <returns>The number of probes.</returns>
+    private static int EstimatorWindow(TimeSpan probeInterval)
+    {
+        const int SECONDS = 32;
+        const int MIN_WINDOW = 16;
+        const int MAX_WINDOW = 256;
+
+        return probeInterval <= TimeSpan.Zero
+            ? MIN_WINDOW
+            : (int)Math.Clamp(SECONDS / probeInterval.TotalSeconds, MIN_WINDOW, MAX_WINDOW);
     }
 
     /// <summary>

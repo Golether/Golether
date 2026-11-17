@@ -175,6 +175,14 @@ Eine Antwort, 45 Bytes und die Daten: der Status (`0` OK, `1` außerhalb der Dat
 Die Stückgröße ist standardmäßig 256 KiB (zulässig sind 64 KiB – 16 MiB). Die schnelle Kennung = SHA-256(Länge int64
 LE, das erste MiB, das mittlere MiB, das letzte MiB).
 
+Der Gastgeber schreibt einem Teilnehmer die Stücke nicht schneller als die `transferRate` seines Status (Bytes pro
+Sekunde, begrenzt auf 64 KiB/s – 1 GiB/s), in Teilen von 16 KiB. Der Teilnehmer wählt die Rate selbst nach den
+Umlaufzeiten seiner `ping`-Proben (alle 0,5 s): Die kleinste Umlaufzeit der letzten zehn Minuten ist die Leitung, alles
+darüber ist eine Warteschlange, und die Rate sinkt, sobald die Warteschlange 80 ms übersteigt (eine verzögerungsbasierte
+Regelung nach Art von LEDBAT, RFC 6817). So füllt die Datei nie die Warteschlange eines Routers vor den Kameras und
+Stimmen. Ein Teilnehmer einer früheren Version sendet keine `transferRate` und erhält die Stücke mit der Geschwindigkeit
+der Leitung.
+
 ## Relay
 
 Der Stream trägt TURN (RFC 5766 in TCP-Rahmung) unverändert: dasselbe, was der Client an den Relay-Port des Gastgebers

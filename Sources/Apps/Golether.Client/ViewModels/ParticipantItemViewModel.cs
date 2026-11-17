@@ -176,6 +176,13 @@ public sealed partial class ParticipantItemViewModel : ObservableObject
     public partial bool WeakConnection { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the connection that carries the camera and voice of the participant is
+    /// lost and being made again, so neither side sees or hears the other until it is back.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool MediaLost { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether the microphone of the participant is off.
     /// </summary>
     [ObservableProperty]

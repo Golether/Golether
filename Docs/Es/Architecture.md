@@ -239,6 +239,14 @@ El estado de la sesión (`PlaybackState`): «en el momento `ReferenceTime` segú
   pieza de un participante, comprueba su SHA-256 con el hash que da el anfitrión sin los datos (la operación GetHash) y,
   ante cualquier error, descarga la pieza del anfitrión. Así el anfitrión entrega cada pieza una vez, no a cada
   espectador.
+- **El archivo cede el paso a las cámaras y las voces.** Una transferencia que solo reacciona a las pérdidas llena
+  primero la cola del router, y los paquetes de voz que llegan más tarde que el búfer de fluctuación (300 ms) se
+  descartan: la película sigue mientras los participantes ni se ven ni se oyen. Por eso cada pieza que un participante
+  pide (al anfitrión o a otro participante) y cada pieza que envía a otro participante espera a `TransferPacer`; su
+  velocidad la fija `TransferRateController` a partir de los tiempos de ida y vuelta de las sondas del reloj (cada 0,5
+  s) y mantiene la cola de la línea por debajo de 80 ms. El participante comunica la velocidad en su estado, y el
+  anfitrión le escribe las piezas en partes de 16 KiB a esa velocidad, de modo que salen del ordenador de forma regular
+  y no en ráfagas de 256 KiB.
 
 ## Seguridad
 
@@ -583,6 +591,18 @@ dotnet publish Sources/Apps/Golether.Browser -c Release -o artifacts/browser
   tras reconectar las cámaras.
 - Los estados ICE de cada conexión se escriben en el registro (`ICE to …: checking / connected / failed`): muestran si se
   encontró un camino de red para las cámaras.
+- Las cámaras y las voces avisan de los fallos en lugar de callarse: una conexión cortada con un participante se marca
+  en su recuadro y en el registro de eventos (igual que su vuelta); una salida de sonido detenida se reinicia hasta tres
+  veces y después se avisa; una cámara o un micrófono que no dan nada durante 8 segundos se consideran averiados (no en
+  un teléfono, que pierde la cámara fuera de la pantalla). La voz lleva FEC en banda de Opus, así que un paquete perdido
+  suelto se recupera del siguiente.
+- Del micrófono se resta no solo la voz de los demás, sino también la película: el cancelador de eco (`webrtcdsp`)
+  recibe como referencia todo lo que reproducen los altavoces. En Windows es la captura en bucle del dispositivo de
+  salida predeterminado (`wasapi2src loopback=true`), en Linux el monitor de la salida predeterminada de
+  PulseAudio/PipeWire; la película y las voces suenan allí, así que la referencia contiene ambas. En macOS la referencia
+  son solo las voces de los demás: Core Audio no deja que una aplicación grabe la salida sin un dispositivo virtual. Un
+  teléfono cancela el eco por sí mismo (el modo de voz del micrófono). Si la captura de la salida sigue fallando (tres
+  veces seguidas), las voces vuelven a ser la única referencia.
 - Apagar los dispositivos de un participante lo ejecuta el programa del participante; un cliente modificado puede
   ignorarlo.
 - Quién habla lo determina cada participante por sí mismo a partir del nivel de sonido (`VoiceActivityDetector`:

@@ -1025,6 +1025,12 @@
                                       ToolTip.Tip="{loc:Loc Gallery.Participant.AloneTip}">
                                 <TextBlock Text="{loc:Loc Gallery.Participant.Alone}" Classes="mono" FontSize="10" Foreground="{StaticResource GoletherAccent}" VerticalAlignment="Center" />
                               </Border>
+                              <!-- The camera and voice connection broke and is being made again. -->
+                              <Border Background="#99000000" CornerRadius="5" Padding="5,1" IsVisible="{Binding MediaLost}"
+                                      ToolTip.Tip="{loc:Loc Main.Participant.MediaLostTip}"
+                                      AutomationProperties.Name="{loc:Loc Main.Participant.MediaLostTip}">
+                                <TextBlock Text="{loc:Loc Main.Participant.MediaLost}" Classes="mono" FontSize="10" Foreground="{StaticResource GoletherBad}" VerticalAlignment="Center" />
+                              </Border>
                               <Border Background="#99000000" CornerRadius="5" Padding="5,1" IsVisible="{Binding WeakConnection}"
                                       ToolTip.Tip="{loc:Loc Main.Participant.WeakTip}"
                                       AutomationProperties.Name="{loc:Loc Main.Participant.WeakName}">

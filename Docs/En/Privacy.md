@@ -21,6 +21,10 @@ Everything below lies in the `data` folder of the application (see "Where the da
 Chat messages and drawings are stored nowhere: when the session is closed, they are gone. A diagnostic report is saved
 only when you ask for it; it holds the log and the settings, so look at it before you send it to anyone.
 
+To take the film out of your voice, Golether on Windows and Linux listens to what your loudspeakers play during a
+session with cameras and voice. That sound goes only to the echo canceller on your computer: it is neither recorded nor
+sent.
+
 ## What the other participants receive
 
 The participants of your session see your name, your avatar, your network address (a direct connection needs it) and

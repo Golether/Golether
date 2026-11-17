@@ -532,6 +532,11 @@
                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                               </Border>
                               <StackPanel Orientation="Horizontal" Spacing="4" Margin="8" HorizontalAlignment="Right" VerticalAlignment="Top">
+                                <!-- The camera and voice connection broke and is being made again. -->
+                                <Border Background="#99000000" CornerRadius="5" Padding="5,1" IsVisible="{Binding MediaLost}"
+                                        ToolTip.Tip="{loc:Loc Main.Participant.MediaLostTip}" AutomationProperties.Name="{loc:Loc Main.Participant.MediaLostTip}">
+                                  <TextBlock Text="{loc:Loc Main.Participant.MediaLost}" Classes="mono" FontSize="10" Foreground="{StaticResource GoletherBad}" VerticalAlignment="Center" />
+                                </Border>
                                 <Border Background="#99000000" CornerRadius="5" Padding="5,1" IsVisible="{Binding WeakConnection}"
                                         ToolTip.Tip="{loc:Loc Main.Participant.WeakTip}" AutomationProperties.Name="{loc:Loc Main.Participant.WeakName}">
                                   <TextBlock Text="{loc:Loc Main.Participant.Economy}" Classes="mono" FontSize="10" Foreground="{StaticResource GoletherWarn}" VerticalAlignment="Center" />

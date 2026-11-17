@@ -424,5 +424,7 @@ entry and the handler of invitation links. Therefore:
 - **No cameras.** Check that the "Cameras and voice" component is installed (start screen) and that Windows lets
   applications use the camera and the microphone ("Settings → Privacy"). A black tile usually means a closed lens
   shutter.
-- **The other person hears themselves.** Echo cancellation works for the sound Golether plays; headphones remove the
-  problem completely.
+- **The other person hears themselves or your film.** Echo cancellation takes the voices of the others out of your
+  microphone and, on Windows and Linux, the film and everything else the loudspeakers play too; on macOS only the
+  voices. Very loud loudspeakers right next to the microphone still leak a little; headphones remove the problem
+  completely.

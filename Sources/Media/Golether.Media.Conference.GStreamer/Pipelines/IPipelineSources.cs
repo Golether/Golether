@@ -11,6 +11,13 @@ public interface IPipelineSources
     string AudioSink { get; }
 
     /// <summary>
+    /// Gets the element that captures what the loudspeakers play (the film, the voices, any other sound), the
+    /// reference of the echo canceller, or <see langword="null"/> when the system cannot give it: then only the voices
+    /// played through <see cref="AudioSink"/> are taken out of the microphone.
+    /// </summary>
+    string? EchoReference { get; }
+
+    /// <summary>
     /// Builds the element that captures the camera.
     /// </summary>
     /// <param name="camera">The camera or <see langword="null"/> for the default one.</param>

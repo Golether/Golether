@@ -649,6 +649,68 @@ public sealed class ConferenceTests
     }
 
     /// <summary>
+    /// A connection that came up and was checked is reported on both sides, as a new one and not as one that came back,
+    /// so the application can clear a mark of a lost connection and say nothing about the first one.
+    /// </summary>
+    /// <returns>A task that completes when the test is done.</returns>
+    [Fact]
+    public async Task Connection_ThatComesUp_IsReportedOnBothSides()
+    {
+        var (a, b, skip) = _pair.Value;
+        Assert.SkipWhen(skip is not null, skip ?? string.Empty);
+        var token = TestContext.Current.CancellationToken;
+        var kate = PeerId.Parse(new string('e', 64));
+        var liam = PeerId.Parse(new string('f', 64));
+        var seenByA = new List<MediaLinkChange>();
+        var seenByB = new List<MediaLinkChange>();
+        EventHandler<ConferenceSignal> toB = (_, s) => { if (s.PeerId == liam) { _ = b!.HandleSignalAsync(s with { PeerId = kate }, token); } };
+        EventHandler<ConferenceSignal> toA = (_, s) => { if (s.PeerId == kate) { _ = a!.HandleSignalAsync(s with { PeerId = liam }, token); } };
+        EventHandler<MediaLinkChange> onA = (_, change) => { lock (seenByA) { seenByA.Add(change); } };
+        EventHandler<MediaLinkChange> onB = (_, change) => { lock (seenByB) { seenByB.Add(change); } };
+        a!.SignalReady += toB;
+        b!.SignalReady += toA;
+        a.MediaLinkChanged += onA;
+        b.MediaLinkChanged += onB;
+        try
+        {
+            await a.StartCaptureAsync(null, null, token);
+            await b.StartCaptureAsync(null, null, token);
+            await a.ConnectAsync(liam, isOfferer: true, token);
+            for (var i = 0; i < 150 && (Count(seenByA) == 0 || Count(seenByB) == 0); i++)
+            {
+                await Task.Delay(100, token);
+            }
+
+            lock (seenByA)
+            {
+                Assert.Equal([new MediaLinkChange(liam, MediaLinkState.Connected, false)], seenByA);
+            }
+
+            lock (seenByB)
+            {
+                Assert.Equal([new MediaLinkChange(kate, MediaLinkState.Connected, false)], seenByB);
+            }
+        }
+        finally
+        {
+            a.SignalReady -= toB;
+            b.SignalReady -= toA;
+            a.MediaLinkChanged -= onA;
+            b.MediaLinkChanged -= onB;
+            await a.DisconnectAsync(liam);
+            await b.DisconnectAsync(kate);
+        }
+
+        static int Count(List<MediaLinkChange> seen)
+        {
+            lock (seen)
+            {
+                return seen.Count;
+            }
+        }
+    }
+
+    /// <summary>
     /// A camera that stops by itself is reported once, and it stays shown as on: on a phone the system takes the camera
     /// from an application off the screen, and only the application knows that it comes back.
     /// </summary>

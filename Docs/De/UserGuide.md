@@ -444,5 +444,7 @@ Registry nur den Deinstallationseintrag und den Handler für Einladungslinks ein
 - **Keine Kameras.** Prüfen Sie, ob die Komponente „Kameras und Sprache“ installiert ist (Startbildschirm) und ob Windows
   Anwendungen Kamera und Mikrofon erlaubt („Einstellungen → Datenschutz“). Eine schwarze Kachel bedeutet meist eine
   geschlossene Objektivabdeckung.
-- **Die andere Person hört sich selbst.** Die Echounterdrückung wirkt für den Ton, den Golether abspielt; Kopfhörer
+- **Die andere Person hört sich selbst oder Ihren Film.** Die Echounterdrückung entfernt aus Ihrem Mikrofon die Stimmen
+  der anderen und unter Windows und Linux auch den Film und alles andere, was die Lautsprecher abspielen; unter macOS
+  nur die Stimmen. Sehr laute Lautsprecher direkt neben dem Mikrofon dringen trotzdem ein wenig durch; Kopfhörer
   beseitigen das Problem vollständig.

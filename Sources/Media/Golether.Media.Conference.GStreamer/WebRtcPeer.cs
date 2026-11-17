@@ -139,10 +139,10 @@ internal sealed partial class WebRtcPeer : IDisposable
         "appsink name=rvideo emit-signals=true max-buffers=1 drop=true sync=false";
 
     /// <summary>
-    /// The receiving chain of audio.
+    /// The receiving chain of audio: a lost frame is restored from the copy the next one carries, or concealed.
     /// </summary>
     private const string AUDIO_RECEIVER =
-        "queue ! rtpopusdepay ! opusdec plc=true ! audioconvert ! audioresample ! " +
+        "queue ! rtpopusdepay ! opusdec plc=true use-inband-fec=true ! audioconvert ! audioresample ! " +
         "audio/x-raw,format=S16LE,rate=48000,channels=1,layout=interleaved ! " +
         "appsink name=raudio emit-signals=true sync=false max-buffers=50 drop=true";
 
@@ -200,7 +200,13 @@ internal sealed partial class WebRtcPeer : IDisposable
         _host = host;
         _logger = logger;
         _pipeline = new GstPipeline($"peer {peer.ToShortString()}", DESCRIPTION, logger);
-        _pipeline.Failed += (_, error) => _logger.LogWarning("Peer {Peer}: {Error}", Peer.ToShortString(), error);
+        _pipeline.Failed += (_, error) =>
+        {
+            // An element that reported an error stops its stream: the picture or the voice of the peer would stay
+            // silent for the rest of the session, so the connection is made again.
+            _logger.LogWarning("Peer {Peer}: {Error}", Peer.ToShortString(), error);
+            Fail("pipeline error");
+        };
         _self = GCHandle.Alloc(this);
         var webrtc = _pipeline.Element("webrtc");
         if (!string.IsNullOrEmpty(network.StunServer))
@@ -728,6 +734,7 @@ internal sealed partial class WebRtcPeer : IDisposable
             {
                 OpenGates();
                 _logger.LogInformation("DTLS certificate of {Peer} verified; media enabled", Peer.ToShortString());
+                _host.ReportConnected(this);
             }
             else
             {

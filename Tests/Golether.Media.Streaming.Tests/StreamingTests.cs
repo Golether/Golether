@@ -1,9 +1,11 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
+using Microsoft.Extensions.Time.Testing;
 using Golether.Core.Media;
 using Golether.Media.Streaming.Caching;
 using Golether.Media.Streaming.Files;
+using Golether.Media.Streaming.Pacing;
 using Golether.Media.Streaming.Protocol;
 
 namespace Golether.Media.Streaming.Tests;
@@ -85,6 +87,37 @@ public sealed class StreamingTests : IAsyncLifetime
         }
 
         await serving.WaitAsync(TimeSpan.FromSeconds(10), token);
+    }
+
+    /// <summary>
+    /// A paced server writes a piece only as fast as the rate of the participant lets, and the bytes stay exact.
+    /// </summary>
+    [Fact]
+    public async Task Server_PacesPiecesToTheRateOfTheParticipant()
+    {
+        var media = await DescribeAsync();
+        var shared = new LocalSharedMedia();
+        shared.Share(_path, media);
+        var (clientStream, serverStream) = await ConnectedPairAsync();
+        var token = TestContext.Current.CancellationToken;
+        var time = new FakeTimeProvider();
+        var pacer = new TransferPacer(time) { Rate = ChunkServer.PACED_SLICE };
+        _ = new ChunkServer(shared).ServeAsync(serverStream, pacer, token);
+        await using var client = new ChunkClient(clientStream);
+
+        var fetch = client.FetchAsync(media, 0, token);
+        await Task.Delay(TimeSpan.FromMilliseconds(300), token);
+        Assert.False(fetch.IsCompleted);
+
+        // A piece of four parts at one part per second needs three more seconds after the first part.
+        while (!fetch.IsCompleted)
+        {
+            time.Advance(TimeSpan.FromSeconds(1));
+            await Task.WhenAny(fetch, Task.Delay(TimeSpan.FromMilliseconds(50), token));
+        }
+
+        Assert.Equal(_content[..CHUNK_SIZE], await fetch);
+        Assert.True(time.GetUtcNow() - time.Start >= TimeSpan.FromSeconds(3));
     }
 
     /// <summary>

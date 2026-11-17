@@ -240,6 +240,13 @@ L'état de la séance (`PlaybackState`) : « à l'instant `ReferenceTime` selon 
   `SwarmChunkSource` prend un morceau chez un participant, vérifie son SHA-256 avec le hachage que l'hôte donne sans les
   données (l'opération GetHash) et, en cas d'erreur, télécharge le morceau chez l'hôte. Ainsi l'hôte donne chaque
   morceau une fois, pas à chaque spectateur.
+- **Le fichier cède le passage aux caméras et aux voix.** Un transfert qui ne réagit qu'aux pertes remplit d'abord la
+  file du routeur, et les paquets de voix arrivés après le tampon de gigue (300 ms) sont jetés : le film avance alors
+  que les participants ne se voient ni ne s'entendent. C'est pourquoi chaque morceau qu'un participant demande (à l'hôte
+  ou à un autre participant) et chaque morceau qu'il envoie à un autre participant attend `TransferPacer` ; son débit
+  est fixé par `TransferRateController` d'après les allers-retours des sondes d'horloge (toutes les 0,5 s), qui garde la
+  file de la ligne sous 80 ms. Le participant indique le débit dans son statut, et l'hôte lui écrit les morceaux par
+  parties de 16 Kio à ce débit, si bien qu'ils quittent l'ordinateur régulièrement et non par rafales de 256 Kio.
 
 ## Sécurité
 
@@ -592,6 +599,18 @@ dotnet publish Sources/Apps/Golether.Browser -c Release -o artifacts/browser
   relais qu'après la reconnexion des caméras.
 - Les états ICE de chaque connexion sont écrits dans le journal (`ICE to …: checking / connected / failed`) : ils
   montrent si un chemin réseau a été trouvé pour les caméras.
+- Les caméras et les voix signalent leurs pannes au lieu de se taire : une connexion coupée avec un participant est
+  marquée sur sa vignette et dans le fil des événements (de même que son retour) ; une sortie audio arrêtée est relancée
+  jusqu'à trois fois, puis signalée ; une caméra ou un micro qui ne donne rien pendant 8 secondes est tenu pour
+  défaillant (pas sur un téléphone, qui perd la caméra hors de l'écran). La voix porte la FEC intrabande d'Opus : un
+  paquet perdu isolé est restitué à partir du suivant.
+- Le micro est débarrassé non seulement des voix des autres, mais aussi du film : l'annuleur d'écho (`webrtcdsp`) reçoit
+  comme référence tout ce que jouent les haut-parleurs. Sous Windows, c'est la capture en boucle du périphérique de
+  sortie par défaut (`wasapi2src loopback=true`), sous Linux le moniteur de la sortie par défaut de
+  PulseAudio/PipeWire ; le film et les voix y sont joués, la référence contient donc les deux. Sous macOS, seules les
+  voix des autres servent de référence : Core Audio ne laisse pas une application enregistrer la sortie sans
+  périphérique virtuel. Un téléphone annule l'écho lui-même (le mode voix du micro). Si la capture de la sortie échoue
+  sans cesse (trois fois de suite), les voix redeviennent la seule référence.
 - La coupure des appareils d'un participant est exécutée par le programme du participant ; un client modifié peut
   l'ignorer.
 - Qui parle, chaque participant le détermine lui-même d'après le niveau sonore (`VoiceActivityDetector` : −42 dBFS,

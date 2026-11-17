@@ -165,6 +165,13 @@ index (int64 BE), the length (int32 BE), the SHA-256 of the data (32 bytes).
 The piece size is 256 KiB by default (64 KiB – 16 MiB are allowed). The quick identifier = SHA-256(length int64 LE,
 the first MiB, the middle MiB, the last MiB).
 
+The host writes the pieces to a participant no faster than the `transferRate` of its status (bytes per second, bounded
+to 64 KiB/s – 1 GiB/s), in parts of 16 KiB. The participant chooses the rate itself from the round trips of its `ping`
+probes (sent every 0.5 s): the smallest round trip of the last ten minutes is the line, anything above it is a queue,
+and the rate drops as soon as the queue exceeds 80 ms (a delay-based controller in the manner of LEDBAT, RFC 6817). So
+the file never fills the queue of a router in front of the cameras and voices. A participant of an earlier version sends
+no `transferRate` and gets the pieces at the speed of the line.
+
 ## Relay
 
 The stream carries TURN (RFC 5766 in TCP framing) unchanged: the same thing the client would send to the host's

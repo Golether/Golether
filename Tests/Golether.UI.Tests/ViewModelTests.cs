@@ -250,6 +250,94 @@ public sealed class ViewModelTests
     }
 
     /// <summary>
+    /// A camera that stopped (another application took it) is switched off, so the switch and the status the others
+    /// see tell the truth, and the user is told why the own tile shows the avatar.
+    /// </summary>
+    /// <returns>A task that completes when the test is done.</returns>
+    [Fact]
+    public async Task CameraFailed_SwitchesTheCameraOffAndSaysWhy()
+    {
+        var conference = Substitute.For<IConferenceMedia>();
+        conference.GetDevices().Returns([new CaptureDevice("cam", "Камера", CaptureDeviceKind.Camera)]);
+        var viewModel = CreateViewModel(conference);
+
+        conference.CameraFailed += Raise.Event();
+
+        Assert.True(viewModel.CameraOff);
+        conference.Received(1).SetMuted(viewModel.MicrophoneMuted, true);
+        await _dialogs.Received(1).ShowErrorAsync(
+            Golether.Localization.Texts.Get("Main.Error.CameraFailed.Title"),
+            Golether.Localization.Texts.Get("Main.Error.CameraFailed.Text"));
+
+        // A second report of the same failure changes nothing and says nothing again.
+        conference.CameraFailed += Raise.Event();
+        conference.Received(1).SetMuted(Arg.Any<bool>(), Arg.Any<bool>());
+        await _dialogs.Received(1).ShowErrorAsync(Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    /// <summary>
+    /// A computer without any camera is only switched off: it is not told at every session that its camera fails.
+    /// </summary>
+    /// <returns>A task that completes when the test is done.</returns>
+    [Fact]
+    public async Task CameraFailed_WithoutACamera_SwitchesOffSilently()
+    {
+        var conference = Substitute.For<IConferenceMedia>();
+        conference.GetDevices().Returns([new CaptureDevice("mic", "Микрофон", CaptureDeviceKind.Microphone)]);
+        var viewModel = CreateViewModel(conference);
+
+        conference.CameraFailed += Raise.Event();
+
+        Assert.True(viewModel.CameraOff);
+        conference.Received(1).SetMuted(viewModel.MicrophoneMuted, true);
+        await _dialogs.DidNotReceive().ShowErrorAsync(Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    /// <summary>
+    /// A participant whose camera and voice connection broke is marked and the feed says so; when the connection comes
+    /// back the mark goes and the feed says that too. The first connection of a participant who just came is no news.
+    /// </summary>
+    [Fact]
+    public void MediaLinkChanged_MarksTheTileAndTellsTheFeed()
+    {
+        var conference = Substitute.For<IConferenceMedia>();
+        _session.GetSnapshot().Returns(Snapshot(PlayState.Paused, TimeSpan.Zero));
+        var viewModel = CreateViewModel(conference);
+        viewModel.Refresh();
+        var guest = viewModel.Participants.Single(p => p.PeerId == _guest);
+        var events = viewModel.Events.Count;
+
+        conference.MediaLinkChanged += Raise.Event<EventHandler<MediaLinkChange>>(conference, new MediaLinkChange(_guest, MediaLinkState.Connected, WasLost: false));
+        Assert.False(guest.MediaLost);
+        Assert.Equal(events, viewModel.Events.Count);
+
+        conference.MediaLinkChanged += Raise.Event<EventHandler<MediaLinkChange>>(conference, new MediaLinkChange(_guest, MediaLinkState.Lost, WasLost: false));
+        Assert.True(guest.MediaLost);
+        Assert.EndsWith(Golether.Localization.Texts.Format("Main.Event.MediaLinkLost", "Марина"), viewModel.Events[^1], StringComparison.Ordinal);
+
+        conference.MediaLinkChanged += Raise.Event<EventHandler<MediaLinkChange>>(conference, new MediaLinkChange(_guest, MediaLinkState.Connected, WasLost: true));
+        Assert.False(guest.MediaLost);
+        Assert.EndsWith(Golether.Localization.Texts.Format("Main.Event.MediaLinkRestored", "Марина"), viewModel.Events[^1], StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A sound output that does not come back is reported: otherwise the others would go silent without a word.
+    /// </summary>
+    /// <returns>A task that completes when the test is done.</returns>
+    [Fact]
+    public async Task PlaybackFailed_SaysWhy()
+    {
+        var conference = Substitute.For<IConferenceMedia>();
+        CreateViewModel(conference);
+
+        conference.PlaybackFailed += Raise.Event();
+
+        await _dialogs.Received(1).ShowErrorAsync(
+            Golether.Localization.Texts.Get("Main.Error.PlaybackFailed.Title"),
+            Golether.Localization.Texts.Get("Main.Error.PlaybackFailed.Text"));
+    }
+
+    /// <summary>
     /// Participants that left disappear from the list.
     /// </summary>
     [Fact]
@@ -635,9 +723,16 @@ public sealed class ViewModelTests
     /// Creates the view model with the substitutes.
     /// </summary>
     /// <returns>The view model.</returns>
-    private MainWindowViewModel CreateViewModel()
+    private MainWindowViewModel CreateViewModel() => CreateViewModel(new UnavailableConferenceMedia("нет"));
+
+    /// <summary>
+    /// Creates the view model with a conferencing backend.
+    /// </summary>
+    /// <param name="conference">The backend.</param>
+    /// <returns>The view model.</returns>
+    private MainWindowViewModel CreateViewModel(IConferenceMedia conference)
         => new(_session, _dialogs, _settings, new InlineDispatcher(), _ => throw new NotSupportedException(), "A249-B9CC-3AAB-52AC",
-            new UnavailableConferenceMedia("нет"),
+            conference,
             _components);
 
     /// <summary>

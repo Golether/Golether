@@ -274,4 +274,19 @@ public sealed class ValueTypesTests
         Assert.Equal(ordinary, ordinary.Sanitize());
         Assert.Null((ordinary with { Position = null, RoundTripMilliseconds = null }).Sanitize().Position);
     }
+
+    /// <summary>
+    /// The transfer rate a participant asks for is bounded: a tiny one would hold its film for good, and none at all
+    /// (an earlier version) stays none.
+    /// </summary>
+    [Fact]
+    public void ParticipantStatus_SanitizeBoundsTheTransferRate()
+    {
+        var status = new ParticipantStatus { PeerId = Golether.Core.Identity.PeerId.Parse(new string('b', 64)) };
+
+        Assert.Null(status.Sanitize().TransferRate);
+        Assert.Equal(ParticipantStatus.MIN_TRANSFER_RATE, (status with { TransferRate = -1 }).Sanitize().TransferRate);
+        Assert.Equal(ParticipantStatus.MAX_TRANSFER_RATE, (status with { TransferRate = long.MaxValue }).Sanitize().TransferRate);
+        Assert.Equal(2_000_000, (status with { TransferRate = 2_000_000 }).Sanitize().TransferRate);
+    }
 }

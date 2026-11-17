@@ -15,6 +15,7 @@ using Golether.Localization;
 using Golether.Media.Conference;
 using Golether.Media.Streaming.Files;
 using Golether.Media.Streaming.Gallery;
+using Golether.Media.Streaming.Pacing;
 using Golether.Media.Streaming.Protocol;
 using Golether.Security.Admission;
 using Golether.Security.Invites;
@@ -956,7 +957,7 @@ public sealed class HostSession : IAsyncDisposable
             _logger.LogInformation("Media stream of {Peer} opened", stream.RemotePeer.ToShortString());
             try
             {
-                await _chunkServer.ServeAsync(stream.Stream, linked.Token).ConfigureAwait(false);
+                await _chunkServer.ServeAsync(stream.Stream, owner.Pacer, linked.Token).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is IOException or InvalidDataException or OperationCanceledException or ObjectDisposedException)
             {
@@ -1159,6 +1160,7 @@ public sealed class HostSession : IAsyncDisposable
         var connection = new Connection(new ParticipantInfo(peer, name, false), channel, _timeProvider.GetUtcNow())
         {
             SupportsGallery = hello.Gallery,
+            Pacer = new TransferPacer(_timeProvider),
         };
         if (!TryTakePlace(connection, out var previous))
         {
@@ -1466,6 +1468,10 @@ public sealed class HostSession : IAsyncDisposable
             case StatusReportMessage { Status: not null } report:
                 // The numbers go into the arithmetic of the authority and to every participant: they are bounded first.
                 connection.Status = report.Status.Sanitize() with { PeerId = connection.Info.PeerId };
+
+                // The participant measures how much its line takes beside the voices; the pieces go out at that rate
+                // in small parts instead of bursts. An earlier version reports nothing and gets the speed of the line.
+                connection.Pacer.Rate = connection.Status.TransferRate;
                 break;
 
             default:
@@ -2099,6 +2105,11 @@ public sealed class HostSession : IAsyncDisposable
         /// Gets or sets the latest status.
         /// </summary>
         public ParticipantStatus? Status { get; set; }
+
+        /// <summary>
+        /// Gets the pacer of the pieces of the file sent to the participant, at the rate the participant reports.
+        /// </summary>
+        public required TransferPacer Pacer { get; init; }
 
         /// <summary>
         /// Gets the chat limit of the participant.

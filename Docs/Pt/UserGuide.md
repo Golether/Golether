@@ -431,5 +431,7 @@ entrada de desinstalação e o tratamento das ligações de convite. Por isso:
 - **Sem câmaras.** Verifique se o componente “Câmaras e voz” está instalado (ecrã inicial) e se o Windows permite que as
   aplicações usem a câmara e o microfone (“Definições → Privacidade”). Um quadro preto costuma significar uma tampa da
   objetiva fechada.
-- **A outra pessoa ouve-se a si própria.** O cancelamento de eco funciona para o som que o Golether reproduz; uns
-  auscultadores eliminam o problema por completo.
+- **A outra pessoa ouve-se a si própria ou ouve o seu filme.** O cancelamento de eco retira do seu microfone as vozes
+  dos outros e, no Windows e no Linux, também o filme e tudo o resto que as colunas reproduzem; no macOS só as vozes.
+  Colunas muito altas mesmo ao lado do microfone ainda passam um pouco; uns auscultadores eliminam o problema por
+  completo.

@@ -172,6 +172,13 @@ el índice (int64 BE), la longitud (int32 BE), el SHA-256 de los datos (32 bytes
 El tamaño de pieza es 256 KiB por defecto (se permiten de 64 KiB a 16 MiB). El identificador rápido = SHA-256(longitud
 int64 LE, el primer MiB, el MiB del medio, el último MiB).
 
+El anfitrión escribe las piezas a un participante no más rápido que el `transferRate` de su estado (bytes por segundo,
+acotado a 64 KiB/s – 1 GiB/s), en partes de 16 KiB. El participante elige la velocidad por sí mismo a partir de los
+tiempos de ida y vuelta de sus sondas `ping` (cada 0,5 s): el menor de los últimos diez minutos es la línea, todo lo que
+lo supera es una cola, y la velocidad baja en cuanto la cola supera 80 ms (un control basado en el retardo al estilo de
+LEDBAT, RFC 6817). Así el archivo nunca llena la cola de un router delante de las cámaras y las voces. Un participante
+de una versión anterior no envía `transferRate` y recibe las piezas a la velocidad de la línea.
+
 ## Relay
 
 El flujo lleva TURN (RFC 5766 en tramas TCP) sin cambios: lo mismo que el cliente enviaría al puerto del relé del

@@ -35,9 +35,11 @@ public sealed record SessionOptions
     public TimeSpan StatusInterval { get; init; } = TimeSpan.FromSeconds(1);
 
     /// <summary>
-    /// Gets the interval of clock probes after the initial burst (default 2 s).
+    /// Gets the interval of clock probes after the initial burst (default 0.5 s). Their round trips also show how
+    /// long the queue on the line is, and the rate of the file follows it: the probes must be frequent enough to slow
+    /// the file down before the voices start breaking up.
     /// </summary>
-    public TimeSpan ClockProbeInterval { get; init; } = TimeSpan.FromSeconds(2);
+    public TimeSpan ClockProbeInterval { get; init; } = TimeSpan.FromMilliseconds(500);
 
     /// <summary>
     /// Gets the time a peer has to send its hello (default 30 s).

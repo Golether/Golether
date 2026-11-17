@@ -22,6 +22,10 @@ Les messages du chat et les dessins ne sont conservés nulle part : une fois la 
 rapport de diagnostic n'est enregistré que si vous le demandez ; il contient le journal et les réglages, alors
 regardez-le avant de l'envoyer à quelqu'un.
 
+Pour retirer le film de votre voix, Golether sous Windows et Linux écoute ce que jouent vos haut-parleurs pendant une
+session avec caméras et voix. Ce son ne va qu'à l'annuleur d'écho de votre ordinateur : il n'est ni enregistré ni
+envoyé.
+
 ## Ce que reçoivent les autres participants
 
 Les participants de votre séance voient votre nom, votre avatar, votre adresse réseau (une connexion directe en a

@@ -231,6 +231,9 @@ public sealed class MobileServices : IMobileServices
             {
                 RegistryFile = Path.Combine(_platform.CacheDirectory, REGISTRY_FILE),
                 DefaultCamera = _platform.GetCamera,
+
+                // The camera stops whenever the application leaves the screen and comes back with it: no failure.
+                CaptureStallTimeout = TimeSpan.Zero,
             };
             var logger = LoggerFactory.CreateLogger<GStreamerConferenceMedia>();
             _conference = await Task.Run(() => new GStreamerConferenceMedia(options, logger));

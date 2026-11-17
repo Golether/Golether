@@ -10,6 +10,9 @@ internal sealed class TestPipelineSources(IPipelineSources inner) : IPipelineSou
     public string AudioSink => inner.AudioSink;
 
     /// <inheritdoc />
+    public string? EchoReference => inner.EchoReference;
+
+    /// <inheritdoc />
     public string VideoSource(CaptureDevice? camera) => "videotestsrc is-live=true pattern=ball";
 
     /// <inheritdoc />

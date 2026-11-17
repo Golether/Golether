@@ -1404,6 +1404,8 @@ public sealed partial class MainViewModel : ObservableObject, ICameraTiles
         conference.MuteChanged += (_, _) => _dispatcher.Post(ReadDevices);
         conference.MicrophoneFailed += (_, _) => _dispatcher.Post(ReadDevices);
         conference.CameraFailed += (_, _) => _dispatcher.Post(OnCameraFailed);
+        conference.PlaybackFailed += (_, _) => _dispatcher.Post(() => Error = Texts.Get("Main.Error.PlaybackFailed.Title"));
+        conference.MediaLinkChanged += (_, change) => _dispatcher.Post(() => ShowMediaLink(change));
         _conference = conference;
         ConferenceReady?.Invoke(this, conference);
 
@@ -1620,6 +1622,19 @@ public sealed partial class MainViewModel : ObservableObject, ICameraTiles
         if (tile is not null)
         {
             tile.IsSpeaking = change.IsSpeaking && !(tile.IsLocal ? MicrophoneMuted : tile.MicrophoneOff);
+        }
+    }
+
+    /// <summary>
+    /// Marks the tile of a participant whose camera and voice connection broke, and clears the mark when it is back:
+    /// a connection that is being made again must not look like a participant who went silent.
+    /// </summary>
+    /// <param name="change">The change.</param>
+    private void ShowMediaLink(MediaLinkChange change)
+    {
+        if (Participants.FirstOrDefault(p => p.PeerId == change.Peer) is { } tile)
+        {
+            tile.MediaLost = change.State == MediaLinkState.Lost;
         }
     }
 

@@ -169,6 +169,13 @@ lecture), l'indice (int64 BE), la longueur (int32 BE), le SHA-256 des données (
 La taille des morceaux est de 256 Kio par défaut (64 Kio – 16 Mio sont autorisés). L'identifiant rapide =
 SHA-256(longueur int64 LE, le premier Mio, le Mio du milieu, le dernier Mio).
 
+L'hôte écrit les morceaux à un participant pas plus vite que le `transferRate` de son statut (octets par seconde, borné
+à 64 Kio/s – 1 Gio/s), par parties de 16 Kio. Le participant choisit lui-même le débit d'après les allers-retours de ses
+sondes `ping` (toutes les 0,5 s) : le plus petit aller-retour des dix dernières minutes est la ligne, tout ce qui le
+dépasse est une file d'attente, et le débit baisse dès que la file dépasse 80 ms (une régulation fondée sur le délai à
+la manière de LEDBAT, RFC 6817). Ainsi le fichier ne remplit jamais la file d'un routeur devant les caméras et les voix.
+Un participant d'une version antérieure n'envoie pas de `transferRate` et reçoit les morceaux à la vitesse de la ligne.
+
 ## Relay
 
 Le flux transporte du TURN (RFC 5766 en tramage TCP) tel quel : la même chose que ce que le client enverrait au port du

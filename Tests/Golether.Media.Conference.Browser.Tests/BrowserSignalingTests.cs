@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Time.Testing;
+using Golether.Core.Data.Enums;
 using Golether.Core.Identity;
 using Golether.Media.Conference.Browser.Enums;
 
@@ -219,6 +220,33 @@ public sealed class BrowserSignalingTests : IAsyncDisposable
         _time.Advance(TimeSpan.FromSeconds(3));
         Assert.Equal(5, _rtc.Opened.Count);
         Assert.Equal([_bob, _bob, _bob, _bob], _rtc.Closed);
+    }
+
+    /// <summary>
+    /// A connection that comes up, breaks and comes back is reported once per change, the comeback as one; a failure of
+    /// the next attempt while the connection is still lost says nothing new.
+    /// </summary>
+    [Fact]
+    public async Task ConnectionState_IsReportedOncePerChange()
+    {
+        var changes = new List<MediaLinkChange>();
+        _media.MediaLinkChanged += (_, change) => changes.Add(change);
+        await _media.ConnectAsync(_bob, isOfferer: true, CancellationToken.None);
+
+        _media.OnConnectionState(_bob, PeerLinkState.Connected);
+        _media.OnConnectionState(_bob, PeerLinkState.Failed);
+        _time.Advance(TimeSpan.FromSeconds(3));
+        _media.OnConnectionState(_bob, PeerLinkState.Failed);
+        _time.Advance(TimeSpan.FromSeconds(6));
+        _media.OnConnectionState(_bob, PeerLinkState.Connected);
+
+        Assert.Equal(
+            [
+                new MediaLinkChange(_bob, MediaLinkState.Connected, false),
+                new MediaLinkChange(_bob, MediaLinkState.Lost, false),
+                new MediaLinkChange(_bob, MediaLinkState.Connected, true),
+            ],
+            changes);
     }
 
     /// <summary>
